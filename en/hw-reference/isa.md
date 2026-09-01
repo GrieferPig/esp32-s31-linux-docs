@@ -1,48 +1,25 @@
-# ISA Extensions
+# ISA and ABI
 
-## Architecture and compilation policy
+The high-performance cores implement a 32-bit RISC-V architecture. The build
+uses the following explicit ISA groups rather than relying on compiler host
+defaults.
 
-- The HP CPU architecture string is `RV32IMAFBCNSUX`.
-- The Linux kernel ABI uses `ilp32` soft-float and does not treat FPU state as a
-  general kernel calling convention.
-- General userspace targets use
-  `rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs_xesploop`.
-- `xespv2p2` is enabled only for `libesp-simd` and is not part of the global
-  `-march` setting.
-- The current software does not advertise `xespdsp`, `Zcb`, `Zcmp`, or `Zcmt`.
+| Consumer | ISA/ABI contract |
+|---|---|
+| OpenSBI safe path | `rv32imabc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs` |
+| Linux kernel | `rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs`, `ilp32f` |
+| Userspace | same configured ISA set, `ilp32` |
 
-## `libesp-simd`
+Kernel code may use the single-precision floating-point calling convention
+selected by `ilp32f`, while userspace follows the musl `ilp32` toolchain ABI.
+This distinction is intentional and must be preserved when adding assembly,
+external objects, or firmware interfaces.
 
-- The Buildroot option is `BR2_PACKAGE_ESP_SIMD`.
-- The public header is `/usr/include/esp_simd.h`.
-- The shared library is `/usr/lib/libesp-simd.so.1`; applications link it with
-  `-lesp-simd`.
-- The library provides 17 memory/string APIs, `esp_simd_eq_u8x16`, and
-  `esp_simd_add_sat_u8`.
-- `esp_simd_add_sat_u8` performs unsigned saturation with a maximum result of
-  255.
-- The library does not interpose on musl. Applications that do not link it do
-  not execute XespV instructions.
+`zicsr` and `zifencei` are named explicitly. Atomic operations use the
+configured `zaamo` and `zalrsc` capabilities. Bit-manipulation extensions are
+enabled for compiled code but must not be assumed by ROM routines or foreign
+binary payloads unless their own contract states so.
 
-## Runtime constraints
-
-- The library constructor calls `esp_simd_init()` and pins the calling thread
-  to CPU1.
-- Each public entry point performs one-time initialization for a new thread.
-  Pthreads inherit and confirm CPU1 affinity.
-- If affinity cannot be established, every entry point falls back to its scalar
-  libc/C implementation.
-- After successful initialization, the caller must not broaden the thread's
-  affinity.
-- `esp_simd_cpu()` and `esp_simd_active()` report the current selection without
-  changing state.
-
-## Memory semantics
-
-- Vector loads and stores process only aligned, complete 16-byte blocks.
-- Scalar paths handle alignment, tails, terminators, mismatches, and overlapping
-  move boundaries.
-- Composite copy APIs use the same bounded primitives and do not replace native
-  musl symbols.
-- The kernel, OpenSBI, and userspace library manage FP and extension state
-  independently and do not share uncontrolled contexts.
+Do not infer CPU compatibility from ELF class alone. Verify `Tag_RISCV_arch`,
+ABI attributes, relocation type, and the exact toolchain prefix for every
+prebuilt object introduced into the image.

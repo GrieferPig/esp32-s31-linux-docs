@@ -1,49 +1,41 @@
-# Boot and Storage
+# Boot Chain and Storage
 
-## NOR Flash layout
+## Boot sequence
 
-The board contains 16 MiB of NOR Flash. The current slot offsets are defined by
-[`configs/esp32s31-layout.cfg`](../configs/esp32s31-layout.cfg).
+1. ROM selects normal boot or serial download mode and enters U-Boot SPL.
+2. SPL establishes the clock and PSRAM state required by later stages.
+3. U-Boot loads its FIT, including OpenSBI, U-Boot proper, and associated data.
+4. U-Boot supplies the base DTB and kernel command line to OpenSBI.
+5. OpenSBI starts the high-performance harts and enters Linux in S-mode.
+6. Linux executes `xipImage` from NOR and mounts the read-only SquashFS root.
+7. Early userspace mounts persistent storage and optionally loads the separate
+   radio filesystem and device-tree overlays.
+
+OpenSBI writable state is in internal SRAM; its executable and read-only
+sections may remain in the mapped FIT. U-Boot must not overwrite Linux reserved
+memory or hand off an address that conflicts with the XIP window.
+
+## NOR partition layout
 
 | Offset | Artifact | Behavior |
-| ---: | --- | --- |
-| `0x002000` | `spl_app.bin` | U-Boot SPL application image loaded by ROM |
-| `0x100000` | `u-boot.itb` | FIT containing OpenSBI, U-Boot proper, and related data |
-| `0x300000` | `esp32s31_generic.dtb` | Linux base device tree |
-| `0x500000` | `xipImage` | Linux XIP kernel image |
-| `0xB30000` | `persist.jffs2` | 640 KiB persistent writable layer |
-| `0xBD0000` | `rootfs.sqfs` | Read-only SquashFS root filesystem |
+|---:|---|---|
+| `0x002000` | `spl_app.bin` | ROM-loadable SPL application image |
+| `0x100000` | `u-boot.itb` | U-Boot/OpenSBI FIT |
+| `0x300000` | `esp32s31_generic.dtb` | Base Linux device tree |
+| `0x310000` | `radio.sqfs` | Radio payload and redistributable runtime files |
+| `0x500000` | `xipImage` | XIP Linux kernel image |
+| `0xB30000` | `persist.jffs2` | Writable persistent data |
+| `0xBD0000` | `rootfs.sqfs` | Read-only Linux root filesystem |
+| `0x1000000` | end of flash | End of the 16 MiB address space |
 
-The normal full image and `flash-all` omit the persistent slot, so firmware
-updates preserve user configuration. `flash-persist` explicitly initializes
-that slot. A full-chip erase destroys persistent state.
+Normal full-image generation deliberately excludes the persistent partition.
+An update workflow must erase or write `persist.jffs2` only when explicitly
+requested. The canonical values are maintained in
+`configs/esp32s31-layout.cfg` in the parent repository.
 
-## Root filesystem
+## Filesystem behavior
 
-- `rootfs.sqfs` is the immutable lower layer.
-- The persistent partition provides the OverlayFS `upper` and `work`
-  directories.
-- Early userspace mounts the persistent partition in a temporary staging tree
-  and completes `pivot_root`.
-- The staging mount is detached after the root switch, so the running system
-  does not expose a raw `/persist` backend.
-- Applications read and write configuration through standard paths in the
-  merged root. Project policy files reside under `/etc/esp32-conf`.
-
-## Flash access behavior
-
-- NOR Flash normally cannot be read directly while an erase or program
-  operation is in progress.
-- The Flash device used by the current module supports auto-suspend, allowing
-  reads to preempt long erase or program operations.
-- Operations that require ROM Flash services are executed through an OpenSBI
-  proxy in M-mode. The Linux MTD path does not duplicate private ROM calling
-  conventions.
-
-## XIP and external memory
-
-- The cached Flash aperture is `[0x40000000, 0x50000000)`.
-- The cached PSRAM aperture is `[0x50000000, 0x54000000)`.
-- Linux executes XIP text from Flash and keeps writable runtime state in RAM.
-- Before one boot stage hands cached memory to the next, it must satisfy the
-  cache writeback, MMU, PMA/APM, and hart-local state contracts.
+The root filesystem is immutable SquashFS. Persistent state is mounted from
+JFFS2 and overlaid or bind-mounted by early userspace where configured. The
+radio image is separate so payload licensing and update policy do not become
+implicit properties of the root filesystem.

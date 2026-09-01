@@ -1,53 +1,47 @@
 # System Architecture
 
-## Processors and execution domains
+The port runs a 32-bit RISC-V Linux system on the ESP32-S31 high-performance
+cores. Linux uses Sv32 virtual memory, executes the kernel image directly from
+mapped NOR flash, and places writable kernel state and userspace in external
+PSRAM. Internal high-performance SRAM remains reserved for firmware state,
+DMA-visible buffers, interrupt-time stacks, and latency-sensitive services.
 
-- ESP32-S31 contains two high-performance RISC-V harts and one low-power CPU
-  domain.
-- The HP harts implement the `RV32IMAFBCNSUX` architecture baseline. Linux
-  userspace uses the `ilp32` soft-float ABI.
-- Linux runs in S-mode. OpenSBI runs in M-mode and provides boot, HSM, reset,
-  and other services that must remain in M-mode.
-- Runtime Linux SMP IPIs, TLB shootdowns, clock events, and device interrupts
-  use native S-mode paths and are not forwarded through OpenSBI.
+## Component ownership
 
-## Boot chain
+| Component | Primary responsibility |
+|---|---|
+| ROM | Reset entry, immutable chip initialization, serial download mode |
+| U-Boot SPL | Early clocks, pinmux, PSRAM, and loading the U-Boot FIT |
+| OpenSBI | M-mode runtime, hart startup, SBI services, and Linux handoff |
+| U-Boot proper | FIT selection, base DTB, kernel command line, and boot policy |
+| Linux | MMU, SMP, drivers, filesystems, networking, and userspace ABI |
+| Radio payload | Closed radio implementation loaded behind typed Linux APIs |
+| LP firmware | Low-power core mailbox service and sleep coordination |
 
-```text
-ROM -> U-Boot SPL -> FIT(OpenSBI fw_dynamic + U-Boot proper + DTB) -> Linux
-```
+## Address spaces
 
-- SPL initializes early on-chip resources and external memory, then loads the
-  FIT image.
-- OpenSBI establishes the M-mode runtime and provides SBI services to
-  U-Boot/Linux.
-- U-Boot proper obtains the device tree and kernel entry point from the FIT.
-- Linux takes ownership of runtime clocks, resets, pin control, interrupt
-  domains, and peripheral drivers.
-- Runtime device-tree overlays enable variable peripherals without rebuilding
-  the base DTB.
+The kernel must distinguish cached PSRAM, uncached or device mappings, NOR XIP
+addresses, and internal SRAM aliases. A buffer is not DMA-safe merely because
+its virtual address is accessible to the CPU. Drivers use the DMA API and the
+reserved SRAM pools declared by device tree.
 
 ## Resource ownership
 
-| Resource | Owner | Behavior |
-| --- | --- | --- |
-| Boot, HSM, and reset | OpenSBI | Remains within the M-mode service boundary |
-| SMP IPIs and RFENCE | Linux | Native S-mode CLIC doorbells |
-| Per-hart clock events | Linux | SYSTIMER counter1 and targets |
-| Peripheral clocks, resets, and pinmux | Linux | Coordinated by providers, pinctrl, and overlays |
-| Wi-Fi and Bluetooth closures | Linux radio subsystem | Serialized through a controlled S-mode execution path |
-| Persistent configuration | Merged OverlayFS root | Managed under `/etc/esp32-conf` |
+The base device tree contains always-present system blocks. Optional peripheral
+routes are activated through named overlays. The overlay manager rejects
+resource and GPIO conflicts before modifying the live tree. Clock, reset, PMU,
+DMA, interrupt, and pinctrl providers remain the single owners of their
+hardware resources; client drivers request them through Linux frameworks.
 
-## Base device tree and dynamic devices
+## Stable boundaries
 
-- The base device tree is `esp32s31_generic.dtb`.
-- DTBO files for potentially conflicting peripherals are installed under
-  `/usr/lib/s31-overlays`.
-- `/dev/s31-overlay` manages runtime application, conflict detection,
-  replacement, and rollback.
-- Concurrent overlays must not conflict over GPIOs, GPIO-matrix inputs,
-  exclusive controllers, or shared interrupt sources.
+Developer-facing contracts are:
 
-See [Memory and DMA](memory-and-dma.md) and
-[Interrupts and SMP](interrupts-and-smp.md) for the detailed address, DMA, and
-interrupt contracts.
+- standard Linux subsystems and userspace APIs;
+- documented misc-device, sysfs, and module-parameter interfaces;
+- device-tree bindings and overlay metadata;
+- radio core ABI version 3; and
+- LP mailbox ABI version 2.
+
+Addresses, private payload symbols, diagnostic counters, and implementation
+details are not stable unless explicitly identified as a contract.
