@@ -13,8 +13,6 @@ source_suffix = {".md": "markdown"}
 master_doc = "index"
 language = "en"
 exclude_patterns = ["build", "README.md", ".venv", "**/.git"]
-templates_path = ["_templates"]
-html_static_path = ["_static"]
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     "collapse_navigation": False,
