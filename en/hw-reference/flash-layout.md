@@ -16,5 +16,7 @@ The 16 MiB NOR map is shared by packaging and partial-flash targets.
 
 The kernel and rootfs slots are sized by the parent build. Packaging must reject
 an artifact that exceeds its slot rather than truncating or overlapping the
-next partition. Persist is preserved by normal combined-image generation and
-normal `flash-all` behavior.
+next partition. `flash-all` skips the persist slot. Combined-image generation
+does not include a persist filesystem, but flashing the resulting contiguous
+file also writes its padding across that slot; it is not a configuration-
+preserving update method.

@@ -9,4 +9,5 @@ here.
 
 lp-abi-v2
 radio-core-abi-v3
+radio-core-abi-v4
 ```

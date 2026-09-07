@@ -9,6 +9,7 @@ Run builds from the parent repository root.
 ```sh
 make linux
 make rootfs
+make radio-fs
 make radio-package
 make flash-image
 ```
@@ -17,6 +18,12 @@ make flash-image
 root filesystem, and flash image. `JOBS` controls parallelism. The default
 kernel configuration is `esp32s31_defconfig`, and the default kernel artifact
 is `xipImage`.
+
+The default lean radio profile removes optional peripherals. Prefix the build
+commands with `S31_LEAN_RADIO=0` to include I2C, SPI target and I2S. See
+[build profiles](build-profiles.md). `radio-fs` packs the module and payload in
+`radio.sqfs`; `radio-package` produces the redistribution archive from that
+staging tree.
 
 ## Output directory
 
