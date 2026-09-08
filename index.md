@@ -42,13 +42,6 @@ en/contribute/index
 
 ```{toctree}
 :maxdepth: 2
-:caption: Migration Guides
-
-en/migration-guides/index
-```
-
-```{toctree}
-:maxdepth: 2
 :caption: Resources
 
 en/resources/index

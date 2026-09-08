@@ -8,7 +8,7 @@ health; typed frontends expose Wi-Fi and Bluetooth to standard Linux stacks.
 ```text
 cfg80211/netdev       Bluetooth HCI or direct H4
        |                       |
-       +------ typed ABI v4 ---+
+       +------ typed ABI v1 ---+
                    |
              radio core
           /        |        \

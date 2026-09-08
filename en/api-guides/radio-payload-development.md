@@ -10,7 +10,8 @@ When changing the payload:
 2. regenerate and review the import allowlist;
 3. confirm link regions fit the reserved radio SRAM layout;
 4. update loader relocation and validation only when the format changes;
-5. preserve typed radio ABI v4 and payload ABI v2 or add a documented migration;
+5. preserve typed radio ABI v1 and payload ABI v1, incrementing them together
+   when an incompatible contract is introduced;
 6. update the radio SquashFS package and legal manifest; and
 7. verify Wi-Fi, HCI, coexistence, queue backpressure, and unload/error paths.
 

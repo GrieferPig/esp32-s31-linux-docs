@@ -40,8 +40,8 @@ Developer-facing contracts are:
 - standard Linux subsystems and userspace APIs;
 - documented misc-device, sysfs, and module-parameter interfaces;
 - device-tree bindings and overlay metadata;
-- radio core ABI version 4 (payload ABI version 2); and
-- LP mailbox ABI version 2.
+- radio core ABI version 1 (payload ABI version 1); and
+- LP mailbox ABI version 1.
 
 Addresses, private payload symbols, diagnostic counters, and implementation
 details are not stable unless explicitly identified as a contract.

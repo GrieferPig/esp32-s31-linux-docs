@@ -58,7 +58,7 @@ interval, and GDMA interrupt progress without an RCU stall or lockup.
 
 ## LP firmware and sleep protocol
 
-The LP core is managed by remoteproc and uses mailbox ABI version 2. Before
+The LP core is managed by remoteproc and uses mailbox ABI version 1. Before
 starting it, the driver grants REE access to the LP system-register,
 peripheral-clock/reset, IOMUX, and mailbox PMS windows used by the firmware.
 The last KiB of LP SRAM contains a CRC-protected sleep-control structure. Linux
@@ -177,7 +177,7 @@ mandatory as a recovery bound. A combined inactive-GPIO/timer descriptor has
 completed powered suspend with a timer-only wake reason; an external transition
 still requires fixture validation.
 
-This path remains experimental. With radio core ABI v4 and payload ABI v2,
+This path remains experimental. With radio core ABI v1 and payload ABI v1,
 the PM callback detaches the frontends, shuts down the firmware runtime and
 releases its power vote. Resume restores pristine firmware data, restarts the
 runtime and replays retained monitor and committed enterprise configuration. The

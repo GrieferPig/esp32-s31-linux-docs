@@ -18,7 +18,7 @@ the documented sleep-control block.
 | remoteproc `firmware` | read/write | Standard remoteproc firmware selection |
 | remoteproc `state` | read/write | Standard start/stop control |
 
-## Mailbox ABI version 2
+## Mailbox ABI version 1
 
 The upper 16 bits identify a command or response and the lower 16 bits carry a
 sequence number. Defined operations are READY, PING/PONG, STATUS, SLEEP_PREPARE,

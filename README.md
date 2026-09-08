@@ -4,6 +4,9 @@ This repository contains the English developer documentation for the
 ESP32-S31 Linux port. It is included by the main `s31linux` repository as the
 `docs` submodule.
 
+The rendered programming guide is published at
+<https://grieferpig.github.io/esp32-s31-linux-docs/>.
+
 The documentation describes stable software and hardware behavior. It does
 not preserve test logs, workstation-specific paths, device identifiers, or
 one-off validation results.

@@ -8,7 +8,7 @@ architecture
 
 ## Core ABI
 
-`ESP32S31_RADIO_CORE_ABI_VERSION` is **4** (payload ABI **2**). The public kernel header exposes:
+`ESP32S31_RADIO_CORE_ABI_VERSION` is **1** (payload ABI **1**). The public kernel header exposes:
 
 - a stable radio state and health snapshot;
 - HCI registration, bounded send/dequeue, peek/consume, purge, and flow checks;
@@ -16,9 +16,8 @@ architecture
   bounded access-point result structures; and
 - explicit Bluetooth enable and disable operations.
 
-Version 4 also adds interface-specific AP/monitor traffic, AP station events,
-bounded Wi-Fi control requests and frontend restart hooks. See the
-[ABI migration](../../migration-guides/radio-core-abi-v4.md) and
+The current ABI includes interface-specific AP/monitor traffic, AP station
+events, bounded Wi-Fi control requests and frontend restart hooks. See the
 [advanced mode guide](../../api-guides/wifi-advanced.md).
 
 Maximum typed frame sizes are 1,029 bytes for HCI and 1,600 bytes for Wi-Fi.

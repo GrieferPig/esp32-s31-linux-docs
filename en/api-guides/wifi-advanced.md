@@ -99,7 +99,7 @@ copy for suspend recovery and wipes it on clear/unload.
 
 ## Suspend and remaining boundaries
 
-With matching core ABI v4 and payload ABI v2, system suspend detaches netdevs,
+With matching core ABI v1 and payload ABI v1, system suspend detaches netdevs,
 quiesces radio tasks/IRQs/DMA, and releases the radio power vote. Resume resets
 the firmware and replays retained monitor and committed EAP configuration.
 Normal cfg80211 suspend stops the AP and clears its configuration before this
