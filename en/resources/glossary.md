@@ -14,4 +14,4 @@
 | Payload | External radio implementation loaded by the S31 radio loader |
 | H4 | Bluetooth UART-style packet framing used by the direct HCI device |
 | HIL | Hardware-in-the-loop framework using a host and optional P4 peer |
-| Persist | Writable JFFS2 partition preserved by normal image updates |
+| Persist | Writable JFFS2 partition preserved by slot-wise updates, but not by writing the contiguous full image |

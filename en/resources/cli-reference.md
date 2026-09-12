@@ -18,12 +18,14 @@ s31-overlay remove NAME | --all
 s31-lpctl status
 s31-lpctl ping
 s31-lpctl sleep-test <10..5000 ms>
+s31-lpctl gpio-test <0..7> <low|high> [none|up|down] [10..5000 ms]
 s31-lpctl send <u32>
 s31-lpctl recv
 ```
 
-`sleep-test` is bounded and does not imply support for every Linux suspend
-state. Raw send/receive is intended for ABI development and diagnostics.
+`sleep-test` and `gpio-test` are bounded dry-run protocol checks and do not
+prove that a powered-down HP domain can wake. Raw send/receive is intended for
+ABI development and diagnostics.
 
 ## `s31-selftest`
 
@@ -40,6 +42,7 @@ absence of required traffic from an informational condition into a failure.
 ```text
 s31-hil-agent --case firmware|peer|sdmmc|ethernet|usb-drive|mtd|lp-core|smp-irq-dma|all
 s31-modload MODULE.ko [PARAM=VALUE ...]
+s31-modload --remove MODULE_NAME
 s31-hil-io uart DEVICE BAUD LENGTH
 ```
 

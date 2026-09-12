@@ -29,6 +29,34 @@ irqchip does not by itself imply that timer or IPI paths are operational.
 - CPU hotplug is constrained by platform interrupt and timer ownership; code
   must not assume that arbitrary firmware can start or stop a hart.
 
+## Shared atomic state
+
+The S31 architecture implementation keeps atomic initialization, relaxed
+reads and writes, and acquire/release reads and writes on the same AMO path.
+The generic native-word acquire/release fallback bypasses these architecture
+overrides, so S31 provides explicit ordered accessors too. Drivers should
+use the Linux atomic API and must not poll or assign `atomic_t.counter`
+directly. Dynamically allocated IPI masks are explicitly initialized with
+`atomic_set()` before enabling any virtual IPI.
+
+Runtime remote TLB and instruction-cache flushes use the native S-mode IPI
+path. An advertised SBI RFENCE extension alone does not prove that this
+firmware has a working machine-level IPI backend. CALL_FUNC callbacks also
+carry scheduler work and must not be dispatched from a raw-spinlock wait.
+
+## SBI return boundary
+
+S31's cross-privilege return can leave CLIC SIL at its `0xff` sentinel and
+block pending native interrupts while a hart is busy. The common SBI call
+and the direct `noinstr` WFI call use one shared assembly sequence. It disables
+IRQs, preserves `sstatus`, `sepc`, `scause` and SBI results, then restores a
+zero-priority S-mode boundary through `sret` before restoring the caller's
+trap state. The WFI wrapper still returns with IRQs disabled as required by
+CPUIdle. Other RISC-V platforms keep the ordinary `ecall` sequence.
+
+The IRQ-enabled idle polling fallback remains available. This return boundary
+does not make CALL_FUNC dispatch safe while holding or acquiring a raw lock.
+
 ## DMA completion
 
 AHB and AXI GDMA engines signal completion through normal Linux IRQ handlers.

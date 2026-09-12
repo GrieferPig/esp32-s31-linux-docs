@@ -12,12 +12,15 @@
 | AXI GDMA descriptors | `0x2F072380` | 12 KiB | AXI DMA engine |
 | AHB GDMA descriptors | `0x2F075380` | 4 KiB | AHB DMA engine |
 | USB local state | `0x2F076380` | 64 B | USB driver reservation |
-| Hart-1 mailbox | `0x2F0763A0` | implementation-sized | SMP startup/coordination |
 | UART DMA | `0x2F076400` | 10 KiB | UART DMA rings |
 | Radio high heap | `0x2F078C00` | `0x2F07CFB0` | Non-contiguous secondary radio pool |
 | LP SRAM | `0x2E000000` | 32 KiB | LP firmware; final KiB is protocol control |
 
-The canonical definitions live in `shared/s31_memory_layout.h`. Documentation
+The SRAM contract lives in `shared/s31_memory_layout.h`. `make check-layout`
+checks it against driver constants, DTS reservations, kernel link placement,
+and the OpenSBI writable base. It also checks flash partitions against
+`configs/esp32s31-layout.cfg`. The old mailbox address within USB local SRAM
+is retired and must not be allocated. Documentation
 must describe ownership and constraints without copying historical debugging
 notes from that header.
 

@@ -16,6 +16,7 @@ Runtime `mode=wifi` is distinct from a firmware built without Bluetooth.
 | BTstack optimized | Selects the configured optimization policy for BTstack objects |
 
 Profiles do not change the fixed flash offsets. A profile that removes a module
-must also remove or disable dependent services and overlays. Release metadata
-must state which profile produced an image and include the corresponding legal
-manifest.
+must also remove or disable dependent services and overlays. The current
+release workflow explicitly sets `S31_LEAN_RADIO=0` and publishes the full
+flash image, six slot images, a manifest and checksums. A separately distributed radio package carries its own manifest
+and license material.

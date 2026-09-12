@@ -50,10 +50,33 @@ do not guarantee external association, GATT discovery, or RF performance.
 
 ## Direct H4 device
 
-With `direct_hci=1`, `/dev/s31-hci` carries bounded H4 frames. Each operation
-contains one H4 packet type followed by its packet bytes. Callers must preserve
-packet boundaries, obey the maximum frame length, handle backpressure, and
-close the device before switching to a kernel Bluetooth frontend.
+With `direct_hci=1`, `/dev/s31-hci` has one exclusive opener. Opening enables
+the Bluetooth controller; another opener or a suspended device returns `EBUSY`.
+Closing unregisters the host and purges queued packets but leaves the controller
+enabled until radio shutdown.
+
+Each write supplies one H4 packet type followed by its packet bytes (2–1029
+bytes total). Invalid size returns `EMSGSIZE`; suspend or queue backpressure
+can return `EAGAIN`. A successful write returns the complete record length.
+
+Read format depends on the requested buffer size:
+
+- At most 1029 bytes requests one unprefixed H4 frame.
+- More than 1029 bytes requests a batch of up to eight records. Each record
+  starts with a two-byte little-endian length followed by that many H4 bytes.
+  Do not parse this mode as an ordinary concatenated H4 stream.
+
+A buffer too small for the next complete record returns `EMSGSIZE` without
+consuming that record (or returns the preceding complete records in a batch).
+An empty nonblocking read returns `EAGAIN`; a blocking reader waits for RX,
+suspend or a controller reset notification. Suspend returns `EAGAIN`; resume
+can deliver a Hardware Error event requiring host reinitialization.
+`poll()` exposes readable RX/reset events and available TX capacity; suspended
+state reports no readiness. Seek operations are unsupported.
+
+The owning implementation is
+[`hci_esp32s31.c`](https://github.com/GrieferPig/linux-esp32-s31/blob/feature/s31-radio-bt-6.18/drivers/bluetooth/hci_esp32s31.c).
+These framing rules are private port ABI, distinct from normal Bluetooth sockets.
 
 ## Wi-Fi behavior
 

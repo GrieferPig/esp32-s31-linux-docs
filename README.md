@@ -24,4 +24,4 @@ The generated site is written to `build/html/index.html`. Run `make linkcheck`
 to validate external and internal links.
 
 The boot image used by the parent repository is intentionally kept at
-`bootlog.png`; the parent README references that exact path.
+`bootlog.png`; the parent README references its raw URL in this repository.

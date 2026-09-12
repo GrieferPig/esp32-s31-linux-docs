@@ -10,7 +10,7 @@ must be documented at the layer that owns it.
 | Boot | FIT, DTB, kernel command line | XIP address, console, root filesystem |
 | Hardware selection | Device-tree overlays | Peripheral instance, route, pins, parameters |
 | Module load | Module parameters | Radio firmware, mode, direct HCI |
-| Runtime | sysfs, configfs, standard Linux APIs | PM policy, remoteproc, overlay state |
+| Runtime | sysfs, `/dev/s31-overlay`, standard Linux APIs | PM policy, remoteproc, overlay state |
 | Persistent policy | `esp32-config` data | Enabled services and boot-time selections |
 
 ## Precedence
@@ -32,3 +32,5 @@ history, or release metadata. Examples use descriptive placeholders.
 Generated tables in this guide are convenience indexes. Kconfig, YAML binding
 schemas, shared ABI headers, the flash-layout configuration, and the actual
 tool usage strings remain authoritative for accepted values.
+
+See [esp32-config](esp32-config.md) for commands, persistent files and recovery.

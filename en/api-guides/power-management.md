@@ -52,9 +52,8 @@ timekeeping remain on the per-hart 16 MHz SYSTIMER targets.
 The GPTimer Counter binding carries an `espressif,reserved-timer-mask` property.
 The base S31 device tree reserves channel 1 in both timer groups, so an enabled
 GPTimer overlay exposes only `timer0` to Linux and cannot overwrite the idle
-guards. Board validation covers both harts idling concurrently, pinned timer
-wakeups, CPU1 hotplug cycles, cross-hart load, a 40-second unattended idle
-interval, and GDMA interrupt progress without an RCU stall or lockup.
+guards. Validate concurrent idle, pinned timer wakeups, CPU1 hotplug, cross-hart load
+and GDMA interrupt progress on each changed firmware/kernel pair.
 
 ## LP firmware and sleep protocol
 
@@ -65,7 +64,8 @@ The last KiB of LP SRAM contains a CRC-protected sleep-control structure. Linux
 performs the following transaction:
 
 1. `PREPARE` validates ABI, sequence, CRC, wake mask, and deadline.
-2. `ARM` records the LP cycle counter and starts the selected wake source.
+2. `ARM` validates and configures the selected wake source; the MEM timer starts
+   when OpenSBI publishes `HP_ASLEEP`.
 3. `QUERY` returns state, result, wake reason, and timestamps.
 4. `RECLAIM` returns ownership to Linux; failures use `ABORT`.
 
@@ -74,8 +74,11 @@ level changes the record while it is being copied. The CRC still rejects a
 record that never reaches a stable state.
 
 The powered-suspend timer uses RTC target 1 and converts microseconds with the
-current RTC slow-clock calibration. The target and interrupt remain in the
-always-on LP domain while the HP clock classes are gated.
+current RTC slow-clock calibration. For suspend-to-RAM, the LP firmware starts
+the requested interval only after OpenSBI publishes `HP_ASLEEP`; time spent
+quiescing Linux devices does not consume the sleep interval. The target and
+interrupt remain in the always-on LP domain while the HP clock classes are
+gated.
 
 Handshake, timer wake, GPIO wake, wake-log, and retention-descriptor
 capabilities are advertised.
@@ -145,20 +148,16 @@ echo 2000 > /sys/module/esp32s31_lp/parameters/mem_wake_ms
 echo mem > /sys/power/state
 ```
 
-The timer accepts 10 through 600000 ms. Board validation currently covers a
-10-second cycle, ten repeated 1-second cycles with both CPUs returning online,
-and a 128 KiB tmpfs buffer retaining its checksum over a 5-second cycle. The
-always-on RTC persistent clock advances suspend time. These tests demonstrate
-logical clock/power transitions and memory integrity; they are not a current
-measurement.
+The timer accepts 10 through 600000 ms. The LP firmware reclaims the retained
+descriptor after resume, allowing repeated timer- and GPIO-driven cycles
+without a board power cycle. Verify repeated cycles, retained RAM checksums and both online HP harts
+using the build identity of the image under test.
 
 The S31 DWC2 platform path masks its level interrupt and powers off the
 controller/UTMI PHY before APPWR removes the HP logic domains. Resume treats the
 lost context as a cold controller recovery and lets USB reset the connected
-port. Board validation covers ten repeated 1-second cycles with a connected
-high-speed mass-storage device; `/dev/sda` remained available and its first
-4 KiB checksum was unchanged after every cycle. This validates read-side
-recovery, not mounted-filesystem writes or every USB device class.
+port. An attached USB drive requires enumeration and bounded readback checks
+after every resume.
 
 An optional LP GPIO0-7 level can be armed alongside the mandatory timeout:
 
@@ -173,26 +172,25 @@ echo mem > /sys/power/state
 `mem_gpio_pull` is 0 for none, 1 for pull-up, or 2 for pull-down. The LP
 firmware rejects a level that is already active while arming, and begins
 powered GPIO polling only after OpenSBI publishes `HP_ASLEEP`. The timer remains
-mandatory as a recovery bound. A combined inactive-GPIO/timer descriptor has
-completed powered suspend with a timer-only wake reason; an external transition
-still requires fixture validation.
+mandatory as a recovery bound. The fixture must prove wire continuity, reject an already-active level,
+verify GPIO wake reason `0x2`, preserve RAM/USB readback and release the pad
+to high-Z afterward.
 
-This path remains experimental. With radio core ABI v1 and payload ABI v1,
+The radio restart path remains experimental. With radio core ABI v1 and payload ABI v1,
 the PM callback detaches the frontends, shuts down the firmware runtime and
 releases its power vote. Resume restores pristine firmware data, restarts the
 runtime and replays retained monitor and committed enterprise configuration. The
 direct HCI endpoint emits a Hardware Error event to restart the host state
 machine. Wireless connections must be established again by userspace; they
 are not retained through sleep. This removes the unconditional loaded-radio
-`-EBUSY` restriction. Three Wi-Fi-only timer-wake cycles have preserved RAM,
-the boot identity and both harts, followed by reassociation and exact UDP data
-checks. AP service needs an explicit userspace restart because cfg80211 stops
-it during suspend. BTstack now discards stale connections, recomputes
+`-EBUSY` restriction. Acceptance requires userspace reassociation and exact bidirectional traffic
+after each radio-enabled suspend cycle.
+AP service needs an
+explicit userspace restart because cfg80211 stops it during suspend. BTstack
+discards stale connections, recomputes
 advertising eligibility and re-enters HCI initialization after the controller
-reset event. Three connected BLE suspend cycles preserved Linux, both harts
-and the original BTstack process; the C6 peer rediscovered GATT, read its
-characteristic and reconnected after every wake. The old over-air connection
-is lost during sleep. Combo recovery remains unverified.
+reset event. The old over-air connection is lost during sleep. BLE and combo
+radio recovery still require a fresh board acceptance run.
 A failed restart leaves interfaces detached. LP-UART and WoWLAN
 packet wake remain unimplemented.
 
@@ -208,8 +206,8 @@ again. It does not disconnect the board's external power supply.
 
 If an untimed shutdown cannot satisfy the PMU prerequisites, OpenSBI halts
 instead of intentionally rebooting. This fallback does not prove low current.
-Board validation reached the untimed PMU request, observed 50 seconds without
-an automatic boot, and recovered through external reset. Board current has
+Verify the untimed PMU request, a bounded observation without automatic
+restart, and recovery through external reset. Board current has
 not been measured. Deploy the matching
 OpenSBI/U-Boot image as well as Linux to use this behavior.
 
@@ -220,9 +218,9 @@ Linux suspend state. Read its current state at the LP remoteproc device and arm
 a timer in milliseconds by writing the same attribute:
 
 ```sh
-lpdev=$(dirname "$(find /sys/bus/platform/devices -name deep_sleep | head -n1)")
-cat "$lpdev/deep_sleep"
-echo 4000 > "$lpdev/deep_sleep"
+deep_sleep=$(ls /sys/bus/platform/devices/*/deep_sleep)
+cat "$deep_sleep"
+echo 4000 > "$deep_sleep"
 ```
 
 The accepted interval is 1000 through 600000 ms. Writing it prepares and arms
@@ -242,10 +240,13 @@ cycle and timer wake reason after Linux returns:
 armed=0 previous=1 wake_reason=0x1
 ```
 
-Board validation covers 3, 4, and 5 second cycles and confirms both HP harts
-online after the cold boot. This is non-retentive: kernel and userspace state is
+Verify the deep-reset reason, both HP harts and persistent filesystem
+health after cold boot. This is non-retentive: kernel and userspace state is
 lost, unlike suspend-to-RAM. GPIO wake, selective retained memory, and power
 measurements remain outside the implemented boundary. Existing NOR
 program/JFFS2 failures can independently delay or prevent userspace startup
 after any reset; deep-reset and early SMP logs may still have completed in that
 case.
+
+Historical observations do not certify the current checkout. Retain new
+acceptance records locally with source and image identity.

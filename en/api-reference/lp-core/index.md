@@ -47,3 +47,25 @@ transition.
 The current Linux integration uses the LP protocol for bounded sleep
 coordination. Deep power-state support remains limited by platform clock,
 domain, memory-retention, and wake restoration implementations.
+
+## Raw mailbox I/O
+
+`/dev/s31-lp` transfers native little-endian 32-bit mailbox words. A write must
+be exactly four bytes; a read requires at least four bytes and returns one
+word. Other sizes return `EINVAL`. With `O_NONBLOCK`, an empty RX queue returns
+`EAGAIN`; otherwise reads wait interruptibly. Concurrent readers share the RX
+queue, so a word consumed by one reader is not broadcast to the others.
+`poll()` always advertises write readiness and adds read readiness while the
+RX queue is nonempty. Write readiness is not proof of an LP response.
+
+The `ping` sysfs read reports `ready` and `rtt_us`; writing it triggers a new
+sequenced PING/PONG exchange and can return `ETIMEDOUT`. `tx_message` submits a
+raw word. Use `s31-lpctl` for bounded sleep/GPIO transactions, because a raw
+mailbox write alone does not construct or validate the shared sleep descriptor.
+See [power management](../../api-guides/power-management.md) for accepted timer,
+GPIO and deep-sleep settings and their side effects.
+
+Implementation owners are
+[`esp32s31_lp.c`](https://github.com/GrieferPig/linux-esp32-s31/blob/feature/s31-radio-bt-6.18/drivers/remoteproc/esp32s31_lp.c)
+and the parent repository's `shared/s31_lp_protocol.h`. Public command/response
+values and CRC layout must change together across Linux, OpenSBI and LP firmware.

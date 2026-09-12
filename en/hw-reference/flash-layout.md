@@ -10,6 +10,7 @@ The 16 MiB NOR map is shared by packaging and partial-flash targets.
 0x310000  radio SquashFS
 0x500000  Linux xipImage
 0xB30000  persistent JFFS2
+0xBC0000  HIL scratch (64 KiB)
 0xBD0000  root SquashFS
 0x1000000 end
 ```
@@ -20,3 +21,6 @@ next partition. `flash-all` skips the persist slot. Combined-image generation
 does not include a persist filesystem, but flashing the resulting contiguous
 file also writes its padding across that slot; it is not a configuration-
 preserving update method.
+
+Persist occupies 576 KiB from `0xB30000` to `0xBC0000`; HIL scratch is
+a separate 64 KiB partition. Slot-wise updates preserve both.

@@ -14,7 +14,7 @@ optional instances, pins, routes, and mutually exclusive modes.
 | TWAI | SocketCAN | Two independently routed controller instances |
 | SD/MMC | MMC block layer | Controller, bus width, voltage, and shared pins are overlay policy |
 | GMAC | netdev/phylib | External PHY wiring is board-specific |
-| USB | gadget/UDC | Device-mode overlay owns the selected USB route |
+| USB | DWC2 host/mass storage and gadget/UDC | Device-mode overlay takes the route from the default host controller |
 | GDMA | DMAengine | Internal descriptor SRAM and cache transitions are mandatory |
 | GPTimer/SYSTIMER | clocksource/clockevent/counter | System timekeeping resources cannot be reassigned |
 | LEDC/MCPWM/SDM | PWM/counter frameworks | Channel and output routes are finite shared resources |
@@ -25,7 +25,7 @@ optional instances, pins, routes, and mutually exclusive modes.
 
 ## Overlay activation
 
-Use `s31-overlay` rather than writing directly to configfs. The manager applies
+Use `s31-overlay`, which submits DTBOs through `/dev/s31-overlay`. The manager applies
 resource claims atomically, validates routes and parameters, records the live
 overlay ID, and can restore persistent selections during boot. See the
 [overlay catalog](../../resources/overlay-catalog.md) for names and conflicts.

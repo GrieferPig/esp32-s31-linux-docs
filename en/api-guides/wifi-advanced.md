@@ -4,8 +4,8 @@ The integrated fullmac frontend supports a station, one AP and one receive-only
 monitor interface on a single 2.4 GHz channel. AP and station traffic use
 separate Ethernet paths. The firmware owns authentication and encryption;
 Linux reports AP client join/leave events and can deauthenticate clients.
-These interfaces are implemented and build-checked; board interoperability,
-throughput, coexistence and suspend/reconnect acceptance are still pending.
+These interfaces are implemented; RF interoperability and recovery require
+versioned board acceptance for the selected image and fixture.
 
 ## Access point and concurrent station
 
@@ -21,7 +21,8 @@ PMK, or WPA3-SAE with a password, using CCMP. WPA3 requires PMF. The manager mus
 support firmware authentication offload and supply the key in the AP-start
 request. AP key installation through a subsequent `add_key` call is not the
 implemented contract. Mixed WPA2/WPA3 transition mode and AP-side enterprise
-authentication are not supported. Hostapd interoperability is not yet verified.
+authentication are not supported. Hostapd 2.11 interoperability is verified
+for an open AP; protected AP modes remain unverified.
 There are at most four clients. Beacon intervals are 100–60000 TU and DTIM
 periods are 1–10; only 20 MHz channels are accepted.
 
@@ -30,10 +31,10 @@ firmware and disconnects an existing station connection. In AP+STA mode the
 station's channel wins; Linux reports the AP channel change. IP addressing,
 DHCP service, forwarding and firewall rules are userspace responsibilities.
 
-Open AP+STA operation has passed a same-channel peer test with both links
-associated and 256 exact 1472-byte UDP echoes on each interface. The two data
-phases ran sequentially; this does not establish simultaneous throughput,
-protected AP interoperability or automatic AP recovery after suspend.
+For AP+STA acceptance, exercise both interfaces concurrently and check exact
+bidirectional payloads and retain a local acceptance record with image identity.
+Protected AP interoperability, extended throughput and automatic AP recovery
+after suspend require separate acceptance.
 
 ## Monitor reception
 
@@ -48,7 +49,8 @@ Received management/data frames carry a radiotap header with channel, RSSI and
 the FCS-present flag. Control frames and injection are not supported. Channel
 changes are rejected while a station is connected/connecting or an AP is
 active, since the radio has only one channel. Capture follows that channel in
-concurrent operation. Remove the interface with `iw dev mon0 del`.
+concurrent operation. Remove the interface with `iw dev mon0 del`. Monitor
+capture requires a versioned board acceptance record.
 
 ## Enterprise station provisioning
 

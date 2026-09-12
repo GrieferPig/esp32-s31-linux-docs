@@ -7,11 +7,9 @@ Run builds from the parent repository root.
 ## Integrated build
 
 ```sh
-make linux
-make rootfs
-make radio-fs
-make radio-package
-make flash-image
+make S31_LEAN_RADIO=0 all
+# Optional redistribution bundle, with its own license/permission boundary:
+make S31_LEAN_RADIO=0 radio-package
 ```
 
 `make all` resolves the toolchain and builds the normal boot chain, kernel,
@@ -38,7 +36,7 @@ Generated artifacts are under `build/`:
 | `rootfs.sqfs` | Immutable root filesystem |
 | `persist.jffs2` | Optional persistent filesystem image |
 | `radio.sqfs` | Separately packaged radio runtime |
-| `s31_full_flash.bin` | Combined non-persistent flash image |
+| `s31_full_flash.bin` | Combined image with no persist payload; its padding still overwrites persist when written contiguously |
 
 ## Component builds
 
