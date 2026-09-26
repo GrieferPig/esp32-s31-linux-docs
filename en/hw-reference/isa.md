@@ -26,7 +26,7 @@ Use the project's Linux toolchain for applications and libraries. See
 
 Espressif's XespV instructions are available through `libesp-simd`.
 The library initializer sets CPU affinity to HP core 1 before using those
-instructions. See [TODO: add documentation for `libesp-simd` usage]().
+instructions. Usage guidance for `libesp-simd` is not yet documented.
 
 > Note: On the S31, only HP core 1 can execute `XespV` instructions.
 

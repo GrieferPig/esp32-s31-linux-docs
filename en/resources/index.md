@@ -7,6 +7,7 @@ Look up commands, build options, peripheral overlays, and feature availability.
 
 cli-reference
 configuration
+esp32-config
 make-reference
 overlay-catalog
 support-matrix

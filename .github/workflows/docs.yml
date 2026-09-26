@@ -12,8 +12,8 @@ jobs:
   sphinx:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@main
+      - uses: actions/setup-python@main
         with:
           python-version: "3.12"
           cache: pip
@@ -28,10 +28,10 @@ jobs:
           ! grep -RInE '/home/[^/]+|[[:xdigit:]]{2}(:[[:xdigit:]]{2}){5}' --include='*.md' .
       - name: Configure GitHub Pages
         if: github.event_name == 'push'
-        uses: actions/configure-pages@v6
+        uses: actions/configure-pages@main
       - name: Upload GitHub Pages artifact
         if: github.event_name == 'push'
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@main
         with:
           path: build/html
 
@@ -51,4 +51,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@main
