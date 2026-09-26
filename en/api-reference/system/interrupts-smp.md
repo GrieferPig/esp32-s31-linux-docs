@@ -1,65 +1,46 @@
 # Interrupts and SMP
 
-ESP32-S31 uses a Core-Local Interrupt Controller rather than a RISC-V PLIC.
-Each high-performance hart has local interrupt state; Linux programs routing,
-priority, enable, and threshold through the S31 CLIC irqchip implementation.
+The ESP32-S31 uses a Core-Local Interrupt Controller (CLIC) on each HP core.
+The interrupt matrix routes peripheral events to these controllers. Linux
+initializes each core's interrupt state as the core starts.
 
-## Interrupt classes
+## Timers and inter-processor interrupts
 
-| Class | Linux role |
-|---|---|
-| Local timer interrupt | Scheduler tick and timekeeping events |
-| Software interrupt | Inter-processor interrupts and hart wake-up |
-| Peripheral interrupt | Device events routed through the interrupt matrix |
-| Radio interrupt | Latency-sensitive notification to the radio core |
+SYSTIMER provides Linux timekeeping and per-CPU timer events. Software
+interrupts let one CPU request work from the other, including scheduler and
+wakeup operations.
 
-The SYSTIMER driver supplies the clocksource and per-CPU clock-event behavior.
-Interrupt delivery and timekeeping are separate contracts: a registered
-irqchip does not by itself imply that timer or IPI paths are operational.
+The radio runtime and its interrupts run on HP core 0. Other drivers use the
+Linux IRQ interfaces to request interrupts and set affinity.
 
-## SMP rules
+## Inspect interrupt activity
 
-- Per-CPU CLIC state is initialized when each hart starts.
-- Drivers must use Linux affinity and IRQ APIs instead of programming routing
-  registers directly.
-- Cross-hart state requires normal kernel synchronization even when the
-  underlying MMIO is shared.
-- Hard-IRQ callbacks must not sleep. Radio and DMA paths copy bounded state and
-  defer processing to worker or NAPI context.
-- CPU hotplug is constrained by platform interrupt and timer ownership; code
-  must not assume that arbitrary firmware can start or stop a hart.
+On the board, run:
 
-## Shared atomic state
+```sh
+cat /sys/devices/system/cpu/online
+cat /proc/interrupts
+```
 
-The S31 architecture implementation keeps atomic initialization, relaxed
-reads and writes, and acquire/release reads and writes on the same AMO path.
-The generic native-word acquire/release fallback bypasses these architecture
-overrides, so S31 provides explicit ordered accessors too. Drivers should
-use the Linux atomic API and must not poll or assign `atomic_t.counter`
-directly. Dynamically allocated IPI masks are explicitly initialized with
-`atomic_set()` before enabling any virtual IPI.
+`/proc/interrupts` shows the number of interrupts handled by each CPU. Compare
+the counts before and after using a peripheral when investigating missing
+completions or unexpected CPU load.
 
-Runtime remote TLB and instruction-cache flushes use the native S-mode IPI
-path. An advertised SBI RFENCE extension alone does not prove that this
-firmware has a working machine-level IPI backend. CALL_FUNC callbacks also
-carry scheduler work and must not be dispatched from a raw-spinlock wait.
+## Writing an interrupt handler
 
-## SBI return boundary
+Get the IRQ from the platform device and register it through the Linux IRQ
+API. Read and acknowledge the peripheral's status in the handler, then pass
+longer work to a worker, threaded handler, or NAPI as appropriate.
 
-S31's cross-privilege return can leave CLIC SIL at its `0xff` sentinel and
-block pending native interrupts while a hart is busy. The common SBI call
-and the direct `noinstr` WFI call use one shared assembly sequence. It disables
-IRQs, preserves `sstatus`, `sepc`, `scause` and SBI results, then restores a
-zero-priority S-mode boundary through `sret` before restoring the caller's
-trap state. The WFI wrapper still returns with IRQs disabled as required by
-CPUIdle. Other RISC-V platforms keep the ordinary `ecall` sequence.
-
-The IRQ-enabled idle polling fallback remains available. This return boundary
-does not make CALL_FUNC dispatch safe while holding or acquiring a raw lock.
+Hard-IRQ handlers run with restrictions on sleeping and allocation. Keep their
+work short and use the normal kernel synchronization primitives for data
+shared with another CPU.
 
 ## DMA completion
 
-AHB and AXI GDMA engines signal completion through normal Linux IRQ handlers.
-Descriptors and shared status areas are in internal reserved SRAM. Completion
-handlers must perform the cache and ownership transitions required by the DMA
-API before exposing data to clients.
+The AHB and AXI GDMA drivers handle their completion interrupts and notify
+clients through DMAengine callbacks. A client can use those callbacks to wake
+a waiting thread or advance a transfer queue.
+
+Follow the [DMA and cache guide](../../api-guides/dma-and-cache.md) when passing
+buffers between the CPU and a peripheral.

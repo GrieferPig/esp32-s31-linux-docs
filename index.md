@@ -1,48 +1,21 @@
 # ESP32-S31 Linux Programming Guide
 
-This guide documents the interfaces, resource ownership, implementation
-boundaries, and development workflows of the ESP32-S31 Linux port. Source code
-in the parent `s31linux` repository remains authoritative when a development
-branch changes faster than the published guide.
+Welcome to the ESP32-S31 Linux port. This guide walks you through installing
+Linux, connecting peripherals, and building applications for the ESP32-S31.
+
+To try Linux on your board, start with [Flash and first boot](en/get-started/flash-and-first-boot.md).
+To build your own image, follow [Build from source](en/get-started/build-from-source.md).
+
+Once Linux is running, use `esp32-config` to configure the board, or browse
+the [peripheral reference](en/api-reference/peripherals/index.md) for examples.
 
 ```{toctree}
 :maxdepth: 2
-:caption: Get Started
 
-en/get-started/index
-```
-
-```{toctree}
-:maxdepth: 3
-:caption: API Reference
-
-en/api-reference/index
-```
-
-```{toctree}
-:maxdepth: 2
-:caption: Hardware Reference
-
-en/hw-reference/index
-```
-
-```{toctree}
-:maxdepth: 2
-:caption: API Guides
-
-en/api-guides/index
-```
-
-```{toctree}
-:maxdepth: 2
-:caption: Contribute
-
-en/contribute/index
-```
-
-```{toctree}
-:maxdepth: 2
-:caption: Resources
-
-en/resources/index
+Getting started <en/get-started/index>
+API reference <en/api-reference/index>
+Development guides <en/api-guides/index>
+Hardware reference <en/hw-reference/index>
+Tools and configuration <en/resources/index>
+Contributing <en/contribute/index>
 ```

@@ -1,47 +1,51 @@
-# DMA and Cache
+# DMA and cache
 
-Use the Linux DMA API for payload buffers and the S31 DMAengine providers for
-transfers. Allocate descriptors from the device's declared reserved pool when
-the controller cannot address ordinary PSRAM coherently.
+The ESP32-S31 uses non-coherent DMA. When a peripheral accesses a PSRAM buffer,
+the CPU cache needs to be synchronized so the CPU and peripheral see the
+latest data.
 
-For streaming mappings, map before device ownership, synchronize at every
-CPU/device transition when required, and unmap after completion. For coherent
-allocations, still obey the device's addressing and internal-SRAM limits.
+This page is for driver development. Applications normally let their Linux
+subsystem handle DMA buffers.
 
-Do not translate an arbitrary virtual pointer to a bus address, assume cached
-PSRAM is coherent, reuse radio-owned pools, or free a ring while its IRQ/DMA
-channel can still complete. Error and remove paths must terminate channels,
-mask IRQs, reclaim descriptors, and release provider references in order.
+## Allocate descriptors and data separately
 
-## Cache service and writable Flash
+The AHB and AXI GDMA drivers store descriptors in reserved internal SRAM.
+Transfer data uses the buffer allocation and mapping path selected by the
+client driver.
 
-Linux serializes the shared external-cache engine and calls the OpenSBI vendor
-cache service. The S31 ROM operates on 64-byte cache lines; OpenSBI expands a
-valid physical range to cover every touched line before calling the ROM and
-returns ROM failures through the SBI result. DMA callers must still follow the
-ownership rules above: expanding a range does not make an adjacent dirty CPU
-buffer safe to invalidate.
+Use DMAengine's descriptor support and the device's DMA API. The returned DMA
+address is the address to give to the engine; keep the CPU pointer for CPU
+access. The descriptor reservations are listed in
+[Memory map](../hw-reference/memory-map.md).
 
-The Flash MTD driver serializes reads, writes, and erases. A program or erase
-completes its D-cache and I-cache invalidation before a reader can acquire the
-MTD lock. Failed cache maintenance is reported as an MTD I/O error rather than
-counted as a successful write. This matters for JFFS2 garbage collection,
-which must see the programmed nodes and the current erased-block contents.
+## Transfer a streaming buffer
 
-The M-mode ROM Flash proxy executes its complete critical section from SRAM.
-Before acknowledging its SRAM park, the peer saves and disables its branch
-predictor. The caller saves and disables its own predictor before stalling the
-peer, writes back dirty PSRAM, suspends both instruction caches and the shared
-data cache, then disables Flash auto-suspend and runs the legacy ROM
-program/erase call. It restores auto-suspend and cache autoload state
-before releasing the peer. Each hart restores only the predictor bits that
-were enabled on entry, including error paths. Parking CPUs alone does not
-quiesce cache prefetch;
-the SPI0 cache read path must also stop while SPI1 uses this ROM interface.
+A typical streaming transfer follows this sequence:
 
-The peer's wait loop and all handshake words are in OpenSBI's uncached SRAM.
-The Linux IPI callback enters that loop through the Flash SBI extension; it
-carries no caller-stack pointer. A PSRAM atomic polling loop is unsafe at this
-boundary because stopping its CPU can stop an external-cache transaction.
-The preparing CPU keeps IRQs enabled and uses the existing S31 IRQ polling
-fallback while waiting for the peer, so pending remote TLB work can progress.
+1. Prepare the buffer and map it for the transfer direction. Check for a
+   mapping error before submitting the transfer.
+2. Submit the descriptor and let DMA use the buffer until completion.
+3. Synchronize the buffer for CPU access, or unmap it, before reading received
+   data or reusing the storage.
+
+For a buffer that remains mapped between transfers, use
+`dma_sync_single_for_device()` before the device uses it and
+`dma_sync_single_for_cpu()` before the CPU accesses it again. Use the direction
+and size required by the mapping.
+
+## Examples in the port
+
+The [SPI driver](https://github.com/GrieferPig/linux-esp32-s31/blob/affdd96bd65e73b0c2bf3f07d31afc0de5539cb5/drivers/spi/spi-esp32s31.c)
+uses private DMA buffers with explicit synchronization. It also handles RX
+alignment and terminates DMA during transfer cleanup.
+
+The [I2S driver](https://github.com/GrieferPig/linux-esp32-s31/blob/affdd96bd65e73b0c2bf3f07d31afc0de5539cb5/sound/soc/espressif/esp32s31-i2s.c)
+uses `SNDRV_DMA_TYPE_NONCOHERENT`, allowing ALSA to synchronize PCM buffers.
+Sv32 has no uncached page-table attribute for making these PSRAM buffers
+coherent.
+
+## Stop a transfer
+
+On an error, stop the peripheral and terminate the DMA channel before freeing
+or reusing its buffers. This also applies when removing a driver or suspending
+a device.

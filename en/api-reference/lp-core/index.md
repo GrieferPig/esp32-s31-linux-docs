@@ -1,71 +1,98 @@
-# Low-Power Core API Reference
+# Low-power core
 
-The LP core is managed by the `esp32s31_lp` remoteproc driver and a firmware
-image normally named `esp32s31/s31-lp-core.elf`. The driver loads the image into
-LP SRAM, starts and stops the core, exchanges mailbox words, and coordinates
-the documented sleep-control block.
+The LP core runs firmware alongside Linux. The `esp32s31_lp` remoteproc driver
+loads the firmware into LP SRAM and exchanges messages through the hardware
+mailbox.
 
-## Devices and sysfs
+## Check the firmware
 
-| Interface | Direction | Meaning |
-|---|---|---|
-| `/dev/s31-lp` | read/write | Raw 32-bit mailbox messages |
-| `ready` | read | Firmware READY state observed by the driver |
-| `last_message` | read | Last mailbox word received |
-| `mailbox_stats` | read | TX/RX and protocol progress counters |
-| `tx_message` | write | Submit one 32-bit mailbox word |
-| `ping` | read/write as implemented | Initiate or report a PING/PONG exchange |
-| remoteproc `firmware` | read/write | Standard remoteproc firmware selection |
-| remoteproc `state` | read/write | Standard start/stop control |
+With the LP driver enabled and firmware running, use:
 
-## Mailbox ABI version 1
+```sh
+s31-lpctl status
+s31-lpctl ping
+```
 
-The upper 16 bits identify a command or response and the lower 16 bits carry a
-sequence number. Defined operations are READY, PING/PONG, STATUS, SLEEP_PREPARE,
-SLEEP_ARM, SLEEP_ABORT, SLEEP_QUERY, SLEEP_RECLAIM, and ERROR.
+`status` shows whether the firmware has sent READY, the last received message,
+and mailbox statistics. `ping` sends a request and reports the PING/PONG result.
 
-Sleep coordination uses the final KiB of the 32 KiB LP SRAM. The control block
-starts at `0x2E007C00` and contains magic, ABI version, size, sequence, flags,
-wake sources, timer duration, GPIO masks and levels, retention/domain/clock
-masks, resume information, capability/state/result data, timestamps, and two
-CRC fields.
+The normal firmware filename is `esp32s31/s31-lp-core.elf`. For building a
+replacement, see [LP firmware development](../../api-guides/lp-firmware-development.md).
 
-The request CRC covers bytes before `request_crc`. The response CRC covers all
-bytes before `response_crc`, including request and result fields. Consumers
-must validate magic, version, size, sequence, CRC, current state, and advertised
-capabilities before acting on a response.
+## Test the timer
 
-## Sleep behavior
+Run a one-second timer test:
 
-The protocol advertises handshake, timer wake, GPIO wake, wake logging, and
-retention-descriptor capabilities. Flags distinguish s2idle, standby, memory
-sleep, deep-reboot, and dry-run requests. Unsupported wake masks, states, or
-power levels return a protocol error; the high-performance side must not assume
-that PREPARE implies ARM or that an ARM request guarantees a completed power
-transition.
+```sh
+s31-lpctl sleep-test 1000
+```
 
-The current Linux integration uses the LP protocol for bounded sleep
-coordination. Deep power-state support remains limited by platform clock,
-domain, memory-retention, and wake restoration implementations.
+The interval can be 10–5000 ms. Linux stays running while the LP firmware
+handles the timer and reports the wake event.
 
-## Raw mailbox I/O
+## Test a GPIO input
 
-`/dev/s31-lp` transfers native little-endian 32-bit mailbox words. A write must
-be exactly four bytes; a read requires at least four bytes and returns one
-word. Other sizes return `EINVAL`. With `O_NONBLOCK`, an empty RX queue returns
-`EAGAIN`; otherwise reads wait interruptibly. Concurrent readers share the RX
-queue, so a word consumed by one reader is not broadcast to the others.
-`poll()` always advertises write readiness and adds read readiness while the
-RX queue is nonempty. Write readiness is not proof of an LP response.
+Choose an available LP GPIO from 0 through 7. This example waits up to one
+second for GPIO3 to read high with a pull-down enabled:
 
-The `ping` sysfs read reports `ready` and `rtt_us`; writing it triggers a new
-sequenced PING/PONG exchange and can return `ETIMEDOUT`. `tx_message` submits a
-raw word. Use `s31-lpctl` for bounded sleep/GPIO transactions, because a raw
-mailbox write alone does not construct or validate the shared sleep descriptor.
-See [power management](../../api-guides/power-management.md) for accepted timer,
-GPIO and deep-sleep settings and their side effects.
+```sh
+s31-lpctl gpio-test 3 high down 1000
+```
 
-Implementation owners are
-[`esp32s31_lp.c`](https://github.com/GrieferPig/linux-esp32-s31/blob/feature/s31-radio-bt-6.18/drivers/remoteproc/esp32s31_lp.c)
-and the parent repository's `shared/s31_lp_protocol.h`. Public command/response
-values and CRC layout must change together across Linux, OpenSBI and LP firmware.
+Drive the selected input to the requested level during the test. To check
+sampling with an internal pull alone, use:
+
+```sh
+s31-lpctl gpio-test 3 high up 500
+s31-lpctl gpio-test 3 low down 500
+```
+
+A connected circuit or board strap may override the internal pull. The test
+runs while Linux is awake. System sleep is covered in
+[Power management](../../api-guides/power-management.md).
+
+## Devices and attributes
+
+| Interface | Description |
+|---|---|
+| `/dev/s31-lp` | Read or write a 32-bit mailbox word |
+| `ready` | Whether a READY notification has been received |
+| `last_message` | Last received word |
+| `mailbox_stats` | Message, acknowledgement, and timeout counts |
+| `tx_message` | Send a mailbox word |
+| `ping` | Start or read a PING/PONG test |
+| `sleep_test` | Start or read a timer test |
+| `gpio_test` | Start or read a GPIO test |
+| `deep_sleep` | Read deep-sleep status or request timed shutdown |
+
+The device attributes are under the bound LP platform device. Firmware
+selection and start/stop control use the standard remoteproc `firmware` and
+`state` attributes.
+
+## Mailbox protocol
+
+Commands use the upper 16 bits for the operation and the lower 16 bits for a
+sequence number. READY (`0x53310001`) and WAKE (`0x53310002`) are fixed
+notifications.
+
+The protocol includes PING/PONG, STATUS, and these sleep operations:
+
+| Operation | Purpose |
+|---|---|
+| PREPARE | Check the request and prepare wake sources |
+| ARM | Start the requested wake sources |
+| QUERY | Read state, result, wake reason, and timestamps |
+| RECLAIM | Return control to Linux after completion |
+| ABORT | Cancel the request |
+
+The sleep-control block uses ABI version 1 and contains 28 packed 32-bit
+words (112 bytes). It starts at `0x2E007C00`, in the final KiB of LP SRAM.
+Timer fields hold a relative interval in microseconds.
+
+The request CRC covers all bytes before `request_crc`. The response CRC covers
+all bytes before `response_crc`, including request and result data. The driver
+uses `crc32_le(~0U, data, length) ^ ~0U` and retries a response snapshot while
+the LP core is updating it.
+
+See the [protocol header](https://github.com/GrieferPig/linux-esp32-s31/include/linux/soc/espressif/esp32s31-lp-protocol.h)
+for message values, flags, states, and structure fields.

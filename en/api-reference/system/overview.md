@@ -1,47 +1,55 @@
-# System Architecture
+# System architecture
 
-The port runs a 32-bit RISC-V Linux system on the ESP32-S31 high-performance
-cores. Linux uses Sv32 virtual memory, executes the kernel image directly from
-mapped NOR flash, and places writable kernel state and userspace in external
-PSRAM. Internal high-performance SRAM remains reserved for firmware state,
-DMA-visible buffers, interrupt-time stacks, and latency-sensitive services.
+Linux runs on both ESP32-S31 high-performance cores. It uses the Sv32 MMU for
+virtual memory, flash for kernel code, and PSRAM for writable data and
+applications.
 
-## Component ownership
+## Main components
 
-| Component | Primary responsibility |
+| Component | What it does |
 |---|---|
-| ROM | Reset entry, immutable chip initialization, serial download mode |
-| U-Boot SPL | Early clocks, pinmux, PSRAM, and loading the U-Boot FIT |
-| OpenSBI | M-mode runtime, hart startup, SBI services, and Linux handoff |
-| U-Boot proper | FIT selection, base DTB, kernel command line, and boot policy |
-| Linux | MMU, SMP, drivers, filesystems, networking, and userspace ABI |
-| Radio payload | Closed radio implementation loaded behind typed Linux APIs |
-| LP firmware | Low-power core mailbox service and sleep coordination |
+| ROM and SPL | Start the chip and initialize memory |
+| OpenSBI | Provide machine-mode services to Linux and U-Boot |
+| U-Boot | Select the Linux image and device tree, then start the kernel |
+| Linux | Run applications and manage processors, memory, and devices |
+| Buildroot | Build the root filesystem and command-line tools |
+| Radio module and firmware | Provide Wi-Fi and Bluetooth |
+| LP firmware | Run mailbox and wakeup tasks on the low-power core |
 
-## Address spaces
+The boot sequence is:
 
-The kernel must distinguish cached PSRAM, uncached or device mappings, NOR XIP
-addresses, and internal SRAM aliases. A buffer is not DMA-safe merely because
-its virtual address is accessible to the CPU. Drivers use the DMA API and the
-reserved SRAM pools declared by device tree.
+```text
+ROM → SPL → OpenSBI → U-Boot → Linux → BusyBox userspace
+```
 
-## Resource ownership
+See [Boot process](boot-chain.md) for the steps involved.
 
-The base device tree contains always-present system blocks. Optional peripheral
-routes are activated through named overlays. The overlay manager rejects
-resource and GPIO conflicts before modifying the live tree. Clock, reset, PMU,
-DMA, interrupt, and pinctrl providers remain the single owners of their
-hardware resources; client drivers request them through Linux frameworks.
+## Memory and filesystems
 
-## Stable boundaries
+The kernel executes directly from mapped flash, a feature called execute in
+place (XIP). This leaves more of the 16 MiB PSRAM available for applications.
+Internal SRAM holds firmware data, radio allocations, and DMA descriptors.
 
-Developer-facing contracts are:
+The root filesystem combines a compressed SquashFS image with a small writable
+JFFS2 partition. Settings and other saved files go into the writable layer.
+Temporary files under `/tmp`, `/run`, and `/var/log` use RAM.
 
-- standard Linux subsystems and userspace APIs;
-- documented misc-device, sysfs, and module-parameter interfaces;
-- device-tree bindings and overlay metadata;
-- radio core ABI version 1 (payload ABI version 1); and
-- LP mailbox ABI version 1.
+See [Memory map](../../hw-reference/memory-map.md) and
+[Configuration](../../resources/configuration.md) for details.
 
-Addresses, private payload symbols, diagnostic counters, and implementation
-details are not stable unless explicitly identified as a contract.
+## Peripherals
+
+Applications use Linux interfaces such as GPIO character devices, I2C, SPI,
+ALSA, and network sockets. Use `s31-overlay` to enable optional peripherals
+and choose their pins. Most peripheral examples require the full-peripheral
+[build profile](../../get-started/build-profiles.md).
+
+## Radio and low-power core
+
+Wi-Fi and Bluetooth share a Linux radio module and firmware runtime. The
+runtime executes on HP core 0, while Linux can schedule other work on either
+core. Bluetooth normally uses BTstack through `/dev/s31-hci`.
+
+The LP core runs its own firmware, loaded by Linux remoteproc. It exchanges
+messages with Linux and handles timer and GPIO wakeup requests. See the
+[radio reference](../radio/index.md) and [LP reference](../lp-core/index.md).

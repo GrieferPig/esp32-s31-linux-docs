@@ -2,7 +2,7 @@
 
 `esp32-config` provides an interactive `dialog` menu and command-line controls.
 Persistent configuration lives in `/etc/esp32-conf` on the writable OverlayFS
-upper layer. Mutating operations require root; the menu also requires a TTY.
+upper layer. Mutating operations require root.
 
 ## Commands
 
@@ -49,20 +49,12 @@ not prove that its saved policy was written.
 
 ## Boot and recovery
 
-`/init` mounts JFFS2, constructs the root OverlayFS, restores saved overlays,
+On startup, `/init` mounts JFFS2, constructs the root OverlayFS, restores saved overlays,
 then starts the selected radio before BusyBox init launches the remaining
-services. Radio startup checks the bound device and requested local frontend;
-successful module insertion alone is insufficient. Wi-Fi association and
+services. Radio startup checks the bound device and requested local frontend. Wi-Fi association and
 Bluetooth connections are established by their respective userspace services.
 
-If radio startup fails, inspect the console diagnostic, `dmesg`,
-`s31-overlay status`, and the radio health attribute. Booting with
-`s31.radio_autoload=0` leaves radio autoload disabled for recovery. Check the
-saved policy before retrying `esp32-config apply`. Do not erase persist as a
-routine response to an interface failure.
-
-Implementation owners are the parent repository's
+The implementations are in
 `buildroot-external/board/esp32-s31/overlay/usr/sbin/esp32-config`,
-`overlay/init`, and `overlay/etc/init.d/S00s31-radio` under that same board
-directory. See the [userspace reference](../api-reference/userspace/index.md)
-for overlay persistence and partial-failure semantics.
+`overlay/init`, and `overlay/etc/init.d/S00s31-radio`. See the [userspace reference](../api-reference/userspace/index.md)
+for overlay persistence and failure semantics.

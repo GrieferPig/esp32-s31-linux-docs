@@ -1,45 +1,63 @@
-# Radio Architecture
+# Radio architecture
 
-The radio implementation is split so Linux-facing drivers never call arbitrary
-closed payload symbols. A loader validates and relocates the external payload;
-the radio core owns execution, memory, IRQs, work scheduling, coexistence, and
-health; typed frontends expose Wi-Fi and Bluetooth to standard Linux stacks.
+Wi-Fi and Bluetooth share the `esp32s31-radio` Linux module. It contains the
+Linux frontends, firmware loader, and runtime used by Espressif's radio code.
 
 ```text
-cfg80211/netdev       Bluetooth HCI or direct H4
-       |                       |
-       +------ typed ABI v1 ---+
-                   |
-             radio core
-          /        |        \
-  SRAM pools   coexistence   payload loader
-                              |
-                         radio payload
+Wi-Fi applications                 Bluetooth applications
+       |                                   |
+  cfg80211/netdev                  BTstack or Linux HCI
+       |                                   |
+       +---------- Linux radio module -----+
+                            |
+                  Radio runtime and loader
+                            |
+                  External radio firmware
 ```
 
-## Ownership
+## Linux frontends
 
-The radio core owns the payload lifetime, the radio interrupt, worker context,
-preallocated queues, SRAM pools, PMU vote, and health counters. Wi-Fi and HCI
-frontends register typed callback tables and copy data into Linux-owned bounded
-buffers. Payload callbacks may run in interrupt context and therefore cannot
-sleep or allocate through general kernel paths.
+The Wi-Fi frontend connects the radio to Linux networking through cfg80211
+and a network device. The Bluetooth frontend offers either the direct
+`/dev/s31-hci` device or a Linux HCI controller.
 
-## Payload boundary
+Both frontends use the common radio API. They are built into the same module
+and share its startup, shutdown, and error handling.
 
-The payload image is packaged in `radio.sqfs`, loaded from the configured
-firmware name, checked against the generated import allowlist, relocated into
-its fixed execution/data regions, and started only after required clocks,
-power, and memory are available. An unresolved import, unsupported relocation,
-overlapping region, or ABI mismatch fails closed.
+## Firmware loading
 
-The external payload format is an implementation boundary, not a userspace
-ABI. Changes require synchronized loader, generator, package, legal-manifest,
-and radio-core updates.
+The radio firmware is built from ESP-IDF libraries and the port's compatibility
+code. It is packaged as `esp32s31-radio-fw-v1.o`, a relocatable RISC-V ELF
+object, and stored with the radio module in `radio.sqfs`.
 
-## Coexistence
+During startup, the loader allocates memory for the firmware, resolves its
+imports, applies relocations, and finds the exported entry points. It checks
+the payload format and ABI before starting the runtime. Firmware should come
+from the same project build as the module.
 
-Wi-Fi and Bluetooth share radio hardware and scheduling state. Combo mode uses
-the coexistence implementation supplied with the payload dependencies. Linux
-frontends submit work; they do not bypass coexistence or directly manipulate
-radio arbitration registers.
+The executable firmware allocation is separate from the fixed internal-SRAM
+pools used by the radio. See [Memory map](../../hw-reference/memory-map.md) for
+those reservations.
+
+## Runtime
+
+Radio work and device interrupts run on HP core 0. The compatibility layer
+provides the task, queue, timer, and synchronization functions expected by the
+radio libraries. Wi-Fi receive processing also uses Linux workqueues and NAPI.
+
+Callbacks that run in interrupt context copy data into preallocated storage
+and schedule further work. Applications continue to use the normal Linux
+network and Bluetooth interfaces.
+
+## Suspend and recovery
+
+On suspend, the module detaches its frontends, stops the runtime, and releases
+its power request. On resume, it restores the firmware's initial mutable data,
+restarts the runtime, and attaches the frontends again.
+
+Wireless services reconnect after this restart. If startup fails, the
+interfaces stay detached and the error is written to the kernel log. System
+sleep availability is described in [Power management](../../api-guides/power-management.md).
+
+For changes to the firmware itself, see
+[Radio firmware development](../../api-guides/radio-payload-development.md).

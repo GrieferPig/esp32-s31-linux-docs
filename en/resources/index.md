@@ -1,15 +1,16 @@
-# Resources
+# Tools and configuration
+
+Look up commands, build options, peripheral overlays, and feature availability.
 
 ```{toctree}
 :maxdepth: 1
 
-configuration
-esp32-config
-kconfig-reference
-make-reference
-devicetree-binding-index
-overlay-catalog
 cli-reference
+configuration
+make-reference
+overlay-catalog
 support-matrix
+kconfig-reference
+devicetree-binding-index
 glossary
 ```

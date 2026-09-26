@@ -1,27 +1,28 @@
-# ESP32-S31 Linux Developer Documentation
+# ESP32-S31 Linux documentation
 
-This repository contains the English developer documentation for the
-ESP32-S31 Linux port. It is included by the main `s31linux` repository as the
-`docs` submodule.
+This repository contains the programming guide for the
+[ESP32-S31 Linux port](https://github.com/GrieferPig/esp32-s31-linux).
 
-The rendered programming guide is published at
-<https://grieferpig.github.io/esp32-s31-linux-docs/>.
+Read the [guide online](https://grieferpig.github.io/esp32-s31-linux-docs/),
+or start with [Getting started](en/get-started/index.md) in this repository.
 
-The documentation describes stable software and hardware behavior. It does
-not preserve test logs, workstation-specific paths, device identifiers, or
-one-off validation results.
+## Build the guide
 
-## Build locally
+From this directory, install the documentation tools in a Python environment:
 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 make html
 ```
 
-The generated site is written to `build/html/index.html`. Run `make linkcheck`
-to validate external and internal links.
+Open `build/html/index.html` in a browser. To check external links, run:
 
-The boot image used by the parent repository is intentionally kept at
-`bootlog.png`; the parent README references its raw URL in this repository.
+```sh
+make linkcheck
+```
+
+Pages are written in Markdown under `en/`. The
+[writing guide](en/contribute/writing-documentation.md) explains how to add or
+update a page.

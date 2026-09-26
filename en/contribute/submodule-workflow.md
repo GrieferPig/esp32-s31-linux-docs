@@ -1,16 +1,63 @@
-# Submodule Workflow
+# Working with submodules
 
-The parent project records exact commits for Buildroot, Linux, OpenSBI, U-Boot,
-and this documentation repository.
+The parent repository includes Linux, OpenSBI, U-Boot, Buildroot, and the
+documentation as submodules. Each has its own commits and branches.
 
-For a submodule change:
+## Get the source
 
-1. enter the submodule and create the intended source commit;
-2. verify its working tree and commit ID;
-3. return to the parent and stage only the updated gitlink;
-4. review `git diff --submodule=log`; and
-5. keep unrelated parent changes unstaged.
+For a new checkout:
 
-Clones use `git submodule update --init --recursive`. A local relative submodule
-URL is suitable only while both sibling repositories share the expected parent
-directory; set a reachable remote URL before publishing to other machines.
+```sh
+git clone --recurse-submodules https://github.com/GrieferPig/esp32-s31-linux.git
+cd esp32-s31-linux
+```
+
+For an existing checkout after pulling parent changes:
+
+```sh
+git submodule update --init --recursive
+```
+
+Commit or save local edits before updating a submodule.
+
+## Make a change
+
+Enter the submodule and create a branch. For example, for a kernel change:
+
+```sh
+cd linux-esp32-s31
+git switch -c my-driver-change
+```
+
+Edit and test the files, then stage the relevant paths and commit them inside
+that repository. Push the branch to a reachable remote when the change is
+ready to share.
+
+## Update the parent repository
+
+Return to the parent and record the new submodule revision:
+
+```sh
+cd ..
+git add linux-esp32-s31
+git diff --cached --submodule=log
+git commit -m "Update Linux for driver change"
+```
+
+The parent records the component commit, while the edited files remain in the
+component repository. Push the component commit before publishing the parent
+change so other developers can check it out.
+
+The same workflow applies to `docs/` and the boot-firmware submodules.
+
+## Review your checkout
+
+```sh
+git status
+git submodule status
+git diff --submodule=log
+```
+
+Run `git status` inside a submodule to see its file changes. This is useful
+when the parent reports a modified component without showing the individual
+files.

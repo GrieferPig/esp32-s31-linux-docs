@@ -1,67 +1,66 @@
-# Userspace Interfaces
+# Writing applications
 
-Applications should prefer standard Linux ABIs: TTY, GPIO character devices,
-I2C, spidev where enabled, ALSA, SocketCAN, netdev/cfg80211, Bluetooth sockets,
-IIO, PWM, watchdog, MTD, block devices, and remoteproc sysfs. Runtime overlays use the private
-`/dev/s31-overlay` misc-device ABI; they do not use configfs.
+Applications run in a small Buildroot environment with musl libc and a BusyBox
+shell. Hardware is accessed through Linux device files, sockets, and sysfs.
 
-The S31 image adds a small set of platform tools:
+## Build a C program
 
-| Command | Contract |
+Create `hello.c` on your development computer:
+
+```c
+#include <stdio.h>
+
+int main(void)
+{
+    puts("Hello from ESP32-S31 Linux!");
+    return 0;
+}
+```
+
+From the project root, compile it with the Linux toolchain:
+
+```sh
+toolchain/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
+  -Os -mabi=ilp32 hello.c -o hello
+```
+
+To include the program in an image, add it to the Buildroot package as described
+in [Adding a userspace tool](../../api-guides/adding-a-userspace-tool.md).
+The [ISA and ABI reference](../../hw-reference/isa.md) covers compiler settings
+for optimized code.
+
+## Access hardware
+
+| Hardware | Application interface |
 |---|---|
-| `esp32-config` | Persistent configuration and service policy |
-| `s31-overlay` | List, validate, apply, restore, and remove named overlays |
-| `s31-lpctl` | LP status, ping, bounded sleep test, raw send, and receive |
-| `s31-selftest` | Quick or stress behavior checks with optional JSON output |
-| `s31-hil-agent` | Machine-readable HIL case dispatcher |
-| `s31-peripheral-test` | Peripheral behavior checks selected by the HIL agent |
-| `s31-modload` | Load a kernel module with explicit parameters |
-| `s31-hil-io` | Bounded UART and peripheral I/O helper |
-| `s31-cpu-sample` | CPU utilization sampler used by diagnostics |
+| UART | TTY and termios |
+| GPIO | GPIO character devices and libgpiod |
+| I2C | `/dev/i2c-*` |
+| SPI | `/dev/spidev*` |
+| Audio | ALSA PCM |
+| CAN | SocketCAN |
+| Wi-Fi and Ethernet | Network sockets |
+| Analog inputs and outputs | IIO |
+| Watchdog | Linux watchdog device |
+| LP core | `s31-lpctl` and `/dev/s31-lp` |
+| Bluetooth, default setup | BTstack and `/dev/s31-hci` |
 
-Additional binaries exercise libc, strings, memory comparison, crypto,
-extensions, fork behavior, faults, and memory bandwidth. They are diagnostic
-programs rather than stable application libraries.
+Enable the required [overlay](../../resources/overlay-catalog.md) before
+opening a peripheral. The [peripheral reference](../peripherals/index.md)
+contains command-line examples.
 
-## Configuration safety
+## Files and settings
 
-Runtime credentials, MAC addresses, host serial ports, absolute workstation
-paths, and captured device logs are not documentation. `esp32-config` stores
-runtime policy in the persistent filesystem; images and examples use
-placeholders only.
+Save small configuration files under `/etc/esp32-conf`. Files in `/var/lib`
+also survive a restart through the writable root layer. Temporary files belong
+in `/tmp`, and runtime status files belong in `/run`.
 
-## Exit and output behavior
+The writable flash partition is 640 KiB. Use an SD card or USB drive for large
+data files and logs. See [Configuration](../../resources/configuration.md).
 
-Commands return zero only when the requested operation was accepted and its
-defined local completion condition was met. Machine-readable modes write data
-to standard output and diagnostics to standard error. A successful driver
-load or interface creation does not by itself prove association, external
-wiring, GATT behavior, storage integrity, or RF performance.
+## Available tools
 
-## Overlay device ABI
+The image includes board configuration, overlay, LP, and test utilities.
+Their syntax is listed in the [command reference](../../resources/cli-reference.md).
 
-The shared definition is `linux-esp32-s31/include/uapi/linux/esp32s31-overlay.h`.
-Buildroot installs this header into the SDK staging include directory and builds
-`s31-overlay` against that same definition. The kernel ABI description is
-`Documentation/ABI/testing/dev-esp32s31-overlay` in the kernel tree.
-
-Write one complete DTBO (at most 128 KiB) to apply it. The ioctls list up to 32
-active overlays, return the last applied ID, remove a named overlay, or remove
-all overlays. GPIO claims are a 64-bit mask with explicit 8-byte alignment;
-applications must include the header instead of duplicating structure layouts.
-Access is controlled by the device node permissions. Removal can fail while a
-consumer or dependent overlay still owns a resource.
-
-The CLI serializes state-changing commands with `/run/s31-overlay.lock`.
-The kernel must enable `CONFIG_FILE_LOCKING`; the standard profile and parent
-build enforce it. A kernel without flock support returns `ENOSYS` and the CLI
-fails before changing state.
-`/run/s31-overlay.current` describes this boot's selections; the persistent file
-records desired selections for restoration. A `--volatile` change updates only
-the running selection. A later persistent change updates only the named desired
-entry, so it cannot accidentally save an unrelated volatile overlay. Direct
-ioctl clients bypass this CLI bookkeeping and must coordinate with its lock.
-
-An error saving configuration after a successful hardware operation does not
-roll that operation back. The CLI reports that the overlay is already applied
-or removed and returns failure; inspect `s31-overlay status` before retrying.
+Other packages can be added through Buildroot. Post-build script can remove some files from the image, so check `build/buildroot/target` when selecting applications.

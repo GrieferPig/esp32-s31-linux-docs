@@ -1,36 +1,117 @@
-# Overlay Catalog
+# Using overlays
 
-The current tree provides 29 named overlays.
+Device-tree overlays enable optional peripherals and select their pins.
+Use `s31-overlay` from the board's Linux console to list, apply, and remove
+them.
 
-| Group | Overlay names | Main ownership rule |
+## List the available overlays
+
+```sh
+s31-overlay list
+s31-overlay status
+```
+
+`list` shows the overlays installed in the image. `status` shows the active
+set and the settings saved for the next boot. Optional peripheral drivers
+need the [full-peripheral profile](../get-started/build-profiles.md).
+
+| Group | Overlay names | Notes |
 |---|---|---|
-| Serial | `uart1`, `uart2`, `uart3`, `uart3-dma` | `uart3-dma` additionally owns UHCI0 and AHB GDMA pair 0 |
-| I2C | `i2c0`, `i2c1` | Each owns its controller and SCL/SDA routes |
-| SPI | `gpspi2`, `gpspi2-target`, `gpspi3`, `gpspi3-target` | Controller and target modes share the same instance claim |
-| Audio | `i2s0`, `i2s1` | Each owns its I2S instance and selected routes |
-| CAN | `twai0`, `twai1` | Each owns its controller and TX/RX routes |
-| Storage | `sdmmc0`, `sdmmc1`, `sdmmc-dual`, `sdmmc-uhs` | All claim `sdmmc-host`; variants reserve their pad groups |
-| Network/USB | `gmac`, `usb-device` | Own RGMII pads or USB OTG HS respectively |
-| Timing/analog | `timers`, `pwm-counter`, `analog`, `watchdogs` | Enable grouped blocks and claim routed pads/IRQ resources |
-| DMA | `gdma` | Claims AHB GDMA pair 4 |
-| Radio | `radio-wifi`, `radio-bluetooth`, `radio-combo` | Mutually exclusive `radio` claim |
-| Low power | `lp` | Claims the LP core and enables remoteproc/mailbox nodes |
+| UART | `uart1`, `uart2`, `uart3`, `uart3-dma` | DMA uses UHCI0 and AHB GDMA pair 0 |
+| I2C | `i2c0`, `i2c1` | Separate controller and SCL/SDA routes |
+| SPI | `gpspi2`, `gpspi2-target`, `gpspi3`, `gpspi3-target` | Choose host or target for each controller |
+| Audio | `i2s0`, `i2s1` | I2S controller and audio routes |
+| CAN | `twai0`, `twai1` | External CAN transceiver required |
+| SD/MMC | `sdmmc0`, `sdmmc1`, `sdmmc-dual`, `sdmmc-uhs` | Variants share the SD/MMC host |
+| Ethernet | `gmac` | External PHY and RGMII wiring |
+| USB | `usb-device` | Switches the USB OTG controller to device mode |
+| Timers | `timers` | Exposes timer 0 in each timer group |
+| PWM/counter | `pwm-counter` | PWM and pulse-counter blocks |
+| Analog | `analog` | Analog blocks and their pad selections |
+| Watchdogs | `watchdogs` | Watchdog blocks |
+| DMA | `gdma` | AHB GDMA pair 4 |
+| Radio | `radio-wifi`, `radio-bluetooth`, `radio-combo` | Select one radio overlay |
+| LP core | `lp` | LP remoteproc and mailbox |
 
-## Parameters
+## Apply an overlay
 
-| Overlay | Parameter | Accepted values |
+To enable I2C0 with its default settings:
+
+```sh
+s31-overlay apply i2c0
+```
+
+The tool applies the overlay immediately and saves the selection. For a
+one-session experiment, add `--volatile`:
+
+```sh
+s31-overlay apply i2c0 --volatile
+```
+
+Use `status` to check the result, then use the peripheral's Linux interface.
+
+## Select pins and parameters
+
+Inspect the available settings first:
+
+```sh
+s31-overlay routes i2c0
+s31-overlay parameters i2c0
+```
+
+For example, to use GPIO35 for SCL, GPIO36 for SDA, and a 400 kHz bus:
+
+```sh
+s31-overlay apply i2c0 i2c0.scl=35 i2c0.sda=36 clock-frequency=400000
+```
+
+Route keys come from the overlay. The following numeric parameters are
+provided by the standard catalog:
+
+| Overlays | Parameter | Allowed values |
 |---|---|---|
 | `i2c0`, `i2c1` | `clock-frequency` | `100000`, `400000`, `1000000` |
-| `sdmmc0`, `sdmmc1`, `sdmmc-dual`, `sdmmc-uhs` | `bus-width` | `1`, `4` |
+| SD/MMC variants | `bus-width` | `1`, `4` |
 
-Routes are reported by `s31-overlay routes NAME`; accepted parameters by
-`s31-overlay parameters NAME`. Route-specific GPIO selections are supplied as
-documented key/value arguments when the overlay metadata exposes them.
+The manager checks for overlapping GPIOs, input routes, and controller or DMA
+resources. Flash and console pins are reserved. The
+[board guide](../hw-reference/modules-and-boards.md) explains what to check
+before wiring an external device.
 
-## Application behavior
+TODO: add pin table
 
-`s31-overlay apply NAME [KEY=VALUE ...] [--volatile]` validates the name,
-parameters, routes, GPIO claims, and resource claims before applying the DTBO.
-Persistent selections are restored during boot. Removing an overlay is rejected
-when the kernel cannot safely detach its devices or when the requested name is
-not active. `remove --all` removes only overlays managed through this interface.
+## Remove or restore overlays
+
+Close applications using the peripheral, then remove its overlay:
+
+```sh
+s31-overlay remove i2c0
+```
+
+Use `remove --all` to remove the managed set. Both forms save the resulting
+selection unless `--volatile` is supplied.
+
+Saved overlays are restored automatically at boot. To reload that saved set
+manually, run:
+
+```sh
+s31-overlay restore
+```
+
+This removes the current set and applies the saved entries, interrupting any
+peripherals involved. USB role changes also restart the USB controller;
+unmount attached USB storage and disable USB-backed swap first.
+
+## Saved settings and troubleshooting
+
+Overlays are loaded through `/dev/s31-overlay`. Their files are stored under
+`/usr/lib/s31-overlays`, with saved settings in
+`/etc/esp32-conf/overlays.conf` and the current selection in
+`/run/s31-overlay.current`.
+
+If an operation fails, check `s31-overlay status` and `dmesg`. A save error can
+leave the new overlay active, while a failed replacement can leave the old
+one unavailable.
+
+`--volatile` skips saving for that command. A later command that saves the
+current set can include an overlay previously applied with `--volatile`.

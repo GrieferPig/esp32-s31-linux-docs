@@ -1,104 +1,192 @@
-# Peripheral API Reference
+# Peripherals
 
-ESP32-S31 peripherals are exposed through standard Linux frameworks. The base
-device tree supplies providers and always-present blocks; named overlays select
-optional instances, pins, routes, and mutually exclusive modes.
+The port exposes peripherals through standard Linux interfaces, including
+TTY, I2C, SPI, ALSA, and SocketCAN. Use a device-tree overlay to enable an
+optional controller and select its pins.
 
-| Function | Linux interface | S31-specific constraint |
+> Build the [full-peripheral profile](../../get-started/build-profiles.md) for
+I2C, SPI, I2S, Ethernet, SD/MMC, and the other optional drivers in this chapter.
+
+## Enable a peripheral
+
+For example, to enable I2C0:
+
+```sh
+s31-overlay apply i2c0
+```
+
+The selection is saved and restored at boot. Add `--volatile` for a temporary
+setup. To inspect the pins and available settings, run:
+
+```sh
+s31-overlay routes i2c0
+s31-overlay parameters i2c0
+```
+
+Check the board schematic before connecting a device. The
+[overlay catalog](../../resources/overlay-catalog.md) lists the available
+controllers and their configuration options.
+
+## Interfaces
+
+| Peripheral | Linux interface | Overlay or setup |
 |---|---|---|
-| GPIO/pinctrl | GPIO character device, pinctrl | Route ownership is checked by overlays |
-| UART | TTY/serial | UART0 is normally the console; UART3 has a DMA overlay |
-| I2C | `/dev/i2c-*` | I2C0/I2C1; long messages and combined transactions use FIFO continuation |
-| GPSPI | SPI controller/target APIs | Exclusive per instance; target DMA up to 4096 bytes, FIFO fallback 64 bytes |
-| I2S | ALSA SoC | Configurable DAI framing, TDM slots and MCLK; external machine cards supported |
-| TWAI | SocketCAN | Two independently routed controller instances |
-| SD/MMC | MMC block layer | Controller, bus width, voltage, and shared pins are overlay policy |
-| GMAC | netdev/phylib | External PHY wiring is board-specific |
-| USB | DWC2 host/mass storage and gadget/UDC | Device-mode overlay takes the route from the default host controller |
-| GDMA | DMAengine | Internal descriptor SRAM and cache transitions are mandatory |
-| GPTimer/SYSTIMER | clocksource/clockevent/counter | System timekeeping resources cannot be reassigned |
-| LEDC/MCPWM/SDM | PWM/counter frameworks | Channel and output routes are finite shared resources |
-| ADC/DAC/touch/comparator | IIO/input/misc subsystem as implemented | Analog pad ownership conflicts with digital routes |
-| TSENS | thermal/hwmon | Uses calibrated SoC sensor behavior |
-| Watchdogs | watchdog framework | HP and related watchdog blocks have separate ownership |
-| eFuse/RNG/crypto | nvmem, hwrng, crypto API | Security-sensitive state is not duplicated in documentation |
+| GPIO | GPIO character device; `gpioinfo`, `gpioget`, `gpioset` | Select free pins on the board |
+| UART | `/dev/ttyS*` | `uart1`, `uart2`, `uart3`, or `uart3-dma` |
+| I2C | `/dev/i2c-*` | `i2c0` or `i2c1` |
+| SPI | SPI subsystem; `/dev/spidev*` for userspace clients | `gpspi2`, `gpspi3`, or their target variants |
+| I2S/TDM | ALSA PCM | `i2s0` or `i2s1` |
+| TWAI/CAN | SocketCAN | `twai0` or `twai1`; external transceiver |
+| SD/MMC | MMC block devices | `sdmmc0`, `sdmmc1`, `sdmmc-dual`, or `sdmmc-uhs` |
+| Ethernet | Network interface and PHY driver | `gmac`; external PHY |
+| USB | DWC2 host or USB gadget | Host setup or `usb-device` |
+| GDMA | Kernel DMAengine API | AHB/AXI provider selected by the client |
+| General-purpose timers | Counter framework | `timers` |
+| LEDC, MCPWM, SDM, and pulse counter | PWM and Counter frameworks | `pwm-counter` |
+| ADC, DAC, touch, comparator | IIO, input, or device-specific interface | `analog` and suitable analog pins |
+| Temperature sensor | Thermal/hwmon | Sensor driver |
+| Watchdogs | Watchdog framework | `watchdogs` |
+| eFuse, random numbers, crypto | NVMEM, hwrng, and kernel crypto APIs | Corresponding kernel drivers |
 
-## Overlay activation
+UART0 is the serial console. UART3's DMA overlay also uses UHCI0 and an AHB
+GDMA channel. For the current feature status, see the
+[support matrix](../../resources/support-matrix.md).
 
-Use `s31-overlay`, which submits DTBOs through `/dev/s31-overlay`. The manager applies
-resource claims atomically, validates routes and parameters, records the live
-overlay ID, and can restore persistent selections during boot. See the
-[overlay catalog](../../resources/overlay-catalog.md) for names and conflicts.
+## I2C
 
-## Driver contract
+Both I2C controllers support 7-bit and 10-bit addresses and combined
+write/read transactions. The default bus speed is 100 kHz. To select 400 kHz
+and route I2C0 to GPIO35 and GPIO36:
 
-New drivers must use clock, reset, PM-domain, pinctrl, DMA, IRQ, nvmem, and
-reserved-memory providers. Direct writes to a provider-owned register block
-are only valid inside that provider. A driver is not considered integrated
-until its binding, base node or overlay, Kconfig/Makefile entry, resource
-ownership, and userspace ABI are documented.
+```sh
+s31-overlay apply i2c0 i2c0.scl=35 i2c0.sda=36 clock-frequency=400000
+```
 
-## Long I2C transactions
+Use suitable pull-up resistors on SCL and SDA. The overlay also accepts
+100000 and 1000000 Hz.
 
-The adapter retains its short FIFO path and uses END-detected continuation for
-long messages. Each continuation drains/refills at most 32 FIFO bytes while
-keeping the bus owned. STOP appears only at the end of the message array;
-message boundaries use repeated START, including the extra header for a
-10-bit read. The last byte of each read is NACKed. Zero-length writes are
-supported; zero-length reads and protocol-mangling flags are rejected.
+List the adapters with:
 
-The adapter accepts the 16-bit message length (up to 65535 bytes), subject to
-the caller's own limit: Linux `i2c-dev` limits an individual userspace message
-to 8192 bytes. Each hardware batch has a 100 ms timeout. ACK, arbitration and
-timeout errors propagate to the caller, with bus recovery where appropriate.
-Use a single `I2C_RDWR` call for a combined register write/read. Splitting it
-into separate userspace calls changes the wire transaction.
+```sh
+i2cdetect -l
+```
 
-Host tests check command streams, exact addresses/data, repeated START, final
-NACK/STOP and error termination. Long transfers still require a physical
-target to validate clock stretching, FIFO continuation and recovery timing.
+For a device at address `0x51` on adapter 0, a one-byte register selection
+followed by a one-byte read can be sent as one transaction:
 
-## SPI target transfers
+```sh
+i2ctransfer -y 0 w1@0x51 0x00 r1
+```
 
-Target overlays now request DMA channels and accept up to 4096 bytes per
-transfer with DMA, or 64 bytes with the FIFO fallback. Both directions use
-private bounce buffers. RX EOF comes from CS deassertion; unexpected short or
-overlength transactions return `-EMSGSIZE`. The target waits interruptibly for
-the external host, supports target abort and terminates DMA before reuse.
-Once CS completes, DMA completion has a 100 ms bound.
+Replace the adapter, address, and register with those for your device. In C,
+use `I2C_RDWR` for this combined operation so the write and read are separated
+by a repeated START.
 
-Word sizes are 8, 16 and 32 bits, with lengths aligned to the selected word.
-Buffers contain little-endian native words; the target converts MSB-first
-16/32-bit words to wire order. LSB-first, CPOL/CPHA and active-high CS are
-supported. These changes do not add command/address/dummy phases, dual/quad
-target data lanes or a readiness GPIO protocol. The external host must allow
-the target to arm each transfer; an unbroken stream of back-to-back CS frames
-is not guaranteed. DMA target behavior and electrical timing need board tests.
+### Transfer limits and errors
 
-## Generic I2S and TDM links
+Userspace `I2C_RDWR` messages can contain up to 8192 bytes each. Kernel clients
+use a 16-bit message length, allowing up to 65535 bytes. Zero-length writes
+are accepted; zero-length reads and protocol-mangling flags are unsupported.
 
-The CPU DAI implements `set_fmt`, `set_tdm_slot` and `set_sysclk`. Formats are
-I2S, left-justified, DSP A and DSP B; both clocks must be provided by the CPU or
-both consumed from the peer. Frame-clock inversion is supported; bit-clock
-inversion, mixed provider/consumer roles and external MCLK input return errors.
-Sysclk ID 0 with `SND_SOC_CLOCK_OUT` requests an internal MCLK; rate zero selects
-automatic MCLK. Divider error is checked before programming a stream.
-In clock-consumer mode, the internal module clock must be at least eight
-times the external BCLK for clock-domain synchronization. Automatic MCLK
-observes this minimum; an explicit lower clock is rejected.
-PCM buffers use ALSA's non-coherent DMA allocator and cache synchronization:
-Sv32 cannot make a PSRAM buffer uncached through page attributes alone.
+Long transfers are split into batches of up to 32 TX bytes or 31 RX bytes.
+The controller holds the bus between batches and sends STOP after the final
+message. Each batch has a 500 ms completion timeout.
 
-TDM accepts 1–16 slots and widths of 8–32 bits. The total frame must contain an
-even number of bits. Nonzero TX/RX masks must fit the slot count and select as
-many slots as the PCM channel count. Slot width cannot be smaller than the
-sample width. Format, slot and MCLK changes are rejected while PCM parameters
-are configured; full-duplex streams must agree on the shared MCLK. Use
-`hw_free` before reconfiguring. ALSA period size remains 256–4032 bytes.
+| Error | Meaning |
+|---|---|
+| `ENXIO` | The target did not acknowledge |
+| `EAGAIN` | Arbitration was lost |
+| `ETIMEDOUT` | Hardware or completion timeout |
+| `EIO` | Unexpected receive FIFO count |
 
-Without an external card, the existing dummy-codec card and overlay pin
-profiles remain available. To connect a codec through a machine driver such
-as `simple-audio-card`, add these properties to the selected I2S controller:
+The driver includes bus recovery. Repeated timeouts should also be checked
+against the pull-ups, wiring, bus speed, and target behavior.
+
+## SPI
+
+GPSPI2 and GPSPI3 can operate as a host or as a target. Choose the matching
+overlay for the instance and role, for example `gpspi2` or `gpspi2-target`.
+
+Host clients use the Linux SPI API. Applications using spidev select their
+mode, clock rate, word size, and transfer buffers through its ioctls.
+
+### Target transfers
+
+Target mode waits for an external host to supply the clock and chip select.
+It supports modes 0–3, active-high chip select, and 8-, 16-, or 32-bit words.
+The transfer length must be a whole number of words.
+
+| Setting | Limit |
+|---|---|
+| Transfer with DMA | 4096 bytes |
+| FIFO-only transfer | 64 bytes |
+| Wait for the external host | Interruptible; no fixed timeout |
+| DMA completion after the transaction | 100 ms for each required direction |
+
+The target converts little-endian Linux words to the selected wire byte order.
+For 16- and 32-bit MSB-first transfers, bytes within each word are reversed on
+transmit and converted back on receive.
+
+Allow time for the target to arm each transfer before asserting chip select.
+Applications needing a ready signal should implement that handshake separately.
+Target mode uses a single data lane and has no separate command, address, or
+dummy phases.
+
+An interrupted or aborted wait returns `EINTR`. An unexpected transaction
+length returns `EMSGSIZE`, and a DMA completion timeout returns `ETIMEDOUT`.
+
+## I2S and TDM
+
+I2S0 and I2S1 use ALSA SoC with GDMA-backed playback and capture. After enabling
+the appropriate overlay, list the PCM devices:
+
+```sh
+aplay -l
+arecord -l
+```
+
+Use the card and device numbers from that output in your application. The
+board needs an appropriate digital-audio connection, such as an I2S DAC,
+codec, or test peer.
+
+### PCM settings
+
+| Setting | Values |
+|---|---|
+| Sample formats | `S8`, `S16_LE`, `S24_LE`, `S32_LE` |
+| Sample rates | 8–192 kHz, subject to clock and card configuration |
+| Channels | 1–16 |
+| Period size | 256–4032 bytes |
+| Periods per buffer | 2–8 |
+
+Playback and capture share MCLK. Configure both streams with compatible clock
+settings. ALSA handles cache synchronization for the non-coherent DMA buffers.
+
+### Framing and clocks
+
+The CPU DAI supports I2S, left-justified, DSP A, and DSP B framing. It can
+provide both BCLK and frame clock, or consume both from the other device.
+Frame-clock inversion is supported. Mixed clock roles, bit-clock inversion,
+and an external MCLK input are currently unsupported.
+
+`set_sysclk()` uses ID 0 and `SND_SOC_CLOCK_OUT` for internal MCLK. A rate of
+zero selects MCLK automatically. When consuming external BCLK, the internal
+module clock must run at least eight times faster than BCLK.
+
+### TDM slots
+
+Use `set_tdm_slot()` to select 1–16 slots, each 8–32 bits wide. The slot width
+must fit the sample, and the total number of bits in a frame must be even.
+Nonzero TX/RX masks select the active slots and must contain one bit for each
+PCM channel. Passing zero slots with zero masks clears the explicit slot setup.
+
+Release the configured stream before changing its format, slots, or MCLK.
+Reapplying an identical setting is allowed.
+
+### Connect an external codec
+
+Use an ASoC machine driver, such as `simple-audio-card`, for a board with an
+external codec. Add the following properties to the selected controller:
 
 ```dts
 &i2s0 {
@@ -108,8 +196,29 @@ as `simple-audio-card`, add these properties to the selected I2S controller:
 };
 ```
 
-The machine card supplies its CPU/codec phandles, format, clock roles and TDM
-configuration. Choose pin routes for that codec and enable matching clocks and
-DMA resources. The driver does not infer external board wiring. Standalone
-TX-slave and raw PDM properties remain separate options; this does not add a
-PCM-to-PDM converter. Generic-codec and sustained-stream acceptance are pending.
+Then describe the CPU/codec link, pins, framing, clocks, and any TDM settings
+in the machine card. `espressif,external-card` disables the built-in dummy
+card so the external card can use the controller. The built-in overlay keeps
+its separate playback and capture clock roles.
+
+Raw PDM options are also present in the driver; PCM-to-PDM conversion is not
+provided by these options.
+
+## Storage, networking, and other peripherals
+
+Use the MMC block layer for SD cards, SocketCAN for TWAI, and the normal Linux
+network interfaces for Ethernet. Their overlays select the controller and
+pins; the carrier board supplies the socket, transceiver, or PHY.
+
+USB host supports attached devices such as storage. The `usb-device` overlay
+switches the controller to gadget mode. Unmount USB filesystems and disable
+USB-backed swap before switching roles.
+
+Timing and analog devices use their Linux subsystem interfaces. In the
+`timers` overlay, timer 0 of each group is available to applications; timer 1
+is reserved for CPU idle wakeups. Analog and digital routes can share physical
+pads, so choose one function for each pin.
+
+Driver sources are under `linux-esp32-s31/drivers/`, with audio under
+`sound/soc/espressif/`. See [Adding a driver](../../api-guides/adding-a-driver.md)
+for integration steps.

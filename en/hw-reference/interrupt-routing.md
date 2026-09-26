@@ -1,15 +1,37 @@
-# Interrupt Routing
+# Interrupt routing
 
-Peripheral sources enter the ESP32-S31 interrupt matrix and are delivered to
-per-hart CLIC inputs. Device tree identifies the source and trigger behavior;
-the irqchip and routing providers own the hardware programming.
+The interrupt matrix connects peripheral interrupt sources to a CLIC input on
+an HP core:
 
-Overlay route metadata covers GPIO matrix signals, not arbitrary interrupt
-rewiring. Shared interrupt sources must have a driver-level demultiplexer. A
-new driver should request its IRQ through the platform API, use the binding's
-defined trigger type, acknowledge the peripheral before returning, and defer
-sleeping work outside hard-IRQ context.
+```text
+Peripheral → Interrupt matrix → Per-core CLIC → Linux IRQ handler
+```
 
-The system timer, software interrupt/IPI path, and radio interrupt are platform
-infrastructure. Optional overlays must not claim or repurpose them unless an
-explicit binding and ownership change accompanies the implementation.
+The device tree supplies the interrupt source number and trigger type. The
+Linux interrupt drivers select and configure the CLIC input.
+
+## Peripheral interrupts
+
+A peripheral driver obtains its IRQ with `platform_get_irq()` and registers a
+handler through the Linux IRQ API. For a level-triggered source, the handler
+acknowledges the peripheral status so the interrupt can be cleared.
+
+If several events share an interrupt, the driver reads the peripheral status
+to find which event needs service. Longer processing can then run in a worker
+or threaded handler.
+
+## Reserved sources
+
+System timers, inter-processor interrupts, and radio interrupts are managed by
+the platform drivers. OpenSBI also uses timer 1 in each timer group for CPU
+idle wakeup. Optional devices should keep these assignments available.
+
+GPIO signal routing is configured separately through pinctrl and overlay
+route settings. See the [overlay catalog](../resources/overlay-catalog.md).
+
+TODO: list reserved interrupt sources and their assignments.
+
+---
+
+See [Interrupts and SMP](../api-reference/system/interrupts-smp.md) for Linux
+handler and multicore details.

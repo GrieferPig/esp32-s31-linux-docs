@@ -1,26 +1,63 @@
-# LP Firmware Development
+# LP firmware development
 
-LP firmware links into the first 31 KiB of the 32 KiB LP SRAM. The final KiB,
-starting at `0x2E007C00`, is reserved for ABI version 1 sleep-control state.
+LP firmware runs on the low-power core and communicates with Linux through the
+hardware mailbox. The project builds it with the ESP-IDF environment used in
+[Build from source](../get-started/build-from-source.md).
 
-Firmware must publish READY, preserve the lower-16-bit sequence convention,
-validate every sleep request field and request CRC, advertise only implemented
-capabilities, and write result/state/wake data before the response CRC. Unknown
-commands return the defined ERROR response.
+## Build the firmware
 
-LP peripherals are protected by the LP peripheral PMS block. A new firmware
-feature must list every register window it touches and the remoteproc driver
-must grant the corresponding REE read/write permission before releasing the
-LP core. GPIO support currently requires the system-register,
-peripheral-clock/reset, IOMUX, and mailbox windows.
+From the project root, run:
 
-The GPIO dry-run path keeps the LP core executing and samples RTCIO in
-software. It intentionally does not set the RTCIO hardware wake-enable bit:
-an already-active level can interrupt the LP core before it records and
-publishes the wake event. Hardware wake-enable belongs to the later reviewed
-HP-power-down sequence and must be paired with an LP interrupt/wake contract.
+```sh
+make lp-firmware
+```
 
-Build and stage the ELF under the remoteproc firmware name expected by the
-device tree or driver. Changes to shared message values or control-structure
-layout must update the shared header, Linux driver, firmware, `s31-lpctl`, HIL
-case, and ABI documentation together.
+The build stages the ELF for remoteproc under the firmware name
+`esp32s31/s31-lp-core.elf`. Rebuild the root filesystem to include it in an image:
+
+```sh
+make rootfs
+```
+
+After installing the updated image, check startup with:
+
+```sh
+s31-lpctl status
+s31-lpctl ping
+```
+
+## Place code and data
+
+LP SRAM starts at `0x2E000000` and is 32 KiB in size. Keep these shared regions
+free in the linker layout:
+
+| Region | Address range, end exclusive |
+|---|---|
+| OpenSBI suspend snapshot | `0x2E002000`–`0x2E007000` |
+| Sleep-control reservation | `0x2E007C00`–`0x2E008000` |
+
+Check the ELF load segments, data, and stack placement against both regions
+when increasing firmware size.
+
+## Update the mailbox protocol
+
+The parent header `shared/s31_lp_protocol.h` includes the Linux protocol
+header at `include/linux/soc/espressif/esp32s31-lp-protocol.h`.
+
+Firmware publishes READY after startup and validates sleep requests before
+arming them. Write result, state, and wake data before publishing the response
+CRC. Message codes, sequence rules, structure layout, and CRC coverage are
+listed in the [LP reference](../api-reference/lp-core/index.md).
+
+When changing the protocol, update its Linux, firmware, and OpenSBI consumers
+together. The current system-suspend mismatch is described in
+[Power management](power-management.md).
+
+## Add a peripheral
+
+LP peripheral registers are protected by the peripheral PMS controller. Add
+the required register-window permissions in the remoteproc driver before
+using a new block from LP firmware.
+
+GPIO tests use RTCIO ownership and software sampling. Keep the existing
+handover and release sequence when adding another GPIO operation.

@@ -1,22 +1,23 @@
 # Introduction
 
-ESP32-S31 Linux is an integrated port spanning boot firmware, a 32-bit RISC-V
-Linux kernel, Buildroot userspace, external radio firmware, low-power firmware,
-device-tree overlays, image packaging, and hardware-in-the-loop tooling.
+`esp32-s31-linux` ports an embedded Linux system to the ESP32-S31. It runs a
+32-bit RISC-V kernel on both high-performance CPU cores and includes a
+BusyBox shell, Wi-Fi and Bluetooth support, and (most) drivers for on-chip peripherals.
 
-The main repository pins Buildroot, Linux, OpenSBI, U-Boot, and this
-documentation as submodules. Build and behavior changes often cross those
-boundaries, so developers should identify the owning repository before editing.
+The port uses Linux 6.18, U-Boot, OpenSBI, and Buildroot.
 
-This guide is organized like the ESP-IDF programming guide:
+## Feature support
 
-- **Get Started** covers environment, build, flash, and boot.
-- **API Reference** describes kernel, firmware, and userspace contracts.
-- **Hardware Reference** records maps, routes, clocks, domains, and interrupts.
-- **API Guides** explain how to extend the port safely.
-- **Contribute** defines repository, HIL, documentation, and release workflows.
-- **Resources** provides generated-style indexes and concise lookup tables.
+The port is under active development. See
+[Feature support](../resources/support-matrix.md) for available drivers and
+current limitations.
 
-The documentation intentionally omits individual test logs and private device
-data. Support statements describe implemented software behavior and explicitly
-identify external wiring or payload prerequisites.
+## Quick start
+
+To install a precompiled image, follow [Flash and first boot](flash-and-first-boot.md).
+
+To build a custom image from source, follow [Build from source](build-from-source.md).
+
+After booting, run `esp32-config` to configure the board. The
+[overlay catalog](../resources/overlay-catalog.md) and
+[peripheral examples](../api-reference/peripherals/index.md) are good next steps.

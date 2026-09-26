@@ -1,15 +1,63 @@
-# Adding a Driver
+# Adding a driver
 
-1. Select the standard Linux subsystem and reuse its public API.
-2. Define or reuse a YAML device-tree binding.
-3. Model clocks, resets, IRQs, PM domains, DMA channels, pinctrl, regulators,
-   and reserved memory as provider references.
-4. Add Kconfig and Makefile integration with complete dependencies.
-5. Implement probe deferral, bounded error unwinding, runtime PM, and removal.
-6. Add the base disabled node or named overlay that represents real hardware.
-7. Document userspace behavior, resource ownership, and unsupported modes.
+Peripheral drivers live in the `linux-esp32-s31` Linux source. A typical addition
+consists of a driver, a device-tree binding, build options, and an overlay that
+enables the hardware.
 
-Avoid singleton globals unless the hardware itself is singular. Do not expose
-raw MMIO when a Linux subsystem exists. Hard-IRQ and DMA callbacks must obey
-allocation, locking, and cache rules. A new private ABI requires a UAPI header
-and an entry under Linux `Documentation/ABI` before applications depend on it.
+## 1. Choose the Linux subsystem
+
+Use the subsystem that matches the device: I2C, SPI, ALSA, IIO, PWM, Counter,
+SocketCAN, or another standard framework. This gives applications the usual
+Linux interface and lets the driver reuse existing infrastructure.
+
+The S31 I2C and SPI drivers are useful examples of platform-driver setup.
+They obtain registers, interrupts, clocks, and resets from the device tree.
+
+## 2. Describe the hardware
+
+Add or reuse a YAML binding under `Documentation/devicetree/bindings/`.
+Describe the registers, interrupts, clocks, resets, pins, and any DMA,
+regulator, or power-domain dependencies.
+
+Add the device node to `arch/riscv/boot/dts/espressif/esp32s31.dtsi`. Optional
+peripherals normally start with `status = "disabled"`; an overlay enables
+them and selects their pins. See [Adding an overlay](adding-an-overlay.md).
+
+## 3. Implement the driver
+
+During probe, acquire the resources described by the binding, enable the
+hardware, and register the device with its Linux subsystem. Use managed
+resource helpers where practical, and return `-EPROBE_DEFER` when a required
+provider is still starting.
+
+Use the common clock, reset, regulator, and power-management APIs for shared
+hardware. For DMA buffers, follow [DMA and cache](dma-and-cache.md). Interrupt
+handlers should acknowledge the device promptly and schedule longer work in a
+worker or another suitable subsystem context.
+
+The remove and error paths should stop transfers, disable interrupts, and
+release the resources acquired during probe. Implement suspend and resume
+where the device needs to save or restore state.
+
+## 4. Add the build options
+
+Add a Kconfig entry and Makefile rule in the driver directory. Include the
+subsystem and provider dependencies in Kconfig, then select the driver in the
+S31 defconfig where appropriate.
+
+From the parent project, build the full-peripheral image:
+
+```sh
+export S31_LEAN_RADIO=0
+make linux
+make rootfs
+```
+
+The rootfs build also installs the device-tree overlays. Follow
+[Flash and first boot](../get-started/flash-and-first-boot.md) to update the board.
+
+## 5. Test it
+
+Enable the overlay, check the probe log, and exercise the device through its
+userspace API. Test removal after closing applications, invalid settings, and
+error recovery as well as normal transfers.

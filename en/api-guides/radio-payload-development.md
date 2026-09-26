@@ -1,44 +1,65 @@
-# Radio Payload Development
+# Developing the radio firmware
 
-The payload is an external implementation behind the Linux radio core. Build it
-with the pinned ESP-IDF dependency environment and the repository's generator;
-do not link new host symbols by hand.
+The radio firmware combines Espressif's Wi-Fi and Bluetooth libraries with the
+port's OS adapters. Linux loads it from `radio.sqfs` through the common radio
+module.
 
-When changing the payload:
+Use this guide for changes inside `firmware/radio/`. Changes to Linux network
+or Bluetooth interfaces usually belong in the kernel frontend instead; see
+[Radio architecture](../api-reference/radio/architecture.md).
 
-1. update the payload source and exported entry contract;
-2. regenerate and review the import allowlist;
-3. confirm link regions fit the reserved radio SRAM layout;
-4. update loader relocation and validation only when the format changes;
-5. preserve typed radio ABI v1 and payload ABI v1, incrementing them together
-   when an incompatible contract is introduced;
-6. update the radio SquashFS package and legal manifest; and
-7. verify Wi-Fi, HCI, coexistence, queue backpressure, and unload/error paths.
+## Build the firmware
 
-Payload functions invoked from IRQ context must be bounded. Linux frontends
-must not retain pointers into payload-owned transient storage.
+Set up the tools in [Build from source](../get-started/build-from-source.md),
+then activate ESP-IDF and build from the parent project:
 
-## Loader format and compatibility
+```sh
+. "$IDF_PATH/export.sh"
+export IDF_EXPORT="$IDF_PATH/export.sh"
+make radio-idf-deps
+make radio-linux-payload
+```
 
-The loader accepts ELF32 little-endian RISC-V relocatable objects with one
-symbol table, bounded NUL-terminated names, RELA records and at most 16 MiB
-of allocated section content including alignment. Executable/data sections,
-relocation symbol indices and write widths are checked before relocation.
-Runtime exports must point inside loaded sections, with executable functions
-and writable ISR-depth state. Unsupported relocation types or malformed
-metadata are rejected before execution; this is structural validation, not
-firmware authentication.
+The first target builds the ESP-IDF libraries used by the radio. The second
+creates the relocatable firmware and regenerates the Linux import stubs.
 
-`tools/tests/test_s31_radio_elf.py` exercises the actual validation code with
-malformed ELF fixtures and, when present, the generated payload. Set
-`S31_TEST_SANITIZERS=1` for ASan/UBSan host checks. These tests do not execute
-radio firmware or prove Wi-Fi/Bluetooth behavior.
+To rebuild the Linux module and package the radio filesystem, run:
 
-The no-op `s31_rtos_hard_tick` export remains part of payload ABI v1. Its lack
-of work does not make it removable dead code. The obsolete M-mode branches
-and unused private timer helpers are outside this retained ABI.
+```sh
+make radio-fs
+```
 
-The radio Makefile tracks the resolved archive set, generated header depfiles,
-compiler identity, flags and IDF revision. Changing `S31_WIFI_ONLY` or an IDF
-header must invalidate affected objects; archive changes must relink the
-payload. An unchanged invocation preserves object and payload timestamps.
+The result is `build/radio.sqfs`. Update Linux as well when your change affects
+the module's imports or interface.
+
+## Change an operation
+
+Follow the existing Wi-Fi or HCI path through the frontend, Linux radio core,
+and firmware entry point. Keep application-facing calls in the frontend and
+hardware-library calls inside the firmware.
+
+When adding a firmware entry point, update its export and the loader's import
+or export handling as needed, then regenerate the stubs with the normal build
+target. Changes to structures or calling conventions also need an ABI update
+on the components that exchange them.
+
+Radio code can run from a worker or an interrupt callback. Keep interrupt work
+short, and copy data that must outlive a callback into storage owned by its
+consumer.
+
+## Check memory use
+
+Static radio data, task stacks, and radio buffers share limited internal SRAM.
+Use the driver's `radio_health` output to check heap usage and allocation
+failures. The memory regions are described in
+[Memory map](../hw-reference/memory-map.md).
+
+## Test the update
+
+Start with the changed mode, then check Wi-Fi and Bluetooth together. Exercise
+startup, traffic, queue pressure, shutdown, and reloading the radio module.
+The [HIL guide](../contribute/testing-hil.md) includes radio peer tests.
+
+For a separately packaged radio archive, run `make radio-package`. See
+[Releases and licensing](../contribute/release-and-legal.md) before distributing
+firmware that includes third-party libraries.

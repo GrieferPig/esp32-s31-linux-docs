@@ -1,79 +1,95 @@
-# Make Reference
+# Make reference
 
-## Primary targets
+Run these targets from the `esp32-s31-linux` repository root. For a first
+build, follow [Build from source](../get-started/build-from-source.md).
 
-| Target | Result |
+## Common commands
+
+```sh
+make all             # Build the complete image
+make linux           # Rebuild Linux and device trees
+make rootfs          # Rebuild the root filesystem
+make flash-all       # Build and flash the component images
+```
+
+Set `JOBS` to choose the number of parallel build jobs, for example
+`make JOBS=4 all`. Use `S31_LEAN_RADIO=0` for a full-peripheral build.
+
+## Build targets
+
+| Target | Description |
 |---|---|
-| `all` | Toolchain, boot chain, Linux, rootfs, and combined flash image |
-| `toolchain` | Fetch or prepare the RISC-V musl toolchain |
-| `toolchain-source` | Build the configured toolchain from source |
-| `opensbi` | Build the S31 OpenSBI firmware |
-| `uboot` | Build SPL and U-Boot FIT |
-| `linux` | Build DTBs, overlays, modules, and `xipImage` |
-| `rootfs` | Build the selected target root filesystem |
-| `radio-idf-deps` | Build ESP-IDF-derived radio dependencies |
-| `radio-linux-payload` | Build the external Linux radio payload |
-| `radio-module` | Build radio kernel modules |
-| `radio-package` | Package `radio.sqfs`, the radio module, payload, overlays, configuration, notices, and manifest as `build/radio-package/esp32s31-radio-<mode>.tar.xz` |
-| `persist` | Produce an explicit JFFS2 persistent image |
-| `flash-image` | Assemble the contiguous full image without a persist payload |
-| `flash-*` | Write explicitly selected images or slots |
-| `buildroot-menuconfig` | Open Buildroot configuration UI |
+| `all` | Build the toolchain dependencies, boot firmware, Linux, rootfs, and combined image |
+| `download` | Initialize the source submodules |
+| `toolchain` | Download the Linux toolchain, or reuse the installed copy |
+| `toolchain-source` | Build a toolchain from the configured crosstool-NG source |
+| `opensbi` | Build `fw_dynamic.bin` for the U-Boot FIT |
+| `uboot`, `bootloader` | Build SPL, `spl_app.bin`, and `u-boot.itb` |
+| `linux` | Build the XIP kernel, device trees, overlays, and radio module |
+| `rootfs`, `initramfs` | Build `rootfs.sqfs`; both names select the SquashFS target |
+| `radio-idf-deps` | Build the ESP-IDF radio dependencies |
+| `radio-linux-payload` | Build the external radio firmware and generate import stubs |
+| `radio-module` | Build and check the integrated radio module and firmware outputs |
+| `radio-fs` | Create `build/radio.sqfs` |
+| `radio-package` | Create the engineering radio archive under `build/radio-package/` |
+| `lp-firmware` | Build and stage the LP remoteproc firmware |
+| `persist` | Create an empty `build/persist.jffs2` |
+| `flash-image` | Create the combined `build/s31_full_flash.bin` file |
+| `coremark` | Build and copy the benchmark to `build/coremark/coremark.exe` |
+| `buildroot-menuconfig` | Open Buildroot configuration |
+| `buildroot-clean` | Clean the Buildroot build |
+| `clean` | Remove build output |
+| `fullclean` | Remove build output and the installed project toolchain |
 
-## Important variables
+The parent build reapplies the kernel and rootfs defconfigs. Save lasting
+configuration changes in those source files; see
+[Build profiles](../get-started/build-profiles.md).
 
-| Variable | Default role |
+## Flash targets
+
+These targets use `/dev/ttyUSB0` at 2000000 baud. For another port, use the
+explicit `esptool` commands in
+[Flash and first boot](../get-started/flash-and-first-boot.md).
+
+| Target | What it writes |
 |---|---|
-| `JOBS` | Parallel build count |
-| `DEFCONFIG` | `esp32s31_defconfig` |
-| `LINUX_TARGET` | `xipImage` |
-| `S31_LEAN_RADIO` | Select reduced radio/rootfs packaging |
-| `S31_WIFI_ONLY` | Omit Bluetooth portions where supported |
-| `S31_BTSTACK_O2` | Select BTstack optimization policy |
-| `IDF_ROOT`, `IDF_PATH`, `IDF_EXPORT` | Locate ESP-IDF environment |
-| `TOOLCHAIN_RELEASE_REPOSITORY`, `TOOLCHAIN_RELEASE_TAG` | Select prebuilt toolchain release |
-| `FW_TEXT_START`, `FW_RW_START` | OpenSBI text and writable link addresses |
+| `flash-all` | SPL, FIT, DTB, radio, kernel, and rootfs; keeps persist |
+| `flash-bootloader` | SPL and FIT |
+| `flash-opensbi` | FIT containing OpenSBI and U-Boot |
+| `flash-linux` | Linux DTB and kernel |
+| `flash-dtb` | Linux DTB |
+| `flash-radio` | Radio filesystem |
+| `flash-rootfs` | Root filesystem |
+| `flash-existing-radio` | Existing `build/radio.sqfs`, without rebuilding |
+| `flash-existing-rootfs` | Existing `build/rootfs.sqfs`, without rebuilding |
+| `flash-persist` | Empty persistent filesystem; erases saved files and settings |
+| `erase` | Entire flash chip |
 
-Flash offsets and partition sizes are centralized in
-`configs/esp32s31-layout.cfg`; do not duplicate them in Make recipes.
+The regular flash targets build their dependencies first. The `existing`
+variants use the files already on disk, so use them only after a completed
+build. `flash-image` belongs to the build table above: it produces a file on
+the host.
 
-## Local validation and build identity
+## Build variables
 
-`make check-host` runs the layout and host regression checks; `make check-docs`
-builds Sphinx with warnings treated as errors. `make check-dt` validates S31
-bindings, base DTBs and each individually merged overlay and fails on validator diagnostics even if Kbuild returns
-zero. `make check-fast` runs all three. Install `docs/requirements.txt` and
-`dtschema==2026.6` into a host virtual environment first.
+| Variable | Use |
+|---|---|
+| `JOBS` | Parallel jobs; defaults to the host CPU count |
+| `S31_LEAN_RADIO` | `1` for the compact radio profile, `0` for full peripherals |
+| `DEFCONFIG` | Kernel configuration; defaults to `esp32s31_defconfig` |
+| `LINUX_TARGET` | Kernel image target; defaults to `xipImage` |
+| `IDF_EXPORT` | Path to the ESP-IDF `export.sh` to use |
+| `IDF_PATH`, `IDF_ROOT` | ESP-IDF installation and discovery paths |
+| `TOOLCHAIN_RELEASE_TAG` | Toolchain release to download; defaults to `latest` |
+| `TOOLCHAIN_RELEASE_REPOSITORY` | Repository supplying toolchain releases |
+| `CROSSTOOL_NG_DIR` | Source tree for `toolchain-source` |
+| `S31_BTSTACK_O2` | BTstack optimization selection |
 
-`configs/build-versions.mk` selects the ESP-IDF commit, IDF compiler release,
-and Linux toolchain release for both local builds and CI. `IDF_EXPORT` can
-select its installation location. A different IDF revision requires the explicit
-experimental override `S31_ALLOW_UNPINNED=1`; the build manifest still records
-its actual identity. `TOOLCHAIN_RELEASE_TAG=latest` is an explicit opt-in to a
-moving toolchain and is not the reproducible default. After `toolchain-source`,
-use `TOOLCHAIN_RELEASE_TAG=local` to keep that explicitly selected local compiler.
+The integrated radio firmware build selects the combined Wi-Fi/Bluetooth
+payload. Choose the active radio mode at runtime with `esp32-config`.
 
-`make build-manifest` records actual source revisions, dirty-tree fingerprints,
-configuration hashes, compiler identity, and available artifact hashes in
-`build/build-manifest.json`. `flash-image` generates it with `build/SHA256SUMS`;
-radio packages include the manifest. Missing artifacts are absent from the
-manifest; generating it alone does not build or validate them.
-
-`radio-image` is retired and fails with a migration message. Use `radio-fs`
-for `radio.sqfs` or `radio-package` for an archive. The old `FW_PAYLOAD`,
-`FW_JUMP_ADDR`, and `LINUX_XIP_ADDR` knobs have no supported build effect.
-
-Flash commands reject missing, empty or oversized images before serial access
-and accept `PORT` and `BAUD`. Select the board's download port
-explicitly, for example `make PORT=BOARD_PORT BAUD=2000000 flash-all`.
-
-Source checkout initialization is explicit: run `make download` separately,
-then build. The package script completes `radio-fs` before generating its
-manifest even when Make parallelism is inherited. Image releases use one
-layout-driven artifact list for publication and checksums.
-
-The DT gate validates all schemas selected by the base DTBs and merged overlays,
-including generic IP bindings. Its only schema adaptation adds the named
-`/chosen/opensbi-config` child through the explicit in-tree OpenSBI binding;
-other `/chosen` properties remain validated. Untracked source input names such
-as Makefiles, init scripts and Buildroot packages are included in dirty identity.
+Low-level variables such as `FW_TEXT_START`, `FW_RW_START`, and
+`LINUX_XIP_ADDR` are used when changing the boot memory layout. Coordinate
+those changes with the linker scripts and device tree; see
+[Memory map](../hw-reference/memory-map.md) and
+[Flash layout](../hw-reference/flash-layout.md).

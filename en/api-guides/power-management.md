@@ -1,252 +1,129 @@
-# Power Management
+# Power management
 
-The S31 power-management implementation deliberately separates frequency
-scaling, Linux idle accounting, suspend-to-idle validation, and destructive
-power states. An interface being visible does not imply that the corresponding
-hardware domain is powered down.
+You can change the CPU frequency, use automatic CPU idle, shut down the board,
+and test LP timer and GPIO wakeup. This guide covers the commands for each
+operation.
 
 ## CPU frequency
 
-The CPU clock provider and OPP table expose one shared policy for both HP
-harts. The available rates are 80, 160, 240, and 320 MHz. Clock transitions are
-serialized and update the common HP clock; users must not assign independent
-rates to the two CPUs.
+Both HP cores share a single CPU-frequency policy. The available frequencies
+are 80, 160, 240, and 320 MHz.
 
-The 16 MHz SYSTIMER driver explicitly enables its HP clock gate, selects XTAL,
-disables stale comparators, and acknowledges pending levels during early boot.
-It preserves the running counter and does not depend on ROM, SPL, or a
-previously loaded IDF image to leave the timer configured.
+Read the available frequencies and current governor:
 
-The `performance` and `userspace` governors are enabled. A fixed rate can be
-selected through the normal cpufreq policy interface:
+```sh
+cat /sys/devices/system/cpu/cpufreq/policy0/scaling_available_frequencies
+cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+```
+
+To run at 160 MHz, select the userspace governor and set the frequency in kHz:
 
 ```sh
 echo userspace > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
 echo 160000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed
 ```
 
-Return the system to its default policy with:
+To return to the default performance governor:
 
 ```sh
 echo performance > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
 ```
 
+Linux timekeeping continues to use the 16 MHz SYSTIMER.
+
 ## CPU idle
 
-The standard configuration selects the S31 `SMP-WFI` cpuidle state with the
-`esp32s31_idle=wfi` command-line option. The driver probes the vendor OpenSBI
-extension before registering and falls back to IRQ-enabled polling when paired
-with an older firmware image. Boot stays in polling mode until the cpuidle
-device initcall, after runtime clockevents are available.
+The standard configuration selects firmware-assisted WFI idle with
+`esp32s31_idle=wfi`. Linux enters this state automatically when there is no
+work to run.
 
-Delegated S-mode timer and doorbell interrupts do not by themselves wake a hart
-from an M-mode WFI on this silicon. The CLINT comparator is also exposed through
-a shared hart-relative alias, so it cannot safely provide two concurrent wake
-deadlines. OpenSBI instead reserves timer 1 in TIMERG0 for hart 0 and timer 1 in
-TIMERG1 for hart 1. Each comparator runs from the 40 MHz crystal through a
-divide-by-40 prescaler and routes to a private M-level CLIC slot while its hart
-is in WFI. A 10 ms one-shot guard bounds every idle entry; OpenSBI clears and
-disarms the timer before returning to Linux. Normal Linux clockevents and
-timekeeping remain on the per-hart 16 MHz SYSTIMER targets.
+OpenSBI uses timer 1 in each timer group as a 10 ms wakeup guard. The `timers`
+overlay leaves these channels reserved and exposes timer 0 to applications.
+Older firmware falls back to polling idle.
 
-The GPTimer Counter binding carries an `espressif,reserved-timer-mask` property.
-The base S31 device tree reserves channel 1 in both timer groups, so an enabled
-GPTimer overlay exposes only `timer0` to Linux and cannot overwrite the idle
-guards. Validate concurrent idle, pinned timer wakeups, CPU1 hotplug, cross-hart load
-and GDMA interrupt progress on each changed firmware/kernel pair.
+## LP wakeup tests
 
-## LP firmware and sleep protocol
-
-The LP core is managed by remoteproc and uses mailbox ABI version 1. Before
-starting it, the driver grants REE access to the LP system-register,
-peripheral-clock/reset, IOMUX, and mailbox PMS windows used by the firmware.
-The last KiB of LP SRAM contains a CRC-protected sleep-control structure. Linux
-performs the following transaction:
-
-1. `PREPARE` validates ABI, sequence, CRC, wake mask, and deadline.
-2. `ARM` validates and configures the selected wake source; the MEM timer starts
-   when OpenSBI publishes `HP_ASLEEP`.
-3. `QUERY` returns state, result, wake reason, and timestamps.
-4. `RECLAIM` returns ownership to Linux; failures use `ABORT`.
-
-Linux retries a bounded control-block snapshot when an immediately active wake
-level changes the record while it is being copied. The CRC still rejects a
-record that never reaches a stable state.
-
-The powered-suspend timer uses RTC target 1 and converts microseconds with the
-current RTC slow-clock calibration. For suspend-to-RAM, the LP firmware starts
-the requested interval only after OpenSBI publishes `HP_ASLEEP`; time spent
-quiescing Linux devices does not consume the sleep interval. The target and
-interrupt remain in the always-on LP domain while the HP clock classes are
-gated.
-
-Handshake, timer wake, GPIO wake, wake-log, and retention-descriptor
-capabilities are advertised.
-GPIO0 through GPIO7 can be sampled by the running LP core after it takes RTCIO
-ownership. LP-UART wake remains reserved in the ABI.
-
-The timer and GPIO transactions can be tested without suspending Linux:
+With LP firmware running, test the mailbox and timer:
 
 ```sh
-s31-lpctl sleep-test 100
-s31-lpctl gpio-test 3 high up 500
-s31-lpctl gpio-test 3 low down 500
+s31-lpctl ping
+s31-lpctl sleep-test 1000
 ```
 
-The GPIO command accepts a pin from 0 through 7, a `low` or `high` target, an
-optional `none`, `up`, or `down` pull, and a 10 through 5000 ms timeout. The
-internal-pull form verifies RTCIO ownership, LP sampling, wake logging,
-mailbox delivery, and pad release. It does not prove that the same pin wakes a
-powered-down HP domain. Board straps or connected fixtures can override a weak
-internal pull, so an externally driven test should use a pin selected for that
-board.
+Linux stays awake during these tests. GPIO examples and accepted arguments are
+in the [LP reference](../api-reference/lp-core/index.md).
 
-## Suspend-to-idle diagnostic path
+## Suspend-to-idle
 
-Linux s2idle can exercise device suspend/resume and the complete LP
-prepare/arm/query/reclaim transaction. Set a bounded timer before requesting
-`freeze`:
+The `freeze` path exercises Linux device suspend/resume and LP wakeup handling.
+Set a timer before entering it:
 
 ```sh
 echo 1000 > /sys/module/esp32s31_lp/parameters/s2idle_wake_ms
 echo freeze > /sys/power/state
 ```
 
-The accepted range is 10 through 600000 ms; zero disables the automatic timer.
-The transaction uses `DRY_RUN`. During `noirq`, Linux polls the shared LP state
-because the mailbox interrupt cannot yet wake the HP CPUs through CLIC. The
-timeout uses calibrated atomic delays because normal Linux timekeeping is
-suspended in this phase. Both the LP wake and timeout paths report a hard wake
-event, so a missing LP response cannot leave the s2idle wait blocked. This
-keeps suspend testing recoverable, but the polling HP CPU consumes power and
-must not be described as a low-power state.
+The timer accepts 10–600000 ms. A value of zero disables the automatic timer.
+After returning, check `dmesg` for the LP wake result.
 
-The S31 DWC2 host keeps its controller and UTMI PHY context live across this
-diagnostic. The wrapper does not retain forced-host state through either DWC2
-partial power-down or PCGCCTL clock gating, and resetting the PHY during resume
-can assert the shared level interrupt before host state is restored. A connected
-high-speed mass-storage device therefore remains enumerated while s2idle tests
-the LP transaction. This is a functional system-PM path, not USB or HP-domain
-power retention, and it does not reduce the polling power cost described above.
+This is a diagnostic suspend path: the HP side polls for LP completion during
+the noirq phase, so it still consumes power. The DWC2 host keeps its controller
+and PHY context active during this test.
 
-## Suspend-to-RAM retention path
+## Suspend-to-RAM
 
-`mem` uses the SBI system-suspend extension and a non-dry-run LP transaction.
-Before entering APPWR sleep, OpenSBI writes back Linux PSRAM, copies its RW/BSS
-and hart scratch state into LP SRAM, installs a retained warmboot trampoline,
-and saves the normal APPWR profile. The sleep profile sets mode 0 for the CPU,
-TOP, connection, and HP-alive logic islands, mode 2 for all four HP memory
-banks, and mode 0 for all HP clock classes. LP RTC target 1 publishes the wake
-record and asserts `APPWR_SW_WAKEUP_REQ`; the trampoline restores OpenSBI state
-before generic HSM resume returns to Linux. The normal APPWR profile is then
-restored.
+TODO: fix firmware mismatch
 
-Select a bounded timer and enter suspend with:
+The Linux-side options are available under
+`/sys/module/esp32s31_lp/parameters/` for developers working on this support:
 
-```sh
-echo 2000 > /sys/module/esp32s31_lp/parameters/mem_wake_ms
-echo mem > /sys/power/state
-```
+| Parameter | Values |
+|---|---|
+| `mem_wake_ms` | Timer interval, 10–600000 ms; default 2000 |
+| `mem_wake_gpio` | LP GPIO0–7, or `-1` to disable GPIO wake |
+| `mem_gpio_active_high` | `Y` for high-level wake, `N` for low-level wake |
+| `mem_gpio_pull` | `0` for none, `1` for pull-up, `2` for pull-down |
 
-The timer accepts 10 through 600000 ms. The LP firmware reclaims the retained
-descriptor after resume, allowing repeated timer- and GPIO-driven cycles
-without a board power cycle. Verify repeated cycles, retained RAM checksums and both online HP harts
-using the build identity of the image under test.
+The intended retention path keeps RAM and uses a timer as the recovery wakeup
+source. Radio services reconnect after their controller restarts. See
+[LP firmware development](lp-firmware-development.md) for the shared protocol
+and memory layout.
 
-The S31 DWC2 platform path masks its level interrupt and powers off the
-controller/UTMI PHY before APPWR removes the HP logic domains. Resume treats the
-lost context as a cold controller recovery and lets USB reset the connected
-port. An attached USB drive requires enumeration and bounded readback checks
-after every resume.
+## Shut down
 
-An optional LP GPIO0-7 level can be armed alongside the mandatory timeout:
+Use the normal Linux shutdown command:
 
 ```sh
-echo 0 > /sys/module/esp32s31_lp/parameters/mem_wake_gpio
-echo Y > /sys/module/esp32s31_lp/parameters/mem_gpio_active_high
-echo 2 > /sys/module/esp32s31_lp/parameters/mem_gpio_pull
-echo 10000 > /sys/module/esp32s31_lp/parameters/mem_wake_ms
-echo mem > /sys/power/state
+poweroff
 ```
 
-`mem_gpio_pull` is 0 for none, 1 for pull-up, or 2 for pull-down. The LP
-firmware rejects a level that is already active while arming, and begins
-powered GPIO polling only after OpenSBI publishes `HP_ASLEEP`. The timer remains
-mandatory as a recovery bound. The fixture must prove wire continuity, reject an already-active level,
-verify GPIO wake reason `0x2`, preserve RAM/USB readback and release the pad
-to high-Z afterward.
+This stops services and synchronizes filesystems before requesting the firmware
+shutdown state. Press Reset/EN or cycle power to start the board again.
+If the firmware cannot complete the power transition, it halts the CPU.
 
-The radio restart path remains experimental. With radio core ABI v1 and payload ABI v1,
-the PM callback detaches the frontends, shuts down the firmware runtime and
-releases its power vote. Resume restores pristine firmware data, restarts the
-runtime and replays retained monitor and committed enterprise configuration. The
-direct HCI endpoint emits a Hardware Error event to restart the host state
-machine. Wireless connections must be established again by userspace; they
-are not retained through sleep. This removes the unconditional loaded-radio
-`-EBUSY` restriction. Acceptance requires userspace reassociation and exact bidirectional traffic
-after each radio-enabled suspend cycle.
-AP service needs an
-explicit userspace restart because cfg80211 stops it during suspend. BTstack
-discards stale connections, recomputes
-advertising eligibility and re-enters HCI initialization after the controller
-reset event. The old over-air connection is lost during sleep. BLE and combo
-radio recovery still require a fresh board acceptance run.
-A failed restart leaves interfaces detached. LP-UART and WoWLAN
-packet wake remain unimplemented.
+## Timed deep sleep
 
-## Normal shutdown
+Timed deep sleep shuts down Linux and starts a fresh boot when its timer
+expires. Save application state before entering it.
 
-Use the normal init shutdown sequence, for example `poweroff`, to stop services
-and synchronize filesystems. The clock provider's poweroff-prepare handler
-switches both HP harts to the 40 MHz crystal. An SBI shutdown without an armed
-deep-sleep timer then enters the PMU deep profile with RTC timer targets and
-wake sources disabled. This path does not require the LP overlay and does not
-schedule an automatic reboot. Reset/EN or a power cycle is required to boot
-again. It does not disconnect the board's external power supply.
-
-If an untimed shutdown cannot satisfy the PMU prerequisites, OpenSBI halts
-instead of intentionally rebooting. This fallback does not prove low current.
-Verify the untimed PMU request, a bounded observation without automatic
-restart, and recovery through external reset. Board current has
-not been measured. Deploy the matching
-OpenSBI/U-Boot image as well as Linux to use this behavior.
-
-## Deep sleep
-
-Deep sleep is a distinct, destructive sysfs operation rather than another
-Linux suspend state. Read its current state at the LP remoteproc device and arm
-a timer in milliseconds by writing the same attribute:
+With LP firmware running, this example requests a four-second interval:
 
 ```sh
-deep_sleep=$(ls /sys/bus/platform/devices/*/deep_sleep)
-cat "$deep_sleep"
-echo 4000 > "$deep_sleep"
+for attr in /sys/bus/platform/devices/*/deep_sleep; do
+    [ -w "$attr" ] || continue
+    echo 4000 > "$attr"
+    break
+done
 ```
 
-The accepted interval is 1000 through 600000 ms. Writing it prepares and arms
-an LP timer descriptor, latches the authorization in always-on LP_SYS storage,
-and starts an orderly poweroff. The reboot notifier moves the shared HP clock
-tree to the 40 MHz crystal while both harts can still complete the handshake.
-OpenSBI then stops the LP hart, programs RTC target 0, installs the IDF-derived
-deep-sleep PMU profile, switches the transition clock to RC_FAST, and asserts
-the terminal PMU request from SRAM. A failed clock or PMU prerequisite falls
-closed to an ordinary reset.
+The accepted interval is 1000–600000 ms. Linux records the request and starts
+an orderly shutdown; OpenSBI then programs the RTC wakeup timer.
 
-Timer expiry produces `PMU_SYS_PWR_DOWN_RESET`; ROM takes the normal verified
-boot path rather than a retained wake stub. LP_SYS reports the previous deep
-cycle and timer wake reason after Linux returns:
+This path uses a fixed 155386 Hz RTC slow-clock value, so the delay can vary
+between boards. Its `previous` and `wake_reason` fields are software markers
+for the requested operation. Check the reset log when diagnosing a failed
+sleep transition.
 
-```text
-armed=0 previous=1 wake_reason=0x1
-```
+TODO: GPIO deep-sleep wake, LP-UART wake, and WoWLAN packet wake are still pending.
 
-Verify the deep-reset reason, both HP harts and persistent filesystem
-health after cold boot. This is non-retentive: kernel and userspace state is
-lost, unlike suspend-to-RAM. GPIO wake, selective retained memory, and power
-measurements remain outside the implemented boundary. Existing NOR
-program/JFFS2 failures can independently delay or prevent userspace startup
-after any reset; deep-reset and early SMP logs may still have completed in that
-case.
-
-Historical observations do not certify the current checkout. Retain new
-acceptance records locally with source and image identity.
+TODO: Measured board-current figures are also pending.

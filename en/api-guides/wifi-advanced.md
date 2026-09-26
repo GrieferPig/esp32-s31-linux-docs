@@ -1,70 +1,85 @@
-# Advanced Wi-Fi Modes
+# Advanced Wi-Fi
 
-The integrated fullmac frontend supports a station, one AP and one receive-only
-monitor interface on a single 2.4 GHz channel. AP and station traffic use
-separate Ethernet paths. The firmware owns authentication and encryption;
-Linux reports AP client join/leave events and can deauthenticate clients.
-These interfaces are implemented; RF interoperability and recovery require
-versioned board acceptance for the selected image and fixture.
+In addition to station mode, the Wi-Fi driver provides an access-point
+interface, monitor reception, and enterprise credential provisioning. Station,
+AP, and monitor interfaces share one 2.4 GHz channel, with up to one interface
+of each type.
 
-## Access point and concurrent station
+For ordinary station setup, use `esp32-config` and the
+[radio guide](../api-reference/radio/index.md).
 
-Create the AP interface before starting an AP-capable nl80211 manager:
+## Monitor reception
+
+Create a monitor interface and bring it up:
+
+```sh
+iw dev wlan0 interface add mon0 type monitor
+ip link set mon0 up
+iw dev mon0 set channel 6 HT20
+```
+
+Choose the channel while the station is disconnected and the AP is stopped.
+With an active station or AP, monitor reception uses their channel.
+
+Received packets include a radiotap header with channel and signal information.
+The interface supports reception only. To save a capture, add `tcpdump` to the
+rootfs and run:
+
+```sh
+tcpdump -i mon0 -s 0 -w /tmp/capture.pcap
+```
+
+Stop the capture with Ctrl+C, then remove the interface:
+
+```sh
+iw dev mon0 del
+```
+
+`/tmp` uses RAM, so keep captures small or write them to attached storage.
+
+## Access-point mode
+
+Create an AP interface with:
 
 ```sh
 iw dev wlan0 interface add ap0 type __ap
 ip link set ap0 up
 ```
 
-The `start_ap` operation accepts open authentication, WPA2-PSK with a 32-byte
-PMK, or WPA3-SAE with a password, using CCMP. WPA3 requires PMF. The manager must
-support firmware authentication offload and supply the key in the AP-start
-request. AP key installation through a subsequent `add_key` call is not the
-implemented contract. Mixed WPA2/WPA3 transition mode and AP-side enterprise
-authentication are not supported. Hostapd 2.11 interoperability is verified
-for an open AP; protected AP modes remain unverified.
-There are at most four clients. Beacon intervals are 100–60000 TU and DTIM
-periods are 1–10; only 20 MHz channels are accepted.
+An AP manager must then start the access point and configure its IP address,
+DHCP service, and routing. This port uses firmware authentication offload:
+the AP-start request supplies the WPA2 PSK or WPA3 SAE password. Integration
+with a standard hostapd setup still needs testing.
 
-Start the AP before connecting the station. Starting an AP reconfigures the
-firmware and disconnects an existing station connection. In AP+STA mode the
-station's channel wins; Linux reports the AP channel change. IP addressing,
-DHCP service, forwarding and firewall rules are userspace responsibilities.
+The AP configuration accepts:
 
-For AP+STA acceptance, exercise both interfaces concurrently and check exact
-bidirectional payloads and retain a local acceptance record with image identity.
-Protected AP interoperability, extended throughput and automatic AP recovery
-after suspend require separate acceptance.
+| Setting | Values |
+|---|---|
+| Security | Open, WPA2-PSK, or WPA3-SAE |
+| Protected-network cipher | CCMP |
+| Channel width | 20 MHz |
+| Maximum clients requested from firmware | 4 |
+| Beacon interval | 100–60000 TU |
+| DTIM period | 1–10 |
+| SAE password | 1–63 bytes |
 
-## Monitor reception
+Select one authentication method; mixed WPA2/WPA3 transition mode is currently
+unsupported. For AP+station use, start the AP first, then connect the station
+on the same channel. Restarting the AP can interrupt the station connection.
 
-```sh
-iw dev wlan0 interface add mon0 type monitor
-ip link set mon0 up
-iw dev mon0 set channel 6 HT20
-tcpdump -i mon0 -s 0 -w capture.pcap
-```
+## Enterprise credentials
 
-Received management/data frames carry a radiotap header with channel, RSSI and
-the FCS-present flag. Control frames and injection are not supported. Channel
-changes are rejected while a station is connected/connecting or an AP is
-active, since the radio has only one channel. Capture follows that channel in
-concurrent operation. Remove the interface with `iw dev mon0 del`. Monitor
-capture requires a versioned board acceptance record.
+Enterprise authentication runs in the radio firmware. Use
+`tools/s31_wifi_eap.py` to provision its identity, CA certificate, server domain,
+and user credentials or client certificate.
 
-## Enterprise station provisioning
+The helper runs on a computer with Python and sends commands to `iw` locally
+or over SSH. To use the remote example below, first add an SSH server to the
+board image and set up access. The default image uses the serial console.
 
-The IDF EAP supplicant supports PEAP and EAP-TLS. Its certificate and identity
-configuration uses vendor ID `0x18fe34`, subcommand `0x1`: five little-endian
-32-bit values (operation, field, offset, total length, chunk length), followed
-by at most 512 data bytes. Operations 6/7/8 are write/commit/clear. Field indices
-0–6 are identity, username, password, CA, server domain, client certificate and
-private key. Fields must arrive in order, fit 4095 bytes each, and be complete
-before commit. PEM material includes no NUL on the wire; firmware appends it.
+### 1. Prepare a profile
 
-Use `tools/s31_wifi_eap.py` on a host with Python 3 and authenticated SSH access
-to the board, or locally where Python and `iw` are available. A PEAP profile is
-a local JSON file:
+For PEAP, create `profile.json`:
 
 ```json
 {
@@ -76,41 +91,62 @@ a local JSON file:
 }
 ```
 
-Paths are relative to the JSON file. Password file bytes are used exactly;
-avoid an accidental trailing newline. EAP-TLS uses `cert_file` and `key_file`
-in place of username/password; the key must be unencrypted PEM. Keep these
-private files outside the repository. CA and server-domain validation are
-required. Set Linux's real-time clock correctly before connecting so the
-firmware can check certificate validity.
+Use the identity, CA, and server domain supplied by your network administrator.
+File paths are relative to the JSON file. Password-file contents are used as
+written, including a trailing newline. Keep the profile and credential files
+private.
+
+For certificate-based authentication, supply both `cert_file` and `key_file`
+in place of the username/password pair. The identity, CA, and domain are
+required for both forms. Each field can contain up to 4095 bytes, with a
+253-byte limit for the domain; embedded NUL bytes are rejected.
+
+### 2. Provision the firmware
+
+Disconnect the station and stop automatic reconnection while changing the
+profile. Set the board's clock before certificate-based authentication, then
+run on your computer:
 
 ```sh
 python3 tools/s31_wifi_eap.py --ssh root@BOARD profile.json
-# On the board, with another station manager stopped:
-ip link set wlan0 up
-iw dev wlan0 connect EnterpriseSSID
-udhcpc -i wlan0
 ```
 
-This provisions the firmware EAP client; a standard wpa_supplicant WPA-EAP
-profile does not supply these vendor fields automatically. Once committed,
-the next station connect uses EAP. Disconnect before replacing or clearing a
-profile. `--clear` removes it before switching back to personal/open networks.
-The tool clears partial configuration after a failed transfer. Its commands
-carry secrets through stdin, not shell arguments. The kernel keeps a private
-copy for suspend recovery and wipes it on clear/unload.
+Replace `BOARD` with the board's SSH address. The helper clears the old profile,
+transfers the fields, and commits the new profile. It sends credentials through
+standard input rather than command-line arguments.
 
-## Suspend and remaining boundaries
+### 3. Connect to the network
 
-With matching core ABI v1 and payload ABI v1, system suspend detaches netdevs,
-quiesces radio tasks/IRQs/DMA, and releases the radio power vote. Resume resets
-the firmware and replays retained monitor and committed EAP configuration.
-Normal cfg80211 suspend stops the AP and clears its configuration before this
-replay, so userspace must start the AP again after resume. Automatic AP service
-restoration has not passed board acceptance. Station
-association and IP reachability require userspace reconnection. A failed
-restart keeps interfaces detached and returns an error.
+After provisioning, initiate a station connection to the enterprise SSID using
+your station integration. The usual `wpa_supplicant` WPA-EAP settings do not
+populate this firmware profile. End-to-end enterprise authentication remains
+an integration task; check authentication and IP traffic with your network.
 
-There is no WoWLAN packet wake, retained wireless link, P2P or monitor injection
-implementation. The closed firmware's public API does not expose the P2P
-negotiation/role control needed to implement Wi-Fi Direct. See
-[power management](power-management.md) for sleep/wake constraints.
+To clear the installed credentials, disconnect first and run:
+
+```sh
+python3 tools/s31_wifi_eap.py --ssh root@BOARD --clear
+```
+
+If a transfer fails, restore the connection to the board and clear the profile
+before retrying.
+
+### Vendor command format
+
+For tools that implement provisioning directly, use vendor ID `0x18fe34` and
+subcommand `0x1`. Each request contains five little-endian 32-bit integers:
+operation, field, offset, total length, and chunk length. Up to 512 bytes of
+field data follow the header.
+
+Operations are WRITE (`6`), COMMIT (`7`), and CLEAR (`8`). Field IDs 0–6 select
+identity, username, password, CA, domain, client certificate, and private key.
+Send each field in consecutive chunks and complete every field before COMMIT.
+Provisioning is rejected while the station is connected, connecting, or
+suspended.
+
+## After suspend
+
+Wireless connections are re-established after the radio restarts. Restart the
+AP manager when needed and reconnect the station. See
+[Power management](power-management.md) for the available suspend modes and
+current limitations.

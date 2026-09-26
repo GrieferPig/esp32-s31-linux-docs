@@ -1,26 +1,115 @@
-# Flash and First Boot
+# Flash and first boot
 
-Build the combined image with `make flash-image`. The image contains SPL,
-U-Boot/OpenSBI, base DTB, radio filesystem, XIP kernel, and root filesystem at
-the fixed offsets documented in the flash layout. Persistent JFFS2 is omitted
-from normal combined images.
+This guide shows how to install a release image, open the serial console,
+and configure the board. You need an ESP32-S31 board with at least 16 MiB flash and
+16 MiB PSRAM.
 
-Omitting persist data from the merged file does not preserve that flash range
-when flashing the whole contiguous binary: its padding still spans the gap.
-Use `make flash-all` or the individual slot targets for updates that preserve
-existing configuration. Reserve a whole merged-image write for installation
-or an explicitly destructive recovery.
+## 1. Install `esptool`
 
-Use the parent Makefile's `flash-*` targets so the selected artifact and offset
-come from the shared layout configuration. A partial target writes only its
-named slot. An operation that erases the entire device or writes the persist
-slot must be deliberate because it can remove runtime configuration.
+`esptool` is a Python utility used for flashing firmware onto ESP32 devices. If you don't have already, install `esptool` via
 
-On normal boot, the console shows ROM/SPL, U-Boot, OpenSBI, and Linux handoff,
-followed by the root filesystem and init process. A boot stage printing its
-banner proves only that control reached that stage; complete boot requires the
-Linux init process and expected userspace interfaces.
+```bash
+pip install esptool # add --break-system-packages if your system package manager manages python packages
+```
 
-The parent repository displays the preserved reference image:
+Installing `esptool` globally is recommended, as it'll come in handy in multiple places during the development process.
 
-![ESP32-S31 Linux boot log](../../bootlog.png)
+
+## 2. Connect the board
+
+Connect the board's download/console USB port to your computer and find its
+serial device. The examples below use `/dev/ttyUSB0`. Replace it with your
+board's port.
+
+Typical device names are `/dev/ttyUSBx` on Linux and `COMx` on Windows.
+
+## 3. Install a release image
+
+Download `s31_full_flash.bin` from the project's
+[releases](https://github.com/GrieferPig/esp32-s31-linux/releases).
+Run the following commands from the download directory:
+
+> **Warning:** Installing the combined image erases everything in flash. Back up
+> anything you need before continuing. For an existing Linux update that keeps settings,
+> use the source-build method below.
+
+### Linux
+```sh
+PORT=/dev/ttyUSB0
+esptool --chip esp32s31 -p "$PORT" -b 2000000 erase-flash
+esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash \
+  --flash-mode dio --flash-freq 80m --flash-size 16MB \
+  0x0 s31_full_flash.bin
+```
+
+### Windows (PowerShell)
+```powershell
+$PORT="COM3"
+esptool --chip esp32s31 -p "$PORT" -b 2000000 erase-flash
+esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash `
+  --flash-mode dio --flash-freq 80m --flash-size 16MB `
+  0x0 s31_full_flash.bin
+```
+
+The board should restart when flashing finishes. If it does not enter download
+mode automatically, use the download and reset buttons described in your
+board's instructions. If transfers fail, try a lower flashing baud rate.
+
+## 4. Open the console
+
+Open the serial port in your terminal program with these settings:
+
+| Setting | Value |
+|---|---|
+| Baud rate | 115200 |
+| Data bits | 8 |
+| Parity | None |
+| Stop bits | 1 |
+| Flow control | None |
+
+You should see the bootloader and Linux messages, followed by a login prompt.
+
+## 5. Configure the board
+
+Run the configuration menu:
+
+```sh
+esp32-config
+```
+
+Use it to select the radio mode and configure Wi-Fi, Bluetooth, and other
+board settings. Configuration is saved under `/etc/esp32-conf`.
+
+For peripheral setup, continue with the
+[overlay catalog](../resources/overlay-catalog.md). For boot problems, see
+[Debugging](../api-guides/debugging.md).
+
+## 6. Update a source-built system
+
+After [building the project](build-from-source.md), use this command for a
+board on `/dev/ttyUSB0`:
+
+```sh
+make flash-all
+```
+
+It writes SPL, U-Boot/OpenSBI, the Linux device tree, radio firmware, the kernel,
+and the root filesystem, while leaving the persist partition in place.
+
+Alternatively, you can flash individual components manually using `esptool` as shown below.
+
+```sh
+PORT=/dev/ttyUSB0
+. configs/esp32s31-layout.cfg
+esptool --chip "$CHIP" -p "$PORT" -b 2000000 write-flash \
+  --flash-mode dio --flash-freq 80m --flash-size 16MB \
+  "$SLOT_SPL" "build/$SPL_APP_BIN" \
+  "$SLOT_UBOOT_ITB" "build/$UBOOT_ITB" \
+  "$SLOT_DTB" "build/$BASE_DTB" \
+  "$SLOT_RADIO" "build/$RADIO_IMAGE" \
+  "$SLOT_KERNEL" "build/$KERNEL_IMAGE" \
+  "$SLOT_ROOTFS" "build/$ROOTFS_IMAGE"
+```
+
+The individual component targets are
+listed in the [Make reference](../resources/make-reference.md).

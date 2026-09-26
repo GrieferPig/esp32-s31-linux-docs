@@ -1,23 +1,37 @@
-# Power Domains
+# Power domains
 
-The S31 PMU provider represents hardware power islands through generic PM
-domains. Clients attach through device tree and runtime PM; they do not gate
-domains directly.
+The ESP32-S31 separates high-performance logic, memory, clocks, and low-power
+hardware into groups that can be managed independently. Linux drivers use the
+power-domain and clock providers to keep the resources they need active.
 
-The read-only `domains` sysfs attribute reports each domain's policy, software
-and hardware state, force state, transition counters, and radio vote where
-applicable. A software request may remain logically active while hardware is
-held on by another dependency.
+## Peripheral power
 
-Radio and LP transitions cross clock, reset, memory-retention, and wake-source
-boundaries. Suspend code must order prepare, quiesce, domain transition, wake,
-restore, and reclaim operations and must abort safely if any prerequisite
-rejects the requested state.
+A device-tree node can refer to a power domain through its `power-domains`
+property. The provider tracks users of that domain, including radio activity.
+A driver releases its request after stopping the device.
 
-Linux suspend-to-idle keeps the HP side running and uses the LP protocol in
-dry-run mode. Suspend-to-RAM uses a separate non-dry-run retention contract:
-APPWR mode 0 gates all HP clock classes and powers down the CPU, TOP,
-connection, and HP-alive logic islands, while mode 2 retains the four HP memory
-banks. The LP core and RTC timer remain always-on and request the APPWR wake
-transition. See the power-management API guide for the current DWC2, radio, and
-wake-source restrictions.
+To view the provider's state, run:
+
+```sh
+for file in /sys/bus/platform/devices/*/domains; do
+    [ -r "$file" ] && cat "$file"
+done
+```
+
+## System sleep
+
+The firmware's APPWR retention profile selects memory-retention mode for the
+four HP memory banks, switches off HP logic groups, and gates the HP clocks.
+The configured power value is `0x0000aa00`, with clock value `0x00000000`.
+The low-power side supplies the wakeup request.
+
+The Linux integration and current suspend limitation are described in
+[Power management](../api-guides/power-management.md). That guide also covers
+CPU idle, shutdown, and timed deep sleep.
+
+## Measure power use
+
+Measure current at the board's power input when comparing power states. USB
+bridges, regulators, LEDs, and connected peripherals can affect the total.
+
+TODO: measure power use data on the core board as ref

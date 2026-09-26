@@ -1,15 +1,13 @@
-# API Reference
+# API reference
 
-The API reference describes contracts exposed by the kernel, firmware, device
-tree, and target userspace. It distinguishes stable Linux-facing interfaces
-from internal payload and firmware protocols.
+Find the Linux interfaces, configuration options, and examples for each part of the port.
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 
-system/index
 peripherals/index
 radio/index
 lp-core/index
 userspace/index
+system/index
 ```
