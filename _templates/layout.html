@@ -1,0 +1,22 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+{{ super() }}
+{% if local_language_data is defined %}
+<script id="s31-language-data" type="application/json" data-label="{{ language_selector_label }}">{{ local_language_data | tojson }}</script>
+{% endif %}
+{% endblock %}
+
+{% block sidebartitle %}
+{{ super() }}
+{% if local_language_data is defined %}
+<div class="switch-menus">
+  <div class="language-switch"></div>
+</div>
+<noscript>
+  {% for project in [local_language_data.projects.current] + local_language_data.projects.translations %}
+  <a href="{{ project.urls.documentation }}" hreflang="{{ project.language.code }}">{{ project.language.name }}</a>
+  {% endfor %}
+</noscript>
+{% endif %}
+{% endblock %}

@@ -1,8 +1,16 @@
 # Releases and licensing
 
-The release workflow builds the full-peripheral image and publishes
-`s31_full_flash.bin` on GitHub. It runs for pushes to `main` whose commit
-message starts with `release:`.
+Every push to `main` starts the release workflow's fast checks. After those
+checks, its image-build and publication job runs only when the head commit
+message starts with `release:`. That job builds with `S31_LEAN_RADIO=0` and
+checks the expected full-peripheral driver selections.
+
+The publication list comes from `tools/release_assets.py`: six component
+images (`spl_app.bin`, `u-boot.itb`, `esp32s31_generic.dtb`, `radio.sqfs`,
+`xipImage`, and `rootfs.sqfs`), the combined `s31_full_flash.bin`,
+`build-manifest.json`, and `SHA256SUMS`. The workflow checks those checksums
+before publishing. This describes the workflow at the documented source
+revision; use each release's manifest to identify its actual inputs.
 
 ## Prepare a release
 
@@ -32,7 +40,10 @@ tools/build_radio_bundle.sh --release \
 ```
 
 Replace the two paths with the reviewed files for that release. The helper
-checks that the files exist and copies them into the package. The combined
+checks that the files exist and copies them into the package; it does not
+validate the grant's scope or verify that the archive corresponds to every
+binary input. Review those files against the actual payload before selecting
+release mode. The combined
 image workflow publishes its image separately and does not call this helper's
 release mode.
 
@@ -43,9 +54,9 @@ Espressif radio libraries and BTstack. Package the required notices, license
 texts, and source material alongside the release as appropriate.
 
 Start with the parent repository's
-[third-party notices](https://github.com/GrieferPig/esp32-s31-linux/blob/main/THIRD_PARTY_NOTICES.md)
+[third-party notices](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/THIRD_PARTY_NOTICES.md)
 and the radio directory's
-[bundle licenses](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/RADIO_BUNDLE_LICENSES.md).
+[bundle licenses](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/radio/RADIO_BUNDLE_LICENSES.md).
 Packaging commands do not change those terms.
 
 ## Record the test results

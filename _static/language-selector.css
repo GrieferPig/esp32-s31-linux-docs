@@ -1,0 +1,13 @@
+/* Keep the theme's native selector readable on its blue sidebar header. */
+.wy-side-nav-search > div.switch-menus,
+.wy-side-nav-search > div.switch-menus > div.language-switch select,
+.wy-side-nav-search > div.switch-menus > div.language-switch select:hover,
+.wy-side-nav-search > div.switch-menus > div.language-switch select:focus,
+.wy-side-nav-search > div.switch-menus > div.language-switch select:active {
+  color: #fff;
+}
+
+.wy-side-nav-search > div.switch-menus > div.language-switch select:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}

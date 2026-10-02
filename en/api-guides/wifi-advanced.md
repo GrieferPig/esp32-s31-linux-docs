@@ -1,16 +1,23 @@
 # Advanced Wi-Fi
 
-In addition to station mode, the Wi-Fi driver provides an access-point
-interface, monitor reception, and enterprise credential provisioning. Station,
-AP, and monitor interfaces share one 2.4 GHz channel, with up to one interface
-of each type.
+The driver exposes station, access-point, and monitor interfaces, with up to one
+of each type sharing one 2.4 GHz channel. For ordinary open or PSK station setup, follow
+[Wi-Fi and Bluetooth setup](../user-guides/networking.md).
 
-For ordinary station setup, use `esp32-config` and the
-[radio guide](../api-reference/radio/index.md).
+Monitor reception has a direct `iw` workflow. AP authentication and enterprise
+association require additional integration beyond the normal configuration
+wizard; the boundaries are described below.
 
 ## Monitor reception
 
-Create a monitor interface and bring it up:
+With the Wi-Fi radio loaded, stop the managed station connection on the board:
+
+```sh
+esp32-config stop
+```
+
+Also stop any AP manager before selecting a channel. Create a receive-only
+monitor interface:
 
 ```sh
 iw dev wlan0 interface add mon0 type monitor
@@ -18,42 +25,47 @@ ip link set mon0 up
 iw dev mon0 set channel 6 HT20
 ```
 
-Choose the channel while the station is disconnected and the AP is stopped.
-With an active station or AP, monitor reception uses their channel.
-
+The channel command requires the station to be disconnected and the AP to be
+stopped. With an active station or AP, monitor reception uses their channel.
 Received packets include a radiotap header with channel and signal information.
-The interface supports reception only. To save a capture, add `tcpdump` to the
-rootfs and run:
+Packet injection is unsupported.
+
+To save a capture, first [add `tcpdump` to the image](adding-a-userspace-tool.md),
+then run on the board:
 
 ```sh
 tcpdump -i mon0 -s 0 -w /tmp/capture.pcap
 ```
 
-Stop the capture with Ctrl+C, then remove the interface:
+Keep the capture small because `/tmp` uses RAM, or select a file on mounted
+external storage. Stop the capture with Ctrl+C, remove the interface, and
+restart the saved station connection if wanted:
 
 ```sh
 iw dev mon0 del
+esp32-config apply wifi
 ```
 
-`/tmp` uses RAM, so keep captures small or write them to attached storage.
+## Access-point integration
 
-## Access-point mode
-
-Create an AP interface with:
+These board commands create an AP interface:
 
 ```sh
 iw dev wlan0 interface add ap0 type __ap
 ip link set ap0 up
 ```
 
-An AP manager must then start the access point and configure its IP address,
-DHCP service, and routing. This port uses firmware authentication offload:
-the AP-start request supplies the WPA2 PSK or WPA3 SAE password. Integration
-with a standard hostapd setup still needs testing.
+An AP manager must then start the access point and configure the IP address,
+DHCP server, and routing. The image selects `hostapd`, but this port's driver
+expects the AP-start request to carry the WPA2 PSK or WPA3 SAE password for
+firmware authentication offload. A complete working `hostapd` configuration for
+that path has not been established here. Creating `ap0` alone does not start
+an access point.
 
-The AP configuration accepts:
+The [driver](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/net/wireless/espressif/esp32s31_wifi.c#L702-L750) validates the following settings and requests at most four clients
+from firmware:
 
-| Setting | Values |
+| Setting | Accepted value |
 |---|---|
 | Security | Open, WPA2-PSK, or WPA3-SAE |
 | Protected-network cipher | CCMP |
@@ -63,23 +75,22 @@ The AP configuration accepts:
 | DTIM period | 1–10 |
 | SAE password | 1–63 bytes |
 
-Select one authentication method; mixed WPA2/WPA3 transition mode is currently
-unsupported. For AP+station use, start the AP first, then connect the station
-on the same channel. Restarting the AP can interrupt the station connection.
+These are software limits; acceptance of every extreme by the firmware and
+connected clients needs integration testing. Select one authentication method;
+mixed WPA2/WPA3 transition mode is unsupported. For AP+station use, start the AP
+first and connect the station on the same channel. AP reconfiguration stops and
+restarts Wi-Fi in the firmware, which can interrupt the station.
 
-## Enterprise credentials
+## Enterprise credential provisioning
 
-Enterprise authentication runs in the radio firmware. Use
-`tools/s31_wifi_eap.py` to provision its identity, CA certificate, server domain,
-and user credentials or client certificate.
+The firmware implements PEAP and EAP-TLS authentication. The host helper
+[tools/s31_wifi_eap.py](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/s31_wifi_eap.py) provisions its identity, CA certificate, server domain,
+and user credentials or client certificate. Provisioning installs credentials;
+it does not associate with an SSID or obtain an IP address.
 
-The helper runs on a computer with Python and sends commands to `iw` locally
-or over SSH. To use the remote example below, first add an SSH server to the
-board image and set up access. The default image uses the serial console.
+### 1. Prepare the host profile
 
-### 1. Prepare a profile
-
-For PEAP, create `profile.json`:
+For PEAP, create `profile.json` on your computer:
 
 ```json
 {
@@ -91,62 +102,60 @@ For PEAP, create `profile.json`:
 }
 ```
 
-Use the identity, CA, and server domain supplied by your network administrator.
-File paths are relative to the JSON file. Password-file contents are used as
-written, including a trailing newline. Keep the profile and credential files
-private.
+Use your network administrator's identity, CA, and server domain. File paths are
+relative to the JSON file. Password-file contents are used as written, including
+any trailing newline. Keep these files private.
 
-For certificate-based authentication, supply both `cert_file` and `key_file`
-in place of the username/password pair. The identity, CA, and domain are
-required for both forms. Each field can contain up to 4095 bytes, with a
-253-byte limit for the domain; embedded NUL bytes are rejected.
+For EAP-TLS, replace the username/password pair with `cert_file` and `key_file`.
+Identity, CA, and domain are required in both modes. Each field is limited to
+4095 bytes, and the domain to 253 bytes; the helper rejects embedded NUL bytes.
 
-### 2. Provision the firmware
+### 2. Prepare access and provision
 
-Disconnect the station and stop automatic reconnection while changing the
-profile. Set the board's clock before certificate-based authentication, then
-run on your computer:
+The helper sends binary input to `iw` locally or through SSH. The following host
+example requires an SSH server added to the board image and working access to
+it; the default image provides a serial console and has no SSH server. For
+local execution on the board, Python must also be added to the image.
+
+Disconnect the station and stop automatic reconnection before changing its
+credentials. For a connection managed by `esp32-config`, run `esp32-config stop`
+on the board. Use a separate access path if stopping Wi-Fi would close your SSH
+connection. Set the board clock correctly before either PEAP or EAP-TLS
+authentication: firmware enables [certificate time checks](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/radio/radio_stack.c#L1426-L1444) in both modes.
+
+With `BOARD` replaced by the reachable SSH address, run on the computer:
 
 ```sh
 python3 tools/s31_wifi_eap.py --ssh root@BOARD profile.json
 ```
 
-Replace `BOARD` with the board's SSH address. The helper clears the old profile,
-transfers the fields, and commits the new profile. It sends credentials through
-standard input rather than command-line arguments.
-
-### 3. Connect to the network
-
-After provisioning, initiate a station connection to the enterprise SSID using
-your station integration. The usual `wpa_supplicant` WPA-EAP settings do not
-populate this firmware profile. End-to-end enterprise authentication remains
-an integration task; check authentication and IP traffic with your network.
-
-To clear the installed credentials, disconnect first and run:
+The helper clears the old profile, transfers the fields, and commits the new
+profile. Credential data travels through standard input, not command-line
+arguments. To clear it after disconnecting the station:
 
 ```sh
 python3 tools/s31_wifi_eap.py --ssh root@BOARD --clear
 ```
 
-If a transfer fails, restore the connection to the board and clear the profile
-before retrying.
+A failed transfer triggers an attempted clear. If access to the board was lost,
+restore access and clear the profile before retrying.
 
-### Vendor command format
+### 3. Integrate association
 
-For tools that implement provisioning directly, use vendor ID `0x18fe34` and
-subcommand `0x1`. Each request contains five little-endian 32-bit integers:
-operation, field, offset, total length, and chunk length. Up to 512 bytes of
-field data follow the header.
+The remaining step is a station manager that submits the enterprise SSID through
+the driver's connect path after provisioning. Ordinary `wpa_supplicant` WPA-EAP
+settings do not populate this firmware profile, and the `esp32-config` setup page writes open or PSK profiles. This guide does not provide an integrated enterprise-connect command.
+Validate association, certificate checks, and IP traffic with the intended
+network when adding that integration.
 
-Operations are WRITE (`6`), COMMIT (`7`), and CLEAR (`8`). Field IDs 0–6 select
-identity, username, password, CA, domain, client certificate, and private key.
-Send each field in consecutive chunks and complete every field before COMMIT.
-Provisioning is rejected while the station is connected, connecting, or
-suspended.
+The [EAP vendor protocol](../api-reference/radio/wifi-protocol.md) documents the
+packet format for another provisioning client.
 
 ## After suspend
 
-Wireless connections are re-established after the radio restarts. Restart the
-AP manager when needed and reconnect the station. See
-[Power management](power-management.md) for the available suspend modes and
-current limitations.
+On resume, the driver attempts to restore the saved in-memory EAP fields, active
+AP configuration, and running monitor interface. The station receives a
+disconnection notification and relies on userspace to reconnect. Check service
+status and network traffic afterwards; restarting the radio does not guarantee
+that the peer reconnects. See [Power management](power-management.md) for the
+current system-sleep limits.

@@ -1,41 +1,38 @@
 # Clocks, resets, and power
 
-S31 drivers use the Linux clock, reset-controller, and power-domain APIs.
-The device tree connects each peripheral to the providers it needs.
+Device-tree references connect S31 peripherals to the Linux clock, reset and
+power-domain providers. [Clock tree](../../hw-reference/clock-tree.md) describes
+the registered clock relationships; [Power domains](../../hw-reference/power-domains.md)
+describes the domain policies.
 
-## Enable a peripheral
+## Acquire and release driver resources
 
-During probe, acquire the device's clocks, reset controls, regulators, and
-power-management resources. Return a deferred-probe error when a required
-provider is still starting.
+Use the provider APIs for the resources declared by a device's binding.
+Preserve acquisition errors, including `-EPROBE_DEFER`, so probe can be retried
+when a required provider becomes available.
 
-A typical startup sequence powers the device, enables its clocks, releases
-reset, and programs the peripheral registers. Follow the peripheral's hardware
-requirements when ordering these operations.
-
-The commonly used APIs include:
-
-| API | Use |
+| API | Role |
 |---|---|
-| `devm_clk_get()` | Get a device clock |
-| `clk_prepare_enable()` | Prepare and enable a clock |
-| `clk_disable_unprepare()` | Release the clock when finished |
-| `devm_reset_control_get_optional_exclusive()` | Get an optional reset control |
-| `reset_control_reset()` | Pulse a peripheral reset |
+| `devm_clk_get()` | Acquire a clock reference; does not enable it |
+| `clk_prepare_enable()` | Prepare and enable the acquired clock |
+| `clk_get_rate()` | Read the clock rate used to calculate peripheral timing |
+| `clk_disable_unprepare()` | Balance a successful prepare/enable |
+| `devm_reset_control_get_optional_exclusive()` | Acquire an optional reset control; an absent optional control may be `NULL` |
+| `reset_control_reset()` | Request a reset pulse through that control |
 
-For shared clocks and power domains, the providers track active users. Use
-these APIs so another active device can keep its dependencies enabled.
+The S31 I2C probe is a concrete example: map registers, acquire and enable the
+clock, register `clk_disable_unprepare()` with `devm_add_action_or_reset()`,
+acquire and pulse the optional reset, then configure the controller and request
+its IRQ. Its error path preserves provider errors. This ordering belongs to
+that controller; follow the binding and hardware requirements for another
+device. See [I2C probe and cleanup](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L774-L830).
 
-## Stop or remove a device
+Before releasing a clock or buffer, stop the device's transfers and interrupt
+activity. DMA cleanup has additional synchronization requirements described in
+[DMA and cache coherency](../../api-guides/dma-and-cache.md). Do not bypass a
+provider with direct clock or PMU register writes from a client driver.
 
-Stop DMA and interrupt activity before releasing buffers or turning off the
-peripheral. Then release clocks and power resources in the reverse order of
-startup. Apply the same cleanup to a partially completed probe.
-
-## Inspect the providers
-
-The clock provider's `clocks` attribute lists clock names, rates, and enable
-state. The power provider's `domains` attribute lists its domain state.
+## Inspect provider state
 
 ```sh
 for file in /sys/bus/platform/devices/*/clocks; do
@@ -46,5 +43,22 @@ for file in /sys/bus/platform/devices/*/domains; do
 done
 ```
 
-For CPU frequency and system sleep, see
+Each `clocks` line has these fields:
+
+| Field | Meaning |
+|---|---|
+| Leading integer | Clock ID from the S31 clock binding |
+| Name | Registered CCF clock name |
+| `state=on` / `state=off` | Result of `clk_hw_is_prepared()`; CCF preparation state |
+| `critical=0` / `critical=1` | Whether CCF marks the clock critical |
+| `rate=` | Rate reported by the provider, in Hz |
+
+`state=on` does not independently read back an electrical clock signal or prove
+that a peripheral is operational. Interpret it together with the rate, probe
+messages and device state. The precise output comes from
+[`clocks_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1392-L1415).
+
+The `domains` output separates policy, software state and force-register
+settings; see its [field definitions](../../hw-reference/power-domains.md).
+For CPU frequency and system sleep controls, see
 [Power management](../../api-guides/power-management.md).

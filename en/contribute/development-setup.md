@@ -36,14 +36,41 @@ startup script, or packaged overlay update also needs `make rootfs`. Boot
 firmware changes use `make uboot`, and radio firmware changes use the
 [radio build workflow](../api-guides/radio-payload-development.md).
 
-Keep generated files under `build/`. For lasting kernel or package selections,
-edit the source configuration described in
+Most integrated outputs are under `build/`, but the LP build uses
+`firmware/lp/build/` and stages firmware into the source rootfs overlay. The
+build also regenerates `rootfs/s31_pie_cases.inc`. Check the relevant
+repository status before committing generated files. For lasting kernel or
+package selections, edit the source inputs described in
 [Build profiles](../get-started/build-profiles.md).
 
 ## Test a change
 
-Run the relevant host tests before flashing. Then check the feature on the
-board, including an error case and cleanup after use. The
+Run host regressions from the parent repository root before flashing:
+
+```sh
+make check-host
+```
+
+This target checks the layout, fetches the pinned BTstack source, and runs the
+`tools/tests` suite. It needs Python, the source submodules, a host C compiler,
+and the build tools installed by the source-build guide.
+
+After activating the documentation environment described below, install the
+DT schema dependency used by CI. With the project toolchain installed, run the
+combined host, strict-documentation, and device-tree checks:
+
+```sh
+python -m pip install dtschema==2026.6
+make check-fast
+```
+
+`check-dt` uses the project cross compiler. The fast-checks workflow instead
+installs `gcc-riscv64-linux-gnu` and invokes
+`python3 tools/check_s31_dt.py --cross-compile riscv64-linux-gnu-`. Both paths
+check schemas, compiled device trees, and merged overlays.
+
+Then check the feature on the board, including an error case and cleanup
+after use. Host checks do not establish electrical or radio behavior. The
 [HIL guide](testing-hil.md) covers automated board and peer tests.
 
 When submitting a change, describe the problem, the fix, and how you tested
@@ -61,5 +88,6 @@ pip install -r requirements.txt
 make html
 ```
 
-Open `build/html/index.html` to review the result. See
-[Writing documentation](writing-documentation.md) for page structure and tone.
+Use the local HTTP preview in [Writing documentation](writing-documentation.md)
+to review the result and search. That guide also covers page structure and tone.
+Return to the parent repository with `cd ..` before running parent Make targets.

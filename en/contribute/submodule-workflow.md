@@ -5,12 +5,11 @@ documentation as submodules. Each has its own commits and branches.
 
 ## Get the source
 
-For a new checkout:
-
-```sh
-git clone --recurse-submodules https://github.com/GrieferPig/esp32-s31-linux.git
-cd esp32-s31-linux
-```
+For a new checkout, follow [Build from source](../get-started/build-from-source.md)
+to select the documented parent commit, its submodule revisions, and the
+matching ESP-IDF/toolchain versions. A submodule update uses the commits
+recorded by the selected parent revision; it does not update each component
+to the tip of its branch.
 
 For an existing checkout after pulling parent changes:
 

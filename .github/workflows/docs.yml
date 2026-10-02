@@ -18,13 +18,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - run: sphinx-build -W --keep-going -b html . build/html
-      - run: sphinx-build -W --keep-going -b linkcheck . build/linkcheck
+      - run: make html SPHINXOPTS="-W --keep-going"
+      - run: make linkcheck SPHINXOPTS="-W --keep-going"
       - name: Check documentation policy
         shell: bash
         run: |
           test -f bootlog.png
-          ! grep -RInP '[\x{4e00}-\x{9fff}]' --include='*.md' .
+          ! grep -RInP '[\x{4e00}-\x{9fff}]' --include='*.md' en
           ! grep -RInE '/home/[^/]+|[[:xdigit:]]{2}(:[[:xdigit:]]{2}){5}' --include='*.md' .
       - name: Configure GitHub Pages
         if: github.event_name == 'push'

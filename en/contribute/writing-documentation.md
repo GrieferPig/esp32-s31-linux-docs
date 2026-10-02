@@ -17,7 +17,7 @@ without reading the driver design first.
 
 ## Tone and wording
 
-Use direct, ordinary English. Address the reader as “you” when it helps, and
+Use clear, ordinary language. Address the reader as “you” when it helps, and
 use the names shown by the tools. For example:
 
 > To enable I2C0, run `s31-overlay apply i2c0`. The selection is saved and
@@ -34,16 +34,31 @@ State whether commands run on the host or the board. Use neutral example
 names and explain values the reader needs to replace. Keep passwords and
 private keys out of examples.
 
-Check commands against the relevant tool or build target. Show the ordinary
+Before changing a behavior claim, search the implementation and its callers,
+configuration, or tests. For example, check a command's argument parser, its
+handler, and a usage test; check a build option where it is assigned and where
+it affects the final configuration. Link the relevant source beside precise
+contracts or limitations. Distinguish a source check from a successful hardware
+run, and link a dated run artifact when claiming tested behavior.
+
+Show the ordinary
 workflow first, followed by optional configuration and troubleshooting.
 Versions can be included where needed to install compatible tools; detailed
 test histories belong in linked test reports.
 
 ## Add the page to the guide
 
-Pages are Markdown files under `en/`. Add a new page to the appropriate
-section's `toctree` so it appears in the navigation. Prefer relative Markdown
-links for other pages in this guide.
+Pages are Markdown files under `en/` and `zh_CN/`, with the same relative path
+in each language. Update both versions when changing a command, limit or
+workflow. Translate the prose and headings; preserve executable examples,
+identifiers and command output. Use an explicit shared label when linking to a
+section whose translated heading differs. Define it as `(shared-label)=`
+before the heading and link to it with `[section title](shared-label)`;
+`page.md#heading-slug` links use the heading text instead of explicit labels.
+
+Add a new page to the appropriate section's `toctree` in both languages so it
+appears in the navigation. Give it one toctree parent, and use ordinary links
+from other relevant pages. Prefer relative Markdown links within the guide.
 
 Keep existing page paths where practical. Preserve images that are still
 referenced by the guide or the main README.
@@ -54,10 +69,25 @@ From the documentation repository, install `requirements.txt` in a Python
 virtual environment and run:
 
 ```sh
-make html
-make linkcheck
+make html SPHINXOPTS="-W --keep-going"
+python3 -m http.server --bind 127.0.0.1 --directory build/html 8000
 ```
 
-Open `build/html/index.html` and check the changed pages, navigation, tables,
-and code examples. For a behavior change, update the related usage guide and
+Open `http://127.0.0.1:8000/` and check the changed pages, navigation, tables,
+search results and code examples in both languages. Stop the server with Ctrl+C
+when finished. Before submitting changes, check external links:
+
+```sh
+make linkcheck SPHINXOPTS="-W --keep-going"
+```
+
+`make html` runs Sphinx separately with
+`language=en` and `language=zh_CN`, then builds the landing page. This localizes
+the generated navigation and search as well as the page text.
+
+The language dropdown comes from `sphinx_rtd_theme`. For GitHub Pages,
+`conf.py` supplies local translation URLs to the theme's dropdown renderer;
+Read the Docs hosting supplies its own data. Check switching from a nested
+page and from search, and confirm that each language's sidebar contains only
+that language. For a behavior change, update the related usage guide and
 reference together.

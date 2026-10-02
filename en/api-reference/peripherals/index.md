@@ -27,6 +27,11 @@ Check the board schematic before connecting a device. The
 [overlay catalog](../../resources/overlay-catalog.md) lists the available
 controllers and their configuration options.
 
+For wiring, commands, expected observations, and cleanup, use the
+[peripheral examples](../../user-guides/peripherals.md). GPIO numbers refer
+to SoC signals; the [board defaults](../../hw-reference/modules-and-boards.md)
+describe the shipped routes and reservations.
+
 ## Interfaces
 
 | Peripheral | Linux interface | Overlay or setup |
@@ -43,10 +48,10 @@ controllers and their configuration options.
 | GDMA | Kernel DMAengine API | AHB/AXI provider selected by the client |
 | General-purpose timers | Counter framework | `timers` |
 | LEDC, MCPWM, SDM, and pulse counter | PWM and Counter frameworks | `pwm-counter` |
-| ADC, DAC, touch, comparator | IIO, input, or device-specific interface | `analog` and suitable analog pins |
-| Temperature sensor | Thermal/hwmon | Sensor driver |
+| ADC, DAC, touch, comparator | IIO | `analog` and suitable analog pins |
+| Temperature sensor | hwmon | `analog` |
 | Watchdogs | Watchdog framework | `watchdogs` |
-| eFuse, random numbers, crypto | NVMEM, hwrng, and kernel crypto APIs | Corresponding kernel drivers |
+| eFuse, random numbers, crypto | Read-only NVMEM, hwrng, and kernel crypto APIs | Corresponding kernel drivers |
 
 UART0 is the serial console. UART3's DMA overlay also uses UHCI0 and an AHB
 GDMA channel. For the current feature status, see the
@@ -108,7 +113,11 @@ GPSPI2 and GPSPI3 can operate as a host or as a target. Choose the matching
 overlay for the instance and role, for example `gpspi2` or `gpspi2-target`.
 
 Host clients use the Linux SPI API. Applications using spidev select their
-mode, clock rate, word size, and transfer buffers through its ioctls.
+mode, clock rate, and transfer buffers through its ioctls. **Host mode accepts
+only 8-bit words.** The supplied host overlays set a 20 MHz maximum for their
+spidev child; the requested rate must also fit the controller's clock range.
+The [host loopback example](spi-host-loopback)
+starts at 100 kHz.
 
 ### Target transfers
 
@@ -145,9 +154,12 @@ aplay -l
 arecord -l
 ```
 
-Use the card and device numbers from that output in your application. The
-board needs an appropriate digital-audio connection, such as an I2S DAC,
-codec, or test peer.
+Use the card and device numbers from that output in your application.
+The shipped `i2s0` and `i2s1` overlays consume external BCLK and frame clock
+for both playback and capture. They need a clock-producing codec or test
+peer. A DAC that also consumes those clocks needs a different card and pin
+configuration, as shown in the
+[complete audio example](audio-with-an-external-codec).
 
 ### PCM settings
 
@@ -159,8 +171,9 @@ codec, or test peer.
 | Period size | 256–4032 bytes |
 | Periods per buffer | 2–8 |
 
-Playback and capture share MCLK. Configure both streams with compatible clock
-settings. ALSA handles cache synchronization for the non-coherent DMA buffers.
+Playback and capture share MCLK and must use the same sample rate when both
+streams are configured. Configure both streams with compatible clock settings.
+ALSA handles cache synchronization for the non-coherent DMA buffers.
 
 ### Framing and clocks
 
@@ -198,8 +211,11 @@ external codec. Add the following properties to the selected controller:
 
 Then describe the CPU/codec link, pins, framing, clocks, and any TDM settings
 in the machine card. `espressif,external-card` disables the built-in dummy
-card so the external card can use the controller. The built-in overlay keeps
-its separate playback and capture clock roles.
+card so the external card can use the controller. Enable the machine driver
+and the selected codec driver in the kernel configuration as well; the full
+profile alone does not select `CONFIG_SND_SIMPLE_CARD` or a real codec.
+The machine driver's format setup selects the clock roles for both directions.
+The shipped dummy-card overlays use clock inputs for both directions.
 
 Raw PDM options are also present in the driver; PCM-to-PDM conversion is not
 provided by these options.
@@ -210,9 +226,13 @@ Use the MMC block layer for SD cards, SocketCAN for TWAI, and the normal Linux
 network interfaces for Ethernet. Their overlays select the controller and
 pins; the carrier board supplies the socket, transceiver, or PHY.
 
-USB host supports attached devices such as storage. The `usb-device` overlay
-switches the controller to gadget mode. Unmount USB filesystems and disable
-USB-backed swap before switching roles.
+The base device tree enables DWC2 host mode, including the USB storage path.
+The `usb-device` overlay selects gadget mode; a gadget function must then be
+configured and bound to the UDC. Unmount USB filesystems and disable
+USB-backed swap before switching roles. The
+[storage and gadget examples](../../user-guides/peripherals.md) cover setup
+and cleanup; implementation availability is separate from the recorded
+hardware status in the support matrix.
 
 Timing and analog devices use their Linux subsystem interfaces. In the
 `timers` overlay, timer 0 of each group is available to applications; timer 1

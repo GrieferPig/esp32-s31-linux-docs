@@ -1,63 +1,96 @@
 # Adding a driver
 
-Peripheral drivers live in the `linux-esp32-s31` Linux source. A typical addition
-consists of a driver, a device-tree binding, build options, and an overlay that
-enables the hardware.
+Add peripheral drivers in the `linux-esp32-s31` source tree, using the Linux
+subsystem that matches the device: I2C, SPI, ALSA, IIO, PWM, Counter, SocketCAN,
+or another standard framework. Keep the hardware description, kernel build
+options and enabling overlay together with the driver integration.
 
-## 1. Choose the Linux subsystem
+## 1. Follow a complete integration example
 
-Use the subsystem that matches the device: I2C, SPI, ALSA, IIO, PWM, Counter,
-SocketCAN, or another standard framework. This gives applications the usual
-Linux interface and lets the driver reuse existing infrastructure.
+The existing I2C0 support shows how the pieces fit together. Paths in this table
+are relative to `linux-esp32-s31`.
 
-The S31 I2C and SPI drivers are useful examples of platform-driver setup.
-They obtain registers, interrupts, clocks, and resets from the device tree.
+| Integration piece | I2C0 example |
+| --- | --- |
+| Driver and device match | [`drivers/i2c/busses/i2c-esp32s31.c`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L779-L859): probe, I2C adapter registration and `espressif,esp32s31-i2c` match. |
+| Binding | [`Documentation/devicetree/bindings/i2c/espressif,esp32s31-i2c.yaml`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/devicetree/bindings/i2c/espressif,esp32s31-i2c.yaml#L15-L55): registers, IRQ, clock, optional reset and bus frequency. |
+| Base hardware node | [`arch/riscv/boot/dts/espressif/esp32s31.dtsi`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L1180-L1192): `i2c0` at `0x20385000`, matrix interrupt source 23, clock/reset references and `status = "disabled"`. |
+| Enabling overlay | [`arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso#L7-L43): resource claim, named SCL/SDA routes, bus-frequency parameter and `status = "okay"`. |
+| Kernel build | [`drivers/i2c/busses/Kconfig`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/Kconfig#L1597-L1605) defines `I2C_ESP32S31`; the [directory Makefile](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/Makefile#L164) selects the object; [`esp32s31_defconfig`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/configs/esp32s31_defconfig#L185-L188) enables it. |
+| Overlay build | [`arch/riscv/boot/dts/espressif/Makefile`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/Makefile#L24-L25) registers the `.dtbo` target. |
 
-## 2. Describe the hardware
+For a new peripheral, add or reuse the corresponding binding, describe its real
+resources in the base device tree, and provide an overlay for optional hardware.
+Document pin selection and resource claims as described in
+[Adding an overlay](adding-an-overlay.md). Include DMA, regulator and power-domain
+dependencies only when the device uses them.
 
-Add or reuse a YAML binding under `Documentation/devicetree/bindings/`.
-Describe the registers, interrupts, clocks, resets, pins, and any DMA,
-regulator, or power-domain dependencies.
+## 2. Acquire resources and register the subsystem
 
-Add the device node to `arch/riscv/boot/dts/espressif/esp32s31.dtsi`. Optional
-peripherals normally start with `status = "disabled"`; an overlay enables
-them and selects their pins. See [Adding an overlay](adding-an-overlay.md).
+In the I2C example, probe maps the register resource, obtains and enables the
+clock, registers a managed clock-disable action, gets the optional reset, and
+initializes bus timing. It then requests the IRQ and registers the I2C adapter.
+Provider errors pass through `dev_err_probe()`, preserving `-EPROBE_DEFER` when
+returned by a provider.
+[Probe and cleanup registration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L774-L839).
 
-## 3. Implement the driver
+Use managed helpers where they fit the lifetime of the resource, and propagate
+the actual resource-acquisition error. Shared hardware and execution-context
+rules are covered in [Clock, reset and power](../api-reference/system/clock-reset-power.md),
+[Interrupts and SMP](../api-reference/system/interrupts-smp.md), and
+[DMA and cache](dma-and-cache.md).
 
-During probe, acquire the resources described by the binding, enable the
-hardware, and register the device with its Linux subsystem. Use managed
-resource helpers where practical, and return `-EPROBE_DEFER` when a required
-provider is still starting.
+Design error, remove and suspend paths with the active transfer lifetime in mind.
+Stop new work, quiesce hardware and callbacks, and then release resources. Add
+suspend/resume operations if the device needs state saved or restored. Managed
+allocation alone does not specify how an active transfer stops; for DMA, follow
+the termination and synchronization rules in the DMA guide.
 
-Use the common clock, reset, regulator, and power-management APIs for shared
-hardware. For DMA buffers, follow [DMA and cache](dma-and-cache.md). Interrupt
-handlers should acknowledge the device promptly and schedule longer work in a
-worker or another suitable subsystem context.
+## 3. Build the driver and overlay
 
-The remove and error paths should stop transfers, disable interrupts, and
-release the resources acquired during probe. Implement suspend and resume
-where the device needs to save or restore state.
+Add the driver's Kconfig dependencies and object rule, enable it in
+`arch/riscv/configs/esp32s31_defconfig` or your selected `DEFCONFIG`, and register
+new overlay targets in the DTS directory Makefile. The parent `linux` target
+reapplies the selected defconfig, so keep intended configuration changes there.
+[Parent Linux target](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L287-L289).
 
-## 4. Add the build options
-
-Add a Kconfig entry and Makefile rule in the driver directory. Include the
-subsystem and provider dependencies in Kconfig, then select the driver in the
-S31 defconfig where appropriate.
-
-From the parent project, build the full-peripheral image:
+From the parent project, build and flash the full-peripheral configuration.
+Use the [flash guide](../get-started/flash-and-first-boot.md) to select the port
+and prepare the serial connection:
 
 ```sh
 export S31_LEAN_RADIO=0
-make linux
-make rootfs
+make flash-all PORT=/dev/ttyUSB0
 ```
 
-The rootfs build also installs the device-tree overlays. Follow
-[Flash and first boot](../get-started/flash-and-first-boot.md) to update the board.
+`rootfs` already depends on `linux`, which builds the kernel, modules and device
+trees. `S31_LEAN_RADIO=0` keeps the optional peripheral configuration available.
+The rootfs post-build step installs built overlays into `/usr/lib/s31-overlays`.
+[Build profile](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L226-L232);
+[Linux artifacts](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L399-L406);
+[rootfs dependency](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L438-L445);
+[overlay installation](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/post-build.sh#L237-L249).
 
-## 5. Test it
+After the board restarts, enable the overlay with the procedure in
+[Adding an overlay](adding-an-overlay.md).
 
-Enable the overlay, check the probe log, and exercise the device through its
-userspace API. Test removal after closing applications, invalid settings, and
-error recovery as well as normal transfers.
+## 4. Validate behavior
+
+For the existing I2C/SPI example, this host test exercises extracted I2C command
+and long-transfer logic plus SPI target-buffer copying:
+
+```sh
+python -m unittest tools.tests.test_s31_feature_contracts.DriverContracts.test_driver_wire_contracts -v
+```
+
+The [test harness](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/tests/test_s31_feature_contracts.py#L243-L257)
+compiles selected source functions with simulated inputs. For a new driver,
+add focused checks for its own parsing, transfer construction or error handling
+where these can run independently of hardware.
+
+On the board, check overlay application and probe output, exercise the subsystem's
+userspace API, and verify data against a known peer or instrument. Test invalid
+settings, timeout recovery, repeated transfers and removal after users have
+closed the device. If the driver supports suspend/resume, test that path with
+its intended wake source and an active or recently completed transfer. Record
+the wiring, build revision and commands with the results.

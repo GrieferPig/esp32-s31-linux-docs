@@ -8,10 +8,14 @@ save the selection for the next boot.
 
 Create `esp32s31-overlay-NAME.dtso` under
 `linux-esp32-s31/arch/riscv/boot/dts/espressif/`. Start with an existing overlay
-for a similar device.
+for a similar device. The
+[complete I2C0 overlay](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso)
+includes the header, resource declaration, pinctrl nodes, and controller settings.
 
-An overlay needs the device-tree plugin header, a unique name, and a list of
-resources it uses. For example, the I2C0 overlay starts with:
+An overlay needs the device-tree plugin header and an `espressif,overlay-name`.
+Choose a new name for a new overlay. Add `espressif,resource-claims` when it uses
+a controller, DMA channel, or other resource that competing overlays must not
+share. For example, the I2C0 overlay starts with:
 
 ```dts
 /dts-v1/;
@@ -23,9 +27,10 @@ resources it uses. For example, the I2C0 overlay starts with:
 };
 ```
 
-Resource claims keep two overlays from using the same controller or DMA
-channel. Use `espressif,gpio-claims` for fixed pins that are not already
-described by the pinmux entries.
+The resource list is optional. Use the same claim name in overlays that need
+the same exclusive resource so the manager can detect their conflict. Use
+`espressif,gpio-claims` for fixed pins that are not already described by the
+pinmux entries.
 
 ## 2. Add the device and pin settings
 
@@ -36,7 +41,8 @@ devices.
 To let users choose a GPIO, give the pin node an `espressif,route-name` and
 `espressif,route-kind`. The supported kinds are `matrix-input`,
 `matrix-output`, and `matrix-bidirectional`. Nodes with several separately
-named routes use the corresponding `route-names` and `route-kinds` lists.
+named routes use the corresponding `espressif,route-names` and
+`espressif,route-kinds` lists.
 
 For example, the I2C0 overlay exports `i2c0.scl` and `i2c0.sda`. Users can
 inspect them with `s31-overlay routes i2c0` and choose pins when applying the
@@ -58,17 +64,28 @@ list. The complete overlay also needs the controller's pinctrl configuration.
 
 ## 3. Build and install it
 
-Add the overlay's `.dtbo` target to the DTS Makefile, then build from the
-parent project:
+Add the overlay's `.dtbo` target to
+`arch/riscv/boot/dts/espressif/Makefile` in the kernel tree, replacing `NAME`
+with your overlay name:
+
+```make
+dtb-$(CONFIG_ARCH_ESPRESSIF) += esp32s31-overlay-NAME.dtbo
+```
+
+From the parent project, build and flash the full-peripheral configuration.
+Use the [flash guide](../get-started/flash-and-first-boot.md) to select the port
+and prepare the serial connection:
 
 ```sh
 export S31_LEAN_RADIO=0
-make linux
-make rootfs
+make flash-all PORT=/dev/ttyUSB0
 ```
 
 The DTBO is built in `build/linux-6.18/arch/riscv/boot/dts/espressif/` and
 installed into `/usr/lib/s31-overlays` in the rootfs.
+For files copied to the running board during development, follow the
+[deployment rules](deploy-files-that-must-survive-reboot)
+before relying on them after a reboot.
 
 ## 4. Test it on the board
 
@@ -91,3 +108,5 @@ s31-overlay remove i2c0 --volatile
 
 Also try conflicting pin selections and invalid parameter values. Once the
 normal path works, apply without `--volatile` and reboot to check restoration.
+See [Using overlays](../resources/overlay-catalog.md) for saved-selection and
+rollback behavior when testing failure cases.

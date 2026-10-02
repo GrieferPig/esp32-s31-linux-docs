@@ -10,8 +10,9 @@ the host computer. For build and flash commands, see the
 esp32-config
 ```
 
-Opens the board configuration menu for system settings, radio setup, and
-peripheral selection. Saved settings are stored under `/etc/esp32-conf`.
+Opens the board configuration menu for system settings, networking, Bluetooth,
+interfaces, GPIO, memory/storage, and configuration backups. See [esp32-config](esp32-config.md) for its commands
+and setup steps.
 
 ## s31-overlay
 
@@ -20,6 +21,8 @@ s31-overlay list
 s31-overlay status
 s31-overlay routes NAME
 s31-overlay parameters NAME
+s31-overlay describe NAME
+s31-overlay check CONFIG_FILE
 s31-overlay apply NAME [KEY=VALUE ...] [--volatile]
 s31-overlay remove NAME [--volatile]
 s31-overlay remove --all [--volatile]
@@ -27,11 +30,15 @@ s31-overlay restore
 ```
 
 `list` shows installed overlays; `status` shows the active and saved sets.
-`routes` and `parameters` show the settings exported by an overlay.
+`routes` and `parameters` show the defaults and choices exported by an overlay.
+`describe` separates default, current, and saved values in tab-separated records.
+`check` validates a saved configuration against the installed catalog without
+applying it.
 
-`apply` and `remove` save the resulting selection by default. Use `--volatile`
-to skip saving for that command. `restore` removes the active set and reloads
-the saved entries. See [Using overlays](overlay-catalog.md) for examples.
+`apply` and `remove` update the named saved selection by default; `remove --all`
+clears the saved set. Use `--volatile` to leave saved selections unchanged.
+`restore` replaces the active set with the saved entries when the saved file
+exists. See [Using overlays](overlay-catalog.md) for examples and failure behavior.
 
 ## s31-lpctl
 

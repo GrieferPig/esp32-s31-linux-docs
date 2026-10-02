@@ -1,55 +1,51 @@
 # System architecture
 
-Linux runs on both ESP32-S31 high-performance cores. It uses the Sv32 MMU for
-virtual memory, flash for kernel code, and PSRAM for writable data and
-applications.
+Linux runs on both ESP32-S31 high-performance cores with Sv32 virtual memory.
+The supplied configuration executes kernel code from mapped flash and uses
+16 MiB PSRAM for writable data and applications.
 
 ## Main components
 
-| Component | What it does |
+| Component | Role |
 |---|---|
 | ROM and SPL | Start the chip and initialize memory |
 | OpenSBI | Provide machine-mode services to Linux and U-Boot |
-| U-Boot | Select the Linux image and device tree, then start the kernel |
-| Linux | Run applications and manage processors, memory, and devices |
+| U-Boot | Start the Linux image with its device tree |
+| Linux | Run applications and manage processors, memory and devices |
 | Buildroot | Build the root filesystem and command-line tools |
-| Radio module and firmware | Provide Wi-Fi and Bluetooth |
+| Radio module and payload | Provide the Wi-Fi and Bluetooth runtime |
 | LP firmware | Run mailbox and wakeup tasks on the low-power core |
 
-The boot sequence is:
-
-```text
-ROM → SPL → OpenSBI → U-Boot → Linux → BusyBox userspace
-```
-
-See [Boot process](boot-chain.md) for the steps involved.
+Boot passes through ROM, SPL, OpenSBI and U-Boot before Linux starts BusyBox
+userspace. [Boot process](boot-chain.md) describes the address handoffs and
+startup services.
 
 ## Memory and filesystems
 
-The kernel executes directly from mapped flash, a feature called execute in
-place (XIP). This leaves more of the 16 MiB PSRAM available for applications.
-Internal SRAM holds firmware data, radio allocations, and DMA descriptors.
+Execute in place (XIP) keeps kernel code in mapped flash, leaving PSRAM for
+writable data and applications. Internal SRAM holds firmware data, radio
+allocations and DMA descriptors. Exact regions and ownership are in
+[Memory map](../../hw-reference/memory-map.md).
 
-The root filesystem combines a compressed SquashFS image with a small writable
-JFFS2 partition. Settings and other saved files go into the writable layer.
-Temporary files under `/tmp`, `/run`, and `/var/log` use RAM.
-
-See [Memory map](../../hw-reference/memory-map.md) and
-[Configuration](../../resources/configuration.md) for details.
+The root uses a SquashFS image with a JFFS2-backed writable overlay. For what
+persists across reboot, package-owned file replacement and temporary storage,
+see [Configuration](../../resources/configuration.md).
 
 ## Peripherals
 
 Applications use Linux interfaces such as GPIO character devices, I2C, SPI,
-ALSA, and network sockets. Use `s31-overlay` to enable optional peripherals
-and choose their pins. Most peripheral examples require the full-peripheral
+ALSA and sockets. `s31-overlay` enables optional peripherals and selects their
+pins. Most peripheral examples need the full-peripheral
 [build profile](../../get-started/build-profiles.md).
 
 ## Radio and low-power core
 
-Wi-Fi and Bluetooth share a Linux radio module and firmware runtime. The
-runtime executes on HP core 0, while Linux can schedule other work on either
-core. Bluetooth normally uses BTstack through `/dev/s31-hci`.
+Wi-Fi and Bluetooth share a Linux radio module and payload. The radio service
+worker runs on HP core 0; Wi-Fi frontend receive NAPI and buffer refill run on
+HP core 1. Payload compatibility tasks preserve requested affinity. The
+[interrupts and SMP reference](interrupts-smp.md) explains these execution and
+IRQ-routing boundaries. Bluetooth normally uses BTstack through `/dev/s31-hci`.
 
-The LP core runs its own firmware, loaded by Linux remoteproc. It exchanges
-messages with Linux and handles timer and GPIO wakeup requests. See the
-[radio reference](../radio/index.md) and [LP reference](../lp-core/index.md).
+LP firmware is loaded by Linux remoteproc and handles mailbox, timer and GPIO
+wakeup requests. See the [radio reference](../radio/index.md) and
+[LP reference](../lp-core/index.md) for their separate interfaces.

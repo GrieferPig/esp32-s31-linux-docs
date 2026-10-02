@@ -12,7 +12,9 @@ Names below omit the `CONFIG_` prefix used in `.config` files.
 | Option | Purpose |
 |---|---|
 | `ESP32S31_CLIC` | Core-local interrupt controller |
-| `ESP32S31_SYSTIMER`, `ESP32S31_SYSTIMER_CLOCKSOURCE`, `ESP32S31_SYSTEM_TIMERS` | System timekeeping and per-CPU timer events |
+| `ESP32S31_SYSTIMER_CLOCKSOURCE` | SYSTIMER driver used by the S31 defconfig for the 16 MHz clocksource and S31 timer-event helpers |
+| `ESP32S31_SYSTIMER` | Alternative Kconfig entry that builds the same SYSTIMER driver |
+| `ESP32S31_SYSTEM_TIMERS` | Read-only Counter framework access to SYSTIMER and LP RTC counters |
 | `ESP32S31_COPROC_CONTEXT` | Save and restore coprocessor state |
 | `ESP32S31_CACHE` | Cache support |
 | `ESP32S31_CLOCK` | Clock and reset provider |
@@ -32,7 +34,11 @@ Names below omit the `CONFIG_` prefix used in `.config` files.
 
 The peripheral subsystems also have their own options, such as
 `I2C_ESP32S31`, `SPI_ESP32S31`, and `SND_SOC_ESP32S31_I2S`. Their Kconfig entries
-select the related framework dependencies.
+declare their framework dependencies. I2C and SPI use `depends on` for
+requirements such as clocks and device-tree support; those dependencies must
+already be enabled. The I2S option also selects the generic DMAengine PCM
+helper. Per-CPU clockevents use the RISC-V timer driver, which calls the S31
+SYSTIMER event helper; `ESP32S31_SYSTEM_TIMERS` is a separate Counter interface.
 
 ## Check a build
 
@@ -40,13 +46,15 @@ After `make linux`, the resulting configuration is in
 `build/linux-6.18/.config`. For example:
 
 ```sh
-grep '^CONFIG_I2C_ESP32S31=' build/linux-6.18/.config
-grep '^CONFIG_ESP32S31_RADIO_SMODE_DRIVER=' build/linux-6.18/.config
+grep -E '^(CONFIG_I2C_ESP32S31=|# CONFIG_I2C_ESP32S31 is not set)' build/linux-6.18/.config
+grep -E '^(CONFIG_ESP32S31_RADIO_SMODE_DRIVER=|# CONFIG_ESP32S31_RADIO_SMODE_DRIVER is not set)' build/linux-6.18/.config
 ```
 
 `y` builds a feature into the kernel; `m` builds a loadable module where the
 option supports it. Disabled options are shown as `# CONFIG_NAME is not set`.
 
-`.config` is ephemeral. For lasting changes, update the source defconfig and any relevant profile
-settings. The next parent build reapplies the source defconfig to `.config`. Enable the corresponding
-overlay on the board to use an optional peripheral.
+`.config` is generated. For lasting changes, update the source defconfig and
+any parent Makefile selections or profile overrides affecting the option.
+The next parent build reapplies all of these inputs and resolves dependencies
+with `olddefconfig`. Enable the corresponding overlay on the board to use an
+optional peripheral; an overlay cannot supply a driver omitted from the build.

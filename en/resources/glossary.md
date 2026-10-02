@@ -3,6 +3,7 @@
 | Term | Meaning |
 |---|---|
 | ABI | Application binary interface: the data layout and calling conventions used between components |
+| Active overlays | Device-tree overlays currently applied in the running kernel |
 | CLIC | Core-Local Interrupt Controller, used to deliver interrupts to the HP cores |
 | Device tree | Description of the hardware and the resources used by its drivers |
 | DTB | Compiled device-tree file |
@@ -20,6 +21,7 @@
 | Persist | The writable JFFS2 flash partition used for saved files and settings |
 | PSRAM | External pseudo-static RAM used for Linux's writable memory |
 | Resource claim | An overlay entry that reserves a controller, DMA channel, or other shared resource |
+| Saved overlays | Desired overlay selections for the next boot; `--volatile` changes leave this set unchanged |
 | SPL | Small first-stage U-Boot loader that prepares the board for the next boot stages |
 | Sv32 | RISC-V virtual-memory translation for a 32-bit address space |
 | XIP | Execute in place: running code directly from mapped flash |

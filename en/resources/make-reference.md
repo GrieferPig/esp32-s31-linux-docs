@@ -38,18 +38,37 @@ Set `JOBS` to choose the number of parallel build jobs, for example
 | `coremark` | Build and copy the benchmark to `build/coremark/coremark.exe` |
 | `buildroot-menuconfig` | Open Buildroot configuration |
 | `buildroot-clean` | Clean the Buildroot build |
-| `clean` | Remove build output |
-| `fullclean` | Remove build output and the installed project toolchain |
+| `clean` | Remove `build/`, radio build output, and the radio ESP-IDF dependency build |
+| `fullclean` | Run `clean` and remove the installed project toolchain |
+| `check-layout` | Check the shared flash and memory layout |
+| `check-host` | Run layout checks and host regressions; fetch BTstack source as a dependency |
+| `check-docs` | Build documentation with strict Sphinx warnings |
+| `check-dt` | Check device trees and bindings with the project cross compiler |
+| `check-fast` | Run `check-host`, `check-docs`, and `check-dt` |
+| `build-manifest` | Write `build/build-manifest.json` |
 
-The parent build reapplies the kernel and rootfs defconfigs. Save lasting
-configuration changes in those source files; see
-[Build profiles](../get-started/build-profiles.md).
+`clean` does not invoke the LP firmware clean target or remove the LP files
+staged in the source rootfs overlay. Those outputs are under
+`firmware/lp/build/` and
+`buildroot-external/board/esp32-s31/overlay/lib/firmware/esp32s31/`.
+
+The parent build reapplies the kernel and rootfs defconfigs, then enforces its
+Linux selections and profile overrides. Save lasting changes in the relevant
+source configuration and parent Makefile; see
+[Build profiles](../get-started/build-profiles.md). Validation prerequisites
+and CI commands are in [Development setup](../contribute/development-setup.md).
 
 ## Flash targets
 
-These targets use `/dev/ttyUSB0` at 2000000 baud. For another port, use the
-explicit `esptool` commands in
-[Flash and first boot](../get-started/flash-and-first-boot.md).
+These targets default to `/dev/ttyUSB0` at 2000000 baud. Override `PORT` and
+`BAUD` for your connection, while retaining the same build profile:
+
+```sh
+make PORT=/dev/ttyUSB1 BAUD=921600 flash-all
+```
+
+See [Flash and first boot](../get-started/flash-and-first-boot.md) for installing
+`esptool`, preparing the connection, and opening the console.
 
 | Target | What it writes |
 |---|---|
@@ -74,22 +93,25 @@ the host.
 
 | Variable | Use |
 |---|---|
+| `PORT` | Flash serial device; defaults to `/dev/ttyUSB0` |
+| `BAUD` | Flash baud rate; defaults to `2000000` |
 | `JOBS` | Parallel jobs; defaults to the host CPU count |
-| `S31_LEAN_RADIO` | `1` for the compact radio profile, `0` for full peripherals |
+| `S31_LEAN_RADIO` | `1` for the compact radio profile (default), `0` for full peripherals |
 | `DEFCONFIG` | Kernel configuration; defaults to `esp32s31_defconfig` |
 | `LINUX_TARGET` | Kernel image target; defaults to `xipImage` |
 | `IDF_EXPORT` | Path to the ESP-IDF `export.sh` to use |
 | `IDF_PATH`, `IDF_ROOT` | ESP-IDF installation and discovery paths |
-| `TOOLCHAIN_RELEASE_TAG` | Toolchain release to download; defaults to `latest` |
+| `TOOLCHAIN_RELEASE_TAG` | Release selected in `configs/build-versions.mk`; currently `esp32s31-linux-gcc-15.2.0-5` |
 | `TOOLCHAIN_RELEASE_REPOSITORY` | Repository supplying toolchain releases |
 | `CROSSTOOL_NG_DIR` | Source tree for `toolchain-source` |
-| `S31_BTSTACK_O2` | BTstack optimization selection |
 
 The integrated radio firmware build selects the combined Wi-Fi/Bluetooth
 payload. Choose the active radio mode at runtime with `esp32-config`.
 
-Low-level variables such as `FW_TEXT_START`, `FW_RW_START`, and
-`LINUX_XIP_ADDR` are used when changing the boot memory layout. Coordinate
-those changes with the linker scripts and device tree; see
+OpenSBI uses the parent variables `FW_TEXT_START` (default `0x40000400`) and
+`FW_RW_START` (default `0x2F00F000`). Linux uses the Kconfig option
+`CONFIG_XIP_PHYS_ADDR`, set to `0x40400000` in the S31 defconfig; this is its
+CPU-visible XIP address, not the raw flash offset. Coordinate layout changes with the
+linker scripts, flash mapping, and device tree; see
 [Memory map](../hw-reference/memory-map.md) and
 [Flash layout](../hw-reference/flash-layout.md).

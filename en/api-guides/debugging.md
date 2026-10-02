@@ -15,7 +15,7 @@ Service startup messages are saved separately:
 
 ```sh
 cat /run/rcS.log
-cat /run/rcS.status
+test -e /run/rcS.done && cat /run/rcS.status
 ```
 
 Services start alongside the login console. The file `/run/rcS.done` appears
@@ -57,11 +57,22 @@ kernel, and rootfs images. The commands in
 [Flash and first boot](../get-started/flash-and-first-boot.md) write these to
 the expected locations.
 
+Capture output from reset and use the last completed stage to choose the next
+check. These messages provide useful landmarks:
+
+| Output | What it establishes | Next check |
+|---|---|---|
+| `ESP32-S31 SPL active` | SPL reached its board initialization | Read the following memory and image-loading messages; see [Boot process](../api-reference/system/boot-chain.md). |
+| `S31 overlay: failed to mount persist as JFFS2` | Linux reached early userspace but could not mount writable storage | Follow [Configuration](../resources/configuration.md). |
+| `S31 early overlay restore failed` | Restoring saved device-tree overlays returned an error | Inspect active overlays and saved selections using [Using overlays](../resources/overlay-catalog.md). |
+| A serial login prompt | Linux started the console login service | Check `/run/rcS.log` and `/run/rcS.done` for services still starting. |
+
 ### Settings disappear after reboot
 
-Look for JFFS2 or OverlayFS errors in the boot log and check `/proc/mounts`.
-Linux can start with a read-only root when the persistent filesystem fails to
-mount. Check available space with `df -h`; the persistent partition is small.
+Check `df -h`, `/proc/mounts`, and the boot log for storage errors. Follow
+[Configuration](../resources/configuration.md) for persistence, capacity, and
+read-only fallback behavior. If only an overlay selection is missing, compare
+the `active:` and `persisted:` entries in `s31-overlay status`.
 
 ### A peripheral device is missing
 
@@ -76,16 +87,28 @@ Check the error message, `s31-overlay status`, and `dmesg`. A GPIO or controller
 may already be used by another overlay or application. Stop that user before
 changing the route.
 
-If the error mentions saving or recording the overlay set, the hardware
-change may already be active. Check the active and saved entries before
-retrying. More details are in [Using overlays](../resources/overlay-catalog.md).
+Check both active and saved entries before retrying. The error-specific checks,
+including save failures and replacement rollback, are in
+[Using overlays](../resources/overlay-catalog.md).
 
 ### Wi-Fi or Bluetooth fails to start
 
-Use `esp32-config` to check the selected radio mode. Inspect `dmesg` for
-firmware-loading errors and the radio's `radio_health` attribute for
-initialization results. For Wi-Fi, also check `iw dev` and the station
-manager's connection status. See the [radio reference](../api-reference/radio/index.md).
+Start with the service status:
+
+```sh
+esp32-config wifi status
+esp32-config bluetooth info
+```
+
+Inspect `dmesg` for firmware-loading errors and the radio's `radio_health`
+attribute for initialization results. A loaded module can still have a failed
+device probe or missing frontend. The [radio reference](../api-reference/radio/index.md)
+shows how to read its health state.
+
+For Wi-Fi, check `iw dev` and `wpa_cli -i wlan0 status`. If association
+completes but DHCP remains pending, inspect
+`/run/esp32-config/udhcpc.wlan0.log`. The normal connection procedure is in
+[Network setup](../user-guides/networking.md).
 
 ### An LP command fails
 

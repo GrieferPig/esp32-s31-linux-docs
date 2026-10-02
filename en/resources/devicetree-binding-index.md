@@ -1,8 +1,10 @@
 # Device-tree bindings
 
-Device-tree bindings describe the properties accepted by each driver. Use
-them when adding a board, selecting peripheral resources, or writing an
-overlay.
+Device-tree bindings describe the intended device-tree ABI. Use them when
+adding a board, selecting peripheral resources, or writing an overlay, and
+check the matching driver and existing device-tree nodes for implementation
+details. A schema's presence does not establish complete property coverage
+or a successful validation run.
 
 The following S31 schemas are under
 `linux-esp32-s31/Documentation/devicetree/bindings/`:
@@ -20,8 +22,8 @@ The following S31 schemas are under
 | `nvmem/espressif,esp32s31-efuse.yaml` | eFuse |
 | `pinctrl/espressif,esp32s31-pinctrl.yaml` | Pin controller and GPIO matrix |
 | `power/espressif,esp32s31-pmu.yaml` | Power domains |
-| `pwm/espressif,esp32s31-pwm.yaml` | PWM providers |
-| `regulator/espressif,esp32s31-ana-i2c.yaml` | Analog-register transport |
+| `pwm/espressif,esp32s31-pwm.yaml` | LEDC and MCPWM providers |
+| `regulator/espressif,esp32s31-ana-i2c.yaml` | Shared analog register-I2C power/reset regulator |
 | `regulator/espressif,esp32s31-gp-ldo.yaml` | General-purpose LDOs |
 | `sound/espressif,esp32s31-i2s.yaml` | I2S controller |
 | `spi/espressif,esp32s31-gpspi.yaml` | SPI host and target |

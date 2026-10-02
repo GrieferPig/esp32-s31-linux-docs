@@ -1,8 +1,8 @@
 # Memory map
 
-S31 consists of three main memory regions:
+The supplied configuration uses these memory regions:
 
-- external PSRAM (16MiB typical, max 64 MiB, depending on the board)
+- external PSRAM (16 MiB in the supplied image)
 - internal HP SRAM (512 KiB)
 - internal LP SRAM (32 KiB)
 
@@ -22,12 +22,12 @@ Range ends in this table are exclusive. For a detailed map, see [ESP32-S31 Techn
 | Radio exception area | `0x2F071800` | `0x2F072380` | Exception stack and guards |
 | AXI GDMA descriptors | `0x2F072380` | 12 KiB | DMA descriptors |
 | AHB GDMA descriptors | `0x2F075380` | 4 KiB | DMA descriptors |
-| USB and hart-1 control | `0x2F076380` | 64 bytes | Shared control area; hart-1 mailbox at `0x2F0763A0` |
+| USB/status reservation | `0x2F076380` | 64 bytes | Reserved shared SRAM |
 | UART DMA | `0x2F076400` | 10 KiB | UART buffers |
 | Radio high heap | `0x2F078C00` | `0x2F07CFB0` | Additional radio allocations |
 
 The HP reservations are defined in
-[`shared/s31_memory_layout.h`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/shared/s31_memory_layout.h).
+[`shared/s31_memory_layout.h`](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/shared/s31_memory_layout.h).
 The radio and DMA drivers use these areas directly. Applications allocate
 memory through the usual Linux APIs.
 
@@ -39,8 +39,9 @@ memory through the usual Linux APIs.
 | OpenSBI suspend snapshot | `0x2E002000` | 20 KiB within LP SRAM |
 | Sleep-control reservation | `0x2E007C00` | Final 1 KiB of LP SRAM |
 
-Keep the snapshot and control regions free when placing LP firmware data and
-stacks. The sleep-control structure itself is 112 bytes; the larger reservation
+The LP firmware build reserves the first 8 KiB, ending at `0x2E002000`.
+Keep the snapshot and control regions free when placing LP firmware code, data
+and stacks. The sleep-control structure itself is 112 bytes; the larger reservation
 leaves room around it.
 
 See [LP firmware development](../api-guides/lp-firmware-development.md) for
