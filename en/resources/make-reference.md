@@ -114,6 +114,8 @@ are host checks; they do not establish a successful hardware boot.
 | `DEFCONFIG`, `LINUX_TARGET` | Native kernel configuration and image target, defaulting to `esp32s31_defconfig` and `xipImage` |
 | `PORT`, `BAUD` | Device port and baud rate |
 | `IDF_EXPORT`, `IDF_PATH`, `IDF_ROOT` | Local ESP-IDF paths |
+| `HOST_PYTHON` | U-Boot host interpreter, including env-shebang tools; defaults to the current `python3`; use the prepared host interpreter explicitly when ESP-IDF is active |
+| `UBOOT_PYTHONPATH` | Optional extra module-search path for that U-Boot host interpreter |
 | `TOOLCHAIN_PREFIX` | Installed cross-toolchain directory |
 | `TOOLCHAIN_RELEASE_TAG` | Dependency-lock release, or explicit local experiment |
 | `CROSSTOOL_NG_DIR` | Source tree for `toolchain-source` |

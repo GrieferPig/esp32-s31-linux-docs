@@ -106,6 +106,8 @@ make PORT=/dev/ttyUSB1 BAUD=921600 flash-existing-all
 | `LINUX_TARGET` | 内核镜像目标，默认 `xipImage` |
 | `IDF_EXPORT` | ESP-IDF `export.sh` 路径 |
 | `IDF_PATH`、`IDF_ROOT` | ESP-IDF 安装及查找路径 |
+| `HOST_PYTHON` | U-Boot 主机解释器，包含 env-shebang 工具；默认取当前 `python3`，激活 ESP-IDF 时应显式选择已准备依赖的主机解释器 |
+| `UBOOT_PYTHONPATH` | 该 U-Boot 主机解释器可选的额外模块搜索路径 |
 | `TOOLCHAIN_PREFIX` | 已安装 Linux 工具链目录 |
 | `TOOLCHAIN_RELEASE_TAG` | `configs/build-versions.mk` 选择的版本 |
 | `CROSSTOOL_NG_DIR` | `toolchain-source` 使用的源码目录 |

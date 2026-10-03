@@ -50,6 +50,20 @@ sudo apt-get install -y \
 `libncurses-dev` supports the Buildroot configuration menu, and `mtd-utils`
 supplies `mkfs.jffs2` for the optional `make persist` target.
 
+Select the interpreter that can import the installed U-Boot host dependencies:
+
+```sh
+export HOST_PYTHON=/usr/bin/python3
+"$HOST_PYTHON" -c 'import pkg_resources, elftools'
+```
+
+Keep this setting when activating ESP-IDF below. Its Python environment may not
+include Ubuntu's `python3-pkg-resources` and `python3-pyelftools` packages.
+The build uses `HOST_PYTHON` for U-Boot's Python tools, including binman scripts
+with an `env python3` shebang; ESP-IDF retains its own environment. If using a
+different host interpreter, install those dependencies there and run the same
+import check. Save the interpreter path in `local.mk` to reuse it in new shells.
+
 ---
 
 ### ESP-IDF
@@ -169,6 +183,7 @@ Host-specific settings belong in the ignored `local.mk`, for example:
 
 ```make
 IDF_EXPORT := /opt/esp-idf/export.sh
+HOST_PYTHON := /usr/bin/python3
 JOBS := 4
 ```
 

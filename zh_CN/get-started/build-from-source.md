@@ -21,6 +21,20 @@ sudo apt-get install -y \
 `libncurses-dev` 用于 Buildroot 配置菜单。`mtd-utils` 提供可选目标
 `make persist` 所需的 `mkfs.jffs2`。
 
+选择能够导入已安装 U-Boot 主机依赖的解释器：
+
+```sh
+export HOST_PYTHON=/usr/bin/python3
+"$HOST_PYTHON" -c 'import pkg_resources, elftools'
+```
+
+下文激活 ESP-IDF 后仍需保留这一设置。ESP-IDF 的 Python 环境不一定包含
+Ubuntu 的 `python3-pkg-resources` 和 `python3-pyelftools` 软件包。
+构建使用 `HOST_PYTHON` 运行 U-Boot 的 Python 工具，包括以 `env python3`
+启动的 binman 脚本；ESP-IDF 继续使用自己的环境。如果选择其他主机解释器，
+应在该环境中安装上述依赖并执行相同的导入检查。将解释器路径写入 `local.mk`，
+即可在新终端中复用该设置。
+
 ## 2. 检出源码
 
 检出项目与其固定的子模块版本：
@@ -131,6 +145,7 @@ make PORT=/dev/ttyUSB0 BAUD=2000000 flash-existing-all
 
 ```make
 IDF_EXPORT := /opt/esp-idf/export.sh
+HOST_PYTHON := /usr/bin/python3
 JOBS := 4
 ```
 
