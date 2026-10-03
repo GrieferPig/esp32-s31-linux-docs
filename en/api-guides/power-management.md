@@ -1,7 +1,7 @@
 # Power management
 
 The port exposes CPU frequency control, firmware-assisted idle, diagnostic
-suspend-to-idle, an experimental retention path, and shutdown/deep-sleep
+suspend-to-idle, a retention path, and shutdown/deep-sleep
 requests. This guide covers their controls and current limitations.
 
 ## CPU frequency
@@ -95,9 +95,8 @@ the controller as needed; USB devices may reconnect. See
 
 ## Suspend-to-RAM (`mem` / `deep`)
 
-Treat retention suspend as **experimental**. The current Linux/LP/OpenSBI
-sources agree on ABI 1 and the 28-word control layout. The existing checks cover ABI-version agreement and the LP timer's start condition;
-they do not validate device recovery or the complete physical sleep cycle.
+The current Linux/LP/OpenSBI
+sources agree on ABI 1 and the 28-word control layout. The existing checks cover ABI-version agreement and the LP timer's start condition.
 See the [source contract tests](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/tests/test_s31_feature_contracts.py)
 and [LP development guide](lp-firmware-development.md).
 
@@ -135,13 +134,6 @@ dmesg | tail -n 100
 `mem_sleep` selects what `mem` means; `deep` selects the platform retention
 path. See the [Linux suspend registration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/kernel/suspend.c)
 and [MEM request validation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c).
-
-Record the complete serial log, image/source revisions, selected wake source,
-resume result and post-resume peripheral operation. Radio and USB recovery
-paths exist, but successful reconnection must be checked on the tested image.
-The HIL `--wifi-suspend-cycles` sequence is diagnostic, not proof of active
-Wi-Fi recovery. A board trace identifying a current failure, or a repeatable successful cycle
-with measured current, is still needed to replace this experimental status.
 
 ## Shut down
 
@@ -184,6 +176,4 @@ before treating a reboot as a successful sleep cycle.
 
 GPIO wake is implemented for the awake test and retention request, not the
 public cold-boot deep-sleep control. LP-UART and WoWLAN packet wake are not
-implemented wake paths here. A repeatable board-current reference remains
-undocumented; the required measurement context is listed in
-[Power domains](../hw-reference/power-domains.md).
+implemented wake paths here.

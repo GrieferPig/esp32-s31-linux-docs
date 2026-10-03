@@ -106,7 +106,7 @@ Open the serial port in a terminal program with these settings:
 | Stop bits | 1 |
 | Flow control | None |
 
-Use these source-defined boot messages to identify stages; optional banners
+Use these boot messages to identify stages; optional banners
 may vary.
 
 | Landmark | What it indicates |
@@ -132,9 +132,6 @@ test -e /run/rcS.done && echo "rcS finished" || echo "rcS still running"
 cat /run/rcS.log
 ```
 
-Hardware boot/flashing acceptance of the current compact image is pending.
-Runtime boot, persistence and LP readiness have not been validated on the merged
-image. A recovery login does not establish a normal writable-root boot.
 Set a password with `passwd` before exposing login services. The standard image
 has no SSH server.
 

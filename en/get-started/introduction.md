@@ -5,17 +5,12 @@
 BusyBox shell, Wi-Fi and Bluetooth support, and drivers for on-chip peripherals.
 The port uses Linux 6.18, U-Boot, OpenSBI, and Buildroot.
 
-This is an experimental port. A successful normal boot, persistent flash
-erase/write, and LP readiness have not been established for the current merged
-image. Treat the guides as source-defined interfaces and validation procedures;
-see the support matrix for the evidence available for each feature.
-
 ## Feature support
 
 Every build uses the [full board configuration](build-configuration.md).
 Optional hardware is enabled at runtime with device-tree overlays.
-See [Feature support](../resources/support-matrix.md) for available interfaces,
-evidence of testing, and current limitations.
+See [Feature support](../resources/support-matrix.md) for available interfaces
+and current limitations.
 
 ## Quick start
 

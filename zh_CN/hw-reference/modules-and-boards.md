@@ -1,7 +1,7 @@
 # 模组和开发板
 
 本移植面向 ESP32-S31 平台。[项目 README](https://github.com/GrieferPig/esp32-s31-linux/blob/main/README.md)
-列出以下目标开发板和模组；这不代表当前合并镜像已通过这些硬件的验收：
+列出以下目标开发板和模组：
 
 - 乐鑫 ESP32-S31 Coreboard
 - 乐鑫 ESP32-S31 Korvo

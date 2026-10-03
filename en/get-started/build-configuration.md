@@ -29,8 +29,7 @@ on a size recorded for another build:
 stat -c %s dist/current/xipImage
 ```
 
-The artifact size and manifest describe the exact source/configuration; passing
-the host size check does not establish a successful hardware boot.
+The artifact size and manifest describe the exact source/configuration.
 
 ## Source configuration
 

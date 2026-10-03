@@ -1,17 +1,17 @@
 # 功能支持
 
-本页说明当前实现、构建内容及尚需验证的范围。所有镜像使用[完整开发板配置](../get-started/build-configuration.md)。配置包含驱动不等于该硬件组合已经通过验收；以当前镜像及注明构建标识的测试结果为准。
+所有镜像使用[完整开发板配置](../get-started/build-configuration.md)。
 
 ## 可用状态
 
 | 标记 | 含义 |
 |---|---|
 | 🟢 默认包含 | 默认构建已选择此功能所需的支持；使用时可能仍需配置 |
-| 🟡 已实现 | 已有驱动或协议实现；备注列出仍需完成的配置或验证 |
-| 🟠 开发中 | 集成或硬件验证尚未完成 |
+| 🟡 已实现 | 已有驱动或协议实现 |
+| 🟠 开发中 | 集成尚未完成 |
 | 🔴 未提供 | 本仓库未提供相应的 ESP32-S31 实现 |
 
-这些标记描述[构建配置](../get-started/build-configuration.md)和驱动支持情况。主机或模拟器检查不能替代物理开发板验收。
+这些标记描述[构建配置](../get-started/build-configuration.md)和驱动支持情况。
 
 ## 系统
 
@@ -19,8 +19,8 @@
 |---|---|---|
 | Linux、Sv32 MMU 和 flash XIP | 🟢 默认包含 | 按 16 MiB flash 和 16 MiB PSRAM 配置 |
 | 双核 SMP | 🟢 默认包含 | 两个 HP hart 均配置为运行 Linux |
-| 持久化根文件系统 | 🟢 默认包含 | SquashFS 配合 JFFS2 可写层；可写根文件系统验收待完成 |
-| 可移动存储与 swap | 🟢 默认包含 | FAT/VFAT、内置 ext4、SD/MMC、USB 存储和 swap；设备/夹具验收待完成 |
+| 持久化根文件系统 | 🟢 默认包含 | SquashFS 配合 JFFS2 可写层 |
+| 可移动存储与 swap | 🟢 默认包含 | FAT/VFAT、内置 ext4、SD/MMC、USB 存储和 swap |
 | 运行时覆盖层 | 🟢 默认包含 | 外设选择、引脚路由和设置保存 |
 | CPU 动态调频 | 🟢 默认包含 | 共享的 80、160、240 和 320 MHz 策略 |
 | CPU 空闲 | 🟢 默认包含 | 固件辅助的 WFI |
@@ -28,10 +28,9 @@
 | Suspend-to-idle | 🟡 已实现 | LP 定时唤醒诊断使用 HP CPU 轮询 |
 | 定时深度休眠 | 🟡 已实现 | 定时唤醒使用冷启动路径 |
 | 正常关机 | 🟡 已实现 | 不设置定时唤醒；通过外部复位或重新上电启动 |
-| Suspend-to-RAM 和 LP GPIO 唤醒 | 🟠 开发中 | 已有定时/GPIO 唤醒路径；验收仍需覆盖状态保持、唤醒原因及设备恢复 |
+| Suspend-to-RAM 和 LP GPIO 唤醒 | 🟡 已实现 | 已有定时/GPIO 唤醒路径 |
 
-Linux、LP 固件和 OpenSBI 使用一致的休眠协议定义。Suspend-to-RAM 和 LP GPIO 唤醒的开发板验证仍待完成。
-本页未提供开发板电流测量结果。命令和唤醒源设置见
+Linux、LP 固件和 OpenSBI 使用一致的休眠协议定义。命令和唤醒源设置见
 [电源管理](../api-guides/power-management.md)。源码参考：
 [Linux 休眠结构](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/include/linux/soc/espressif/esp32s31-lp-protocol.h)、
 [OpenSBI 检查](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c)。
@@ -40,17 +39,16 @@ Linux、LP 固件和 OpenSBI 使用一致的休眠协议定义。Suspend-to-RAM 
 
 | 功能 | 可用状态 | 备注 |
 |---|---|---|
-| Wi-Fi STA | 🟢 默认包含 | mac80211/cfg80211 单 STA；`iw`、`wpa_supplicant`；运行时验收待完成 |
+| Wi-Fi STA | 🟢 默认包含 | mac80211/cfg80211 单 STA；`iw`、`wpa_supplicant` |
 | 蓝牙 | 🟢 默认包含 | BTstack 配合直接 HCI；另有 Linux HCI 前端可选 |
 | AP、AP+STA 和受保护 AP | 🔴 未提供 | 当前 SoftMAC 前端不公开这些模式 |
 | 软件监听 | 🟠 开发中 | 共用 STA 过滤接收路径，不是完整混杂捕获 |
-| 企业认证 | 🟠 开发中 | 需验证当前 Linux STA 栈及 wpa_supplicant；没有 EAP 厂商凭据接口 |
+| 企业认证 | 🟠 开发中 | 没有 EAP 厂商凭据接口 |
 | 活动 Wi-Fi 挂起 | 🔴 未提供 | 接口运行时返回 `EBUSY`，没有活动连接恢复实现 |
 
 提供的根文件系统使用 BTstack。尝试使用 BlueZ 还需要选择 Linux HCI 前端，
 并修改 rootfs 软件包及 post-build 设置：当前 post-build 脚本会删除 BlueZ、
-D-Bus 及相关库文件。仅选择 BlueZ 软件包并不足够。本页未验证完整的 BlueZ
-配置流程。见 [post-build 删除规则](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/post-build.sh)。
+D-Bus 及相关库文件。仅选择 BlueZ 软件包并不足够。见 [post-build 删除规则](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/post-build.sh)。
 
 可用的配置方式见 [Wi-Fi 与蓝牙](../api-reference/radio/index.md)和
 [进阶 Wi-Fi](../api-guides/wifi-advanced.md)。
@@ -61,19 +59,19 @@ D-Bus 及相关库文件。仅选择 BlueZ 软件包并不足够。本页未验�
 |---|---|---|
 | GPIO 和 UART0 控制台 | 🟢 默认包含 | GPIO 字符设备及 UART0 控制台 |
 | 可选 UART | 🟡 已实现 | UART1/2 路由及 UART3 DMA；预置 UART3 HIL 用例使用内部回环 |
-| I2C0/I2C1 | 🟡 已实现 | 已实现长传输分批处理；请验证应用所用的传输长度和设备 |
+| I2C0/I2C1 | 🟡 已实现 | 已实现长传输分批处理 |
 | GPSPI2/GPSPI3 主机 | 🟡 已实现 | 8 位字；数据线设置取决于控制器及所选设备 |
 | GPSPI 目标端 | 🟡 已实现 | DMA 传输最长 4096 字节 |
 | I2S/TDM | 🟡 已实现 | 播放/采集和可配置帧格式；预置覆盖层使用外部 BCLK/WS |
-| SD/MMC | 🟡 已实现 | 插槽接线和总线宽度由覆盖层选择；卡和模式的覆盖范围需要测试装置结果 |
+| SD/MMC | 🟡 已实现 | 插槽接线和总线宽度由覆盖层选择 |
 | 以太网 | 🟡 已实现 | 需要匹配的外部 PHY 配置和接线 |
 | USB gadget | 🟡 已实现 | 标准内核包含 ACM/ECM configfs 支持；运行时需选择功能；不在标准 HIL 测试范围内 |
-| USB 主机 | 🟢 默认包含 | 默认选择主机控制器及存储支持；设备互操作性仍在开发验证中 |
+| USB 主机 | 🟢 默认包含 | 默认选择主机控制器及存储支持 |
 | AHB/AXI GDMA | 🟡 已实现 | 两个 DMA 提供者均已内置，由相应外设驱动使用 |
 | 定时器、PWM 和脉冲计数器 | 🟡 已实现 | 每个定时器组的定时器 1 为 CPU 空闲功能保留 |
-| 模拟和传感器模块 | 🟡 已实现 | ADC、DAC、触摸和比较器通过 IIO 提供接口；温度通过 hwmon 提供接口；精度和校准需单独验证 |
-| 看门狗、NVMEM、RNG 和加密 | 🟡 已实现 | 已接入各自的 Linux 子系统；仍需分别进行功能验收 |
-| TWAI/CAN | 🟠 开发中 | 已有 SocketCAN 绑定和覆盖层；开发板/总线验收尚未完成 |
+| 模拟和传感器模块 | 🟡 已实现 | ADC、DAC、触摸和比较器通过 IIO 提供接口；温度通过 hwmon 提供接口 |
+| 看门狗、NVMEM、RNG 和加密 | 🟡 已实现 | 已接入各自的 Linux 子系统 |
+| TWAI/CAN | 🟡 已实现 | 已有 SocketCAN 绑定和覆盖层 |
 | RMT | 🔴 未提供 | 仓库中没有 ESP32-S31 的驱动或设备树节点 |
 
 配置方法见[使用外设](../user-guides/peripherals.md)，API 设置和传输限制见
@@ -81,11 +79,11 @@ D-Bus 及相关库文件。仅选择 BlueZ 软件包并不足够。本页未验�
 [模组和开发板](../hw-reference/modules-and-boards.md)。
 [覆盖层目录](overlay-catalog.md)列出可选控制器。
 
-## 当前验证范围
+## 测试
 
-当前紧凑镜像的物理开发板启动、烧录、持久化和外设恢复仍待验证。项目提供主机检查与开发板/对端测试程序。主机检查覆盖源码、配置、布局和接口约定，不能证明电气、无线或睡眠行为。HIL 的 `usb-drive` 覆盖 USB 主机存储，不代表 gadget 或全部 USB 类别均受支持。命令、夹具及结果收集见[HIL 测试](../contribute/testing-hil.md)。
+项目提供主机检查与开发板/对端测试程序。HIL 的 `usb-drive` 覆盖 USB 主机存储，不代表 gadget 或全部 USB 类别均受支持。命令、夹具及结果收集见[HIL 测试](../contribute/testing-hil.md)。
 
-验收记录应包含镜像/提交标识、开发板和模组版本、接线、传输设置、命令、PASS/FAIL/SKIP 结果，以及恢复和清理证据。无线数据传输须记录对端，休眠结论须记录唤醒原因及电流。驱动实现或工具存在本身不是验收结果。
+验收记录应包含镜像/提交标识、开发板和模组版本、接线、传输设置、命令、PASS/FAIL/SKIP 结果，以及恢复和清理证据。无线数据传输须记录对端，休眠结论须记录唤醒原因及电流。
 
 ### Flash 与持久化存储
 

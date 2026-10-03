@@ -28,7 +28,6 @@ station or AP interfaces.
 mac80211 can expose a software monitor interface, but the current radio receive
 path retains station-oriented filtering, including dropping unrelated unicast
 frames. Captures therefore are not a complete promiscuous view of the channel.
-Dedicated monitor acceptance and injection behavior have not been established.
 Do not use this path to conclude that absent packets were absent over the air.
 
 `tcpdump` is not selected in the compact rootfs. If adding capture tools for
@@ -45,8 +44,7 @@ The P4/C6 fixture can still provide an external AP for S31 station tests.
 ## Enterprise authentication
 
 Enterprise authentication needs validation through the current Linux station
-stack and the selected `wpa_supplicant` build. No end-to-end enterprise support
-claim is made here. Use the CA and server-identity policy supplied by the
+stack and the selected `wpa_supplicant` build. Use the CA and server-identity policy supplied by the
 network administrator when developing that integration; do not disable server
 validation to make a test pass.
 

@@ -155,10 +155,11 @@ package build alone does not show that its runtime files remain in the image.
 For example, the script removes `libstdc++`, `libatomic`, BlueZ tools and daemon,
 and D-Bus/GLib/BlueALSA files. Adding a C++ application or a BlueZ-based system
 therefore needs a corresponding review of those removal rules. The current
-script requires `s31-btstack-a2dp`, `s31-ext-test`, `s31-gpio`,
-`s31-config-archive`, and `esp32-config` to remain executable. Replacing one of
-these tools requires updating that check and the services or commands that use
-it. The parent build checks that the finished rootfs fits its flash partition.
+script checks essential runtime executables, including `s31-btstack-a2dp`,
+`s31-ext-test`, `s31-gpio`, `s31-config-archive`, `esp32-config`, and the BTstack
+startup script `/etc/init.d/S40btstack`. Replacing a required file needs a
+corresponding update to that check and the services or commands that use it.
+The parent build checks that the finished rootfs fits its flash partition.
 
 (deploy-files-that-must-survive-reboot)=
 ## Deploy files that must survive reboot

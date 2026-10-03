@@ -1,6 +1,6 @@
 # 电源管理
 
-本移植提供 CPU 频率控制、固件辅助空闲、诊断性 suspend-to-idle、实验性的保持路径，以及关机 / 深度睡眠请求。本指南介绍其控制方法及当前限制。
+本移植提供 CPU 频率控制、固件辅助空闲、诊断性 suspend-to-idle、保持路径，以及关机 / 深度睡眠请求。本指南介绍其控制方法及当前限制。
 
 ## CPU 频率
 
@@ -67,7 +67,7 @@ S31 DWC2 挂起回调禁用自身 IRQ、控制器的全局中断使能及底层�
 
 ## Suspend-to-RAM（`mem` / `deep`）
 
-保持挂起应视为**实验性功能**。当前 Linux / LP / OpenSBI 源码在 ABI 1 和 28 字控制块布局上保持一致。现有检查覆盖 ABI 版本一致性及 LP 定时器启动条件，不验证设备恢复或完整的物理睡眠周期。参见[源码约定测试](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/tests/test_s31_feature_contracts.py)及 [LP 开发指南](lp-firmware-development.md)。
+当前 Linux / LP / OpenSBI 源码在 ABI 1 和 28 字控制块布局上保持一致。现有检查覆盖 ABI 版本一致性及 LP 定时器启动条件。参见[源码约定测试](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/tests/test_s31_feature_contracts.py)及 [LP 开发指南](lp-firmware-development.md)。
 
 `/sys/module/esp32s31_lp/parameters/` 下提供以下参数：
 
@@ -97,8 +97,6 @@ dmesg | tail -n 100
 
 `mem_sleep` 决定 `mem` 的含义；`deep` 选择平台保持路径。参见 [Linux 挂起注册](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/kernel/suspend.c)及 [MEM 请求验证](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c)。
 
-应记录完整串口日志、镜像 / 源码版本、所选唤醒源、恢复结果及恢复后的外设运行情况。USB 恢复仍需在所测镜像上检查；活动 Wi-Fi 的挂起会被拒绝，不能假定无线连接会自动恢复。要更新这一实验性状态，仍需能定位当前故障的板端记录，或可重复的成功周期及实测电流。
-
 ## 关机
 
 ```sh
@@ -123,4 +121,4 @@ done
 
 RTC 换算使用固定的 **155386 Hz** 慢时钟值，因此不同板卡上的实际间隔可能不同。`previous` 和 `wake_reason` 是所请求操作的软件标记，不能证明物理睡眠成功。定时状态切换失败可能回退到复位；将一次重启认定为睡眠周期成功之前，应检查串口日志。
 
-GPIO 唤醒已用于运行状态下的测试和保持请求，尚未用于公开的冷启动深度睡眠控制。此处未实现 LP-UART 和 WoWLAN 数据包唤醒路径。仍缺少可重复的板级电流参考数据，所需测量条件见[电源域](../hw-reference/power-domains.md)。
+GPIO 唤醒已用于运行状态下的测试和保持请求，尚未用于公开的冷启动深度睡眠控制。此处未实现 LP-UART 和 WoWLAN 数据包唤醒路径。

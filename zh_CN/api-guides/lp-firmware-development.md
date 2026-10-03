@@ -47,7 +47,7 @@ s31-lpctl ping
 python -m unittest tools.tests.test_s31_feature_contracts.DriverContracts.test_lp_sleep_abi_matches_opensbi tools.tests.test_s31_feature_contracts.DriverContracts.test_lp_mem_timer_starts_after_hp_asleep -v
 ```
 
-这些检查比较源码约定，不会执行挂起周期。[LP 参考](../api-reference/lp-core/index.md)统一说明传输格式和字段细节；[电源管理](power-management.md)介绍实验性的保持路径与尚需完成的验证。
+这些检查比较源码约定，不会执行挂起周期。[LP 参考](../api-reference/lp-core/index.md)统一说明传输格式和字段细节；[电源管理](power-management.md)介绍保持路径。
 
 ## 添加 LP 外设
 

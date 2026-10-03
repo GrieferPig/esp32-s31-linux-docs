@@ -54,7 +54,7 @@ s31-overlay status
 | `S31 early overlay restore failed` | 恢复已保存的设备树覆盖层时返回错误 | 按[使用覆盖层](../resources/overlay-catalog.md)检查当前覆盖层和保存选择。 |
 | 串口登录提示符 | Linux 已启动控制台登录服务 | 检查 `/run/rcS.log` 和 `/run/rcS.done`，确认是否还有服务正在启动。 |
 
-如果 persist 擦除或挂载失败，系统可能进入恢复登录。恢复模式下 `/run`、`/tmp` 和 `/var/log` 是易失存储，设置无法持久保存。当前镜像的启动与持久化路径仍需板端验收；仅出现控制台提示符不能证明正常启动。
+如果 persist 擦除或挂载失败，系统可能进入恢复登录。恢复模式下 `/run`、`/tmp` 和 `/var/log` 是易失存储，设置无法持久保存。
 
 ### 重启后设置丢失
 

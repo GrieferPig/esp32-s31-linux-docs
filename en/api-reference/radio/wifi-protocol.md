@@ -8,8 +8,7 @@ Do not use vendor-command credential helpers as a current connection procedure.
 For open and PSK station setup, follow [Wi-Fi and Bluetooth setup](../../user-guides/networking.md).
 For enterprise authentication, validate the selected `wpa_supplicant` build and
 current station stack against the intended network. CA and server-identity
-validation must follow the network administrator's policy. No end-to-end
-enterprise acceptance result is established for this image.
+validation must follow the network administrator's policy.
 
 [Advanced Wi-Fi](../../api-guides/wifi-advanced.md) documents the current
 station, monitor, AP and suspend boundaries. The common firmware radio ABI is

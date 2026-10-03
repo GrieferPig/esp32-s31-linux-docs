@@ -31,9 +31,7 @@ The root filesystem combines the read-only SquashFS image with a writable
 JFFS2 layer using OverlayFS. When persist mounts successfully, ordinary files
 written to this merged root are stored across reboots, including `/etc/esp32-conf`
 and Bluetooth pairing data in `/var/lib/btstack`. Applications use these normal
-paths; the JFFS2 backing store is assembled during early boot. Persistence on
-the current compact image still needs physical-board validation; a read-only
-recovery boot cannot save these changes.
+paths; the JFFS2 backing store is assembled during early boot.
 
 The following locations are temporary:
 
@@ -47,8 +45,7 @@ The persistent partition has **2120 KiB** of raw flash capacity, before JFFS2
 metadata overhead. There is no HIL scratch partition in the compact layout.
 Use an SD card or USB storage for larger applications, media, and logs, enabling
 the required SDMMC overlay for an SD card. The standard configuration includes
-USB host storage, FAT/VFAT, and built-in ext4 support; device and filesystem
-interoperability still require testing.
+USB host storage, FAT/VFAT, and built-in ext4 support.
 
 Some firmware-owned files are refreshed from the image during boot. See
 [Deploy files that must survive reboot](deploy-files-that-must-survive-reboot)

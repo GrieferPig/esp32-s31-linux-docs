@@ -61,7 +61,7 @@ For current suspend status, CPU idle, shutdown and timed deep sleep, see
 
 ## Power measurements
 
-A repeatable board-current reference remains to be documented. Record the
+Record the
 board revision, supply point/voltage, USB connection, enabled peripherals,
 radio state, CPU frequency and instrument/sample interval alongside each
 measurement. Board-input current includes regulators, USB bridges and LEDs;

@@ -26,7 +26,6 @@
 `40000000.flash` 找到编号 `N`；`/dev/mtdNro` 是完整 master 的只读别名，
 可读取保留区及所有分区而不通过该别名授予写权限。`/dev/mtdN` 仍可写，
 `CONFIG_MTD_BLOCK=y` 也提供完整 master 的 `/dev/mtdblockN` 块设备。
-这些是当前配置与驱动的接口，不代表当前镜像已通过擦写验证。
 
 参见[内核 Flash 设备树](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
 及 [Flash 驱动](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/mtd/devices/esp32s31_flash.c)。
@@ -60,7 +59,5 @@ FIT 的 OpenSBI 数据固定在 FIT 偏移 `0x400`，因此 OpenSBI 从 `0x4000E
 ## 修改布局
 
 修改 `configs/esp32s31-layout.cfg` 时，必须同步更新 U-Boot 映射与启动地址、Linux 设备树、XIP 内核地址、无线预链接约定及有关测试。运行 `make check-layout`，并重新验证所有镜像体积和完整匹配集。不得绕过容量检查或让分区重叠。
-
-当前紧凑布局尚未完成物理开发板启动与烧录验证；主机布局检查通过不代表硬件启动成功。
 
 烧录与控制台步骤见[烧录与首次启动](../get-started/flash-and-first-boot.md)。

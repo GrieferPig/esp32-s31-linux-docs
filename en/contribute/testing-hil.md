@@ -122,10 +122,6 @@ The Wi-Fi case sets up a fixture access point and temporary station profile,
 then checks association, address assignment, and packet exchange. It also
 temporarily changes radio services and restores them during cleanup.
 
-Runtime validation and hardware acceptance of the merged compact image remain
-pending. Verify normal boot, writable persistence and LP readiness on that exact
-image. A recovery login is not proof of those properties.
-
 For power-management tests, check the current
 [suspend limitations](../api-guides/power-management.md) first. GPIO wake
 requires wiring to LP GPIO0–7 rather than the normal higher-numbered fixture

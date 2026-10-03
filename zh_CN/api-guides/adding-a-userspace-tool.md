@@ -121,7 +121,7 @@ make flash-existing-all PORT=/dev/ttyUSB0
 
 [构建后处理脚本](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/post-build.sh)会在软件包安装后精简部分程序和共享库。运行 `make rootfs` 后，检查 `out/buildroot/target`，包括程序依赖的库。软件包构建成功，并不代表运行所需文件仍保留在镜像中。
 
-例如，脚本会移除 `libstdc++`、`libatomic`、BlueZ 工具和守护进程，以及 D-Bus/GLib/BlueALSA 文件。因此，添加 C++ 应用或基于 BlueZ 的系统时，也需检查相关移除规则。当前脚本还要求 `s31-btstack-a2dp`、`s31-ext-test`、`s31-gpio`、`s31-config-archive` 和 `esp32-config` 保持可执行；替换其中的工具时，需同时修改该检查及使用它的服务或命令。主项目构建会检查最终根文件系统是否超出 Flash 分区。
+例如，脚本会移除 `libstdc++`、`libatomic`、BlueZ 工具和守护进程，以及 D-Bus/GLib/BlueALSA 文件。因此，添加 C++ 应用或基于 BlueZ 的系统时，也需检查相关移除规则。脚本会检查必要的运行文件是否可执行，包括 `s31-btstack-a2dp`、`s31-ext-test`、`s31-gpio`、`s31-config-archive`、`esp32-config` 和 BTstack 启动脚本 `/etc/init.d/S40btstack`；替换必要文件时，需同时修改该检查及使用它的服务或命令。主项目构建会检查最终根文件系统是否超出 Flash 分区。
 
 (deploy-files-that-must-survive-reboot)=
 ## 部署重启后需要保留的文件

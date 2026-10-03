@@ -69,7 +69,7 @@ python -m unittest tools.tests.test_s31_feature_contracts.DriverContracts.test_l
 These checks compare source contracts; they do not execute a suspend cycle.
 The [LP reference](../api-reference/lp-core/index.md) owns the wire-format and
 field details, and [Power management](power-management.md) describes the
-experimental retention path and the remaining validation needs.
+retention path.
 
 ## Add an LP peripheral
 

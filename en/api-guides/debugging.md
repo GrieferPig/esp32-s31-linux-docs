@@ -69,8 +69,7 @@ check. These messages provide useful landmarks:
 
 If persist erase or mounting fails, the system can reach recovery login.
 In recovery `/run`, `/tmp`, and `/var/log` are volatile and settings cannot
-persist. Board acceptance of the current image's boot and persistence paths is
-still pending; a console prompt alone does not establish normal boot.
+persist.
 
 ### Settings disappear after reboot
 

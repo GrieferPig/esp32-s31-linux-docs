@@ -30,8 +30,7 @@ read-only `/dev/mtdNro` alias; identify `N` from the sysfs name
 covers the complete 16 MiB, including the reserved prefix and every partition,
 without granting write access through that alias. With `CONFIG_MTD_BLOCK=y`,
 `/dev/mtdblockN` also exposes the complete master as a block device. The writable
-master is intentionally retained by the full-board configuration. These are
-source-defined interfaces; erase/write acceptance of the merged image remains pending.
+master is intentionally retained by the full-board configuration.
 
 ## Raw offsets and XIP addresses
 
@@ -76,6 +75,3 @@ Whenever changing the installed layout, back up needed files and settings to
 another device, verify the backup, perform a clean installation, then restore
 the needed files/settings. See
 [Flash and first boot](../get-started/flash-and-first-boot.md).
-
-Hardware boot and flashing validation of this compact layout is still pending.
-Host layout checks alone do not establish a working hardware boot.
