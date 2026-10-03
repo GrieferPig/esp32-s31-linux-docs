@@ -13,7 +13,7 @@ s31-overlay status
 
 `list` shows the overlays installed in the image. `status` shows the active
 set and the settings saved for the next boot. Optional peripheral drivers
-need the [full-peripheral profile](../get-started/build-profiles.md).
+need the [full board configuration](../get-started/build-configuration.md).
 
 | Group | Overlay names | Notes |
 |---|---|---|
@@ -78,7 +78,19 @@ resources. Flash and console pins are reserved. The
 [board guide](../hw-reference/modules-and-boards.md) explains what to check
 before wiring an external device.
 
-TODO: add pin table
+The generic overlay manager applies these pin restrictions:
+
+| GPIOs | Restriction |
+|---|---|
+| 26–32 | Live XIP flash bus; cannot be reassigned |
+| 33, 34, 41 | Rejected by the manager's valid-pin filter |
+| 58, 59 | Reserved for the live UART0 console |
+| Outside 0–61 | Outside the driver's GPIO range |
+
+Other pins still depend on board/module availability, active overlays, and
+GPIO character-device consumers. This table describes software restrictions,
+not a carrier-board connector map. Inspect `s31-overlay routes NAME` and the
+board schematic before wiring.
 
 ## Remove or restore overlays
 

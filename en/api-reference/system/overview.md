@@ -42,7 +42,7 @@ See [Memory map](../../hw-reference/memory-map.md) and
 Applications use Linux interfaces such as GPIO character devices, I2C, SPI,
 ALSA, and network sockets. Use `s31-overlay` to enable optional peripherals
 and choose their pins. Most peripheral examples require the full-peripheral
-[build profile](../../get-started/build-profiles.md).
+[build configuration](../../get-started/build-configuration.md).
 
 ## Radio and low-power core
 

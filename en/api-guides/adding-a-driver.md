@@ -48,12 +48,14 @@ S31 defconfig where appropriate.
 From the parent project, build the full-peripheral image:
 
 ```sh
-export S31_LEAN_RADIO=0
-make linux
-make rootfs
+make linux rootfs radio-fs
 ```
 
-The rootfs build also installs the device-tree overlays. Follow
+The rootfs build installs the Linux radio module and device-tree overlays; `radio-fs`
+prelinks the radio image against the rebuilt kernel. Update kernel,
+rootfs/module, and `radio.bin` as a matched set. A new driver selected as `m`
+needs an explicit package/install step for its `.ko`; the parent build does
+not install every kernel module automatically. Follow
 [Flash and first boot](../get-started/flash-and-first-boot.md) to update the board.
 
 ## 5. Test it

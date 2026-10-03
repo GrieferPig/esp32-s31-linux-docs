@@ -62,13 +62,13 @@ Add the overlay's `.dtbo` target to the DTS Makefile, then build from the
 parent project:
 
 ```sh
-export S31_LEAN_RADIO=0
-make linux
-make rootfs
+make linux rootfs radio-fs
 ```
 
-The DTBO is built in `build/linux-6.18/arch/riscv/boot/dts/espressif/` and
-installed into `/usr/lib/s31-overlays` in the rootfs.
+The DTBO is built in `out/linux/arch/riscv/boot/dts/espressif/` and
+installed into `/usr/lib/s31-overlays` in the rootfs. `radio-fs` refreshes the
+radio image against the rebuilt kernel. Keep the kernel, rootfs/module, and
+radio image from the same build when updating the board.
 
 ## 4. Test it on the board
 

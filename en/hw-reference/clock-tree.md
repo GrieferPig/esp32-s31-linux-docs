@@ -36,6 +36,7 @@ for file in /sys/bus/platform/devices/*/clocks; do
 done
 ```
 
-The list includes the clock ID, name, rate, and enable state. It is useful for
-checking that a peripheral has the expected clock before investigating its
-register settings.
+The list includes clock ID, name, rate, critical status, and the common clock
+framework's prepared state. Its `on`/`off` field comes from
+`clk_hw_is_prepared()`, not a direct hardware-gate readback. Use it with the
+peripheral's driver state when investigating clock configuration.

@@ -1,16 +1,24 @@
 # Build from source
 
-For the sake of simplicity, Ubuntu 24.04 LTS is used as the reference platform, though other distributions should work as well if they have the necessary development tools and libraries installed. Other platforms such as Windows and macOS aren't supported currently.
+Ubuntu 24.04 LTS on x86-64 Linux is the reference build platform. The pinned
+prebuilt Linux toolchain is an x86-64 Linux executable. Other Linux
+distributions need compatible development tools and libraries; another host
+architecture requires a suitable source-built toolchain. Native Windows and
+macOS source builds are not covered here.
 
 Before you start building for the ESP32-S31 Linux port, make sure you have the following prerequisites. 
 
 - A relatively recent Linux distribution.
-- At least 10 GiB of free disk space for source, toolchain downloads and building artifacts.
+- Sufficient free disk for the source history, toolchain, ESP-IDF tools/download
+  cache, and build outputs. Do not treat 10 GiB as a verified full-build minimum;
+  usage depends on clone depth and retained toolchain/package caches. Check
+  available space with `df -h` before building and leave room for temporary
+  downloads and rebuilds.
 - Modest amount of RAM (8+ GiB recommended).
 
 ## 1. Clone the Repository
 
-Clone the ESP32-S31 Linux port repository and check out the specific commit used in this guide:
+Clone the ESP32-S31 Linux port repository and initialize its pinned submodules:
 
 ```sh
 git clone --recurse-submodules https://github.com/GrieferPig/esp32-s31-linux.git
@@ -20,17 +28,10 @@ git submodule update --init --recursive
 
 ## 2. Install Development Tools and Libraries
 
-### `esptool`
-
-`esptool` is a Python utility used for flashing firmware onto ESP32 devices. If you don't have already, install `esptool` via
-
-```bash
-pip install esptool --break-system-packages
-```
-
-Installing `esptool` globally is recommended, as it'll come in handy in multiple places during the development process.
-
---- 
+The ESP-IDF environment installed below supplies `esptool` for image generation
+and flashing. A separate global installation is not needed for a source build.
+For flashing only, use the isolated installation in
+[Flash and first boot](flash-and-first-boot.md).
 
 ### Build Essentials
 
@@ -39,10 +40,10 @@ These provide the essential development tools and libraries required to build an
 ```sh
 sudo apt-get update
 sudo apt-get install -y \
-  git curl python3 python3-venv cmake \
+  git curl wget file python3 python3-venv cmake \
   bison bc build-essential ccache cpio device-tree-compiler flex gperf \
   libffi-dev libssl-dev ninja-build python3-pkg-resources python3-pyelftools \
-  rsync unzip xz-utils mtd-utils
+  rsync unzip xz-utils mtd-utils squashfs-tools
 ```
 
 ---
@@ -51,25 +52,43 @@ sudo apt-get install -y \
 
 ESP-IDF is the official development framework for the ESP32 series of chips. LP and Radio firmwares in `esp32-s31-linux` depend on ESP-IDF's proprietary libraries and toolchain. 
 
-ESP-IDF 6.2 is used in this port. Install with
+Use the exact ESP-IDF revision in `configs/build-versions.mk`, not a moving
+`master` branch or a version number alone. The current pin is
+`a602e67b0bf9ee0806dc4e1df7afc9affedf5c33`. From the project root, install it
+into a new directory:
 
 ```sh
 export IDF_PATH="$HOME/esp-idf"
-git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
+ESP_IDF_REF=$(sed -n 's/^ESP_IDF_REF := //p' configs/build-versions.mk)
+git clone --filter=blob:none https://github.com/espressif/esp-idf.git "$IDF_PATH"
+git -C "$IDF_PATH" checkout "$ESP_IDF_REF"
+git -C "$IDF_PATH" submodule update --init --recursive
 "$IDF_PATH/install.sh" esp32s31
 ```
 
-This will install ESP-IDF in `~/esp-idf`. Alternatively, you may use the official installation guide from Espressif: [ESP-IDF Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html#installation).
+If you already have an ESP-IDF installation, use a separate checkout or save
+its local changes before switching revisions. `make idf-check` rejects a
+checkout that differs from the pin. `S31_ALLOW_UNPINNED=1` is an explicit
+experimental override, not the reproducible build path.
+
+Espressif's [ESP32-S31 installation guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s31/get-started/index.html#installation)
+provides platform setup help; retain this project's pinned revision when
+following it.
 
 ### Custom Toolchains
 
 A fork of espressif's `crosstool-ng` is used to build custom toolchains for the ESP32-S31 Linux port. These custom toolchains contain optimizations specific to this port and the S31 chip.
 
-Sources can be found on [GitHub](https://github.com/GrieferPig/crosstool-NG-s31). The release binaries are built via GitHub Actions. Download them to `toolchain/riscv32-esp-linux-musl` by
+Sources can be found on [GitHub](https://github.com/GrieferPig/crosstool-NG-s31). The release binaries are built via GitHub Actions. Download them to `cache/toolchains/riscv32-esp-linux-musl` by
 
 ```sh
-make toolchain
+make toolchain-fetch
 ```
+
+The default release is pinned in `configs/build-versions.mk`
+(`esp32s31-linux-gcc-15.2.0-5` at this revision). The target checks the downloaded
+archive against the release's SHA-256 file. Use `TOOLCHAIN_RELEASE_TAG=local`
+only when deliberately testing an already installed custom toolchain.
 
 ## 3. Build the Project
 
@@ -80,11 +99,19 @@ export IDF_PATH="$HOME/esp-idf" # Replace with the path to your ESP-IDF installa
 . "$IDF_PATH/export.sh"
 ```
 
-Build the entire project and flash with a connected S31 board with
+Build the complete image on the host:
 
 ```sh
-make all # equivalent to make uboot, linux, rootfs, flash-all
+make doctor
+make fetch
+make image
 ```
+
+`image` builds the boot firmware, kernel, rootfs, radio XIP image, and combined
+flash image, verifies the paired artifacts, and publishes them atomically to `dist/`.
+`all` is a compatibility alias for `image`. It does not access a serial port or flash a board. The default is
+the full board configuration with all peripheral drivers. Set `JOBS`, for example `make JOBS=4 all`, to limit parallel compilation.
+See [Build configuration](build-configuration.md).
 
 To build a particular component, use
 
@@ -94,16 +121,23 @@ make linux
 make rootfs
 ```
 
-and flash with
+To update a connected board already using the compact layout while preserving
+its persist partition, select the port explicitly:
 
 ```sh
-make flash-all
+make PORT=/dev/ttyUSB0 BAUD=2000000 flash-all
 ```
+
+This target verifies and writes the immutable `dist/current` set without rebuilding. Complete
+`make image` first, before flashing. Partial update targets are disabled because the installed companion
+identities are unknown. `make build-flash` explicitly combines build and flash. For first
+installation, data backup, and release-image updates, see
+[Flash and first boot](flash-and-first-boot.md).
 
 
 ## 4. Build output
 
-| Path under `build/` | Content |
+| Path under `out/images/` | Content |
 |---|---|
 | `u-boot-spl-dtb.bin` | SPL with its DTB |
 | `spl_app.bin` | ESP ROM image wrapper around SPL |
@@ -111,8 +145,31 @@ make flash-all
 | `esp32s31_generic.dtb` | Linux device tree |
 | `xipImage` | Flash-XIP Linux kernel |
 | `rootfs.sqfs` | SquashFS root filesystem |
-| `radio.sqfs` | Radio module and firmware filesystem |
-| `s31_full_flash.bin` | Combined  installation image (will overwrite persist partition) |
-| `persist.jffs2` | Empty JFFS2 image |
+| `radio.bin` | Prelinked flash-XIP radio payload; paired with this build's kernel |
+| `s31_full_flash.bin` | Combined installation image; overwrites persist |
+| `radio.json` | Build-time kernel/module/payload/import binding and radio hash |
+| `build-manifest.json` | Source, configuration, toolchain, artifact hashes and build provenance |
+| `SHA256SUMS` | Checksums for the release artifacts |
+| `persist.jffs2` | Empty JFFS2 image, produced only by `make persist`; destructive flashing requires a separate maintenance procedure |
 
 For more build targets, see the [Make reference](../resources/make-reference.md).
+
+Native build trees live beside `images/`: `linux/`, `opensbi/`, `u-boot/`,
+`idf-radio/`, `radio/`, `lp/`, and `buildroot/`. Shared downloads and toolchains
+are under `cache/`; `make clean` only removes the build output. The old
+`build/` tree is preserved and is not used as an implicit input.
+
+Host-specific settings belong in the ignored `local.mk`, for example:
+
+```make
+IDF_EXPORT := /opt/esp-idf/export.sh
+JOBS := 4
+```
+
+An explicitly requested `ROOTFS_BASELINE=/absolute/path/to/rootfs.sqfs` build
+repackages a verified legacy rootfs with the current radio module. Its manifest
+records incremental provenance, validates the full runtime inventory and module
+list, and rejects incomplete userspace. With explicit `ROOTFS_BUSYBOX_BUILD`
+evidence it can restore only missing stock logging/cron init scripts from pinned
+sources. Inherited binaries retain their original optimization. This is not a
+clean Buildroot rebuild and does not validate unrelated rootfs source changes.

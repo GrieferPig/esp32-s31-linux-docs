@@ -94,5 +94,5 @@ all bytes before `response_crc`, including request and result data. The driver
 uses `crc32_le(~0U, data, length) ^ ~0U` and retries a response snapshot while
 the LP core is updating it.
 
-See the [protocol header](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/include/linux/soc/espressif/esp32s31-lp-protocol.h)
+See the [protocol header](https://github.com/GrieferPig/linux-esp32-s31/blob/7b593bfc0c01d117410dead80868301c3e380fec/include/linux/soc/espressif/esp32s31-lp-protocol.h)
 for message values, flags, states, and structure fields.

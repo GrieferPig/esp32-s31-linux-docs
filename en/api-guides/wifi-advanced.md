@@ -1,152 +1,61 @@
 # Advanced Wi-Fi
 
-In addition to station mode, the Wi-Fi driver provides an access-point
-interface, monitor reception, and enterprise credential provisioning. Station,
-AP, and monitor interfaces share one 2.4 GHz channel, with up to one interface
-of each type.
-
-For ordinary station setup, use `esp32-config` and the
+The current image builds the mac80211 SoftMAC frontend, which exposes one
+2.4 GHz station interface. Use `esp32-config` for ordinary station setup and
+check the connection with `iw`, `wpa_cli`, and `ip`; see the
 [radio guide](../api-reference/radio/index.md).
+
+This page distinguishes current frontend limits from interfaces retained in
+the underlying firmware. A firmware operation or packaged utility alone does
+not establish that the Linux frontend exposes it.
+
+## Inspect the current interface
+
+Run on the board:
+
+```sh
+iw dev
+iw phy
+wpa_cli -i wlan0 status
+```
+
+Use `iw phy` to inspect the capabilities of the kernel you actually booted.
+The current driver accepts one station interface and rejects additional
+station or AP interfaces.
 
 ## Monitor reception
 
-Create a monitor interface and bring it up:
+mac80211 can expose a software monitor interface, but the current radio receive
+path retains station-oriented filtering, including dropping unrelated unicast
+frames. Captures therefore are not a complete promiscuous view of the channel.
+Dedicated monitor acceptance and injection behavior have not been established.
+Do not use this path to conclude that absent packets were absent over the air.
 
-```sh
-iw dev wlan0 interface add mon0 type monitor
-ip link set mon0 up
-iw dev mon0 set channel 6 HT20
-```
-
-Choose the channel while the station is disconnected and the AP is stopped.
-With an active station or AP, monitor reception uses their channel.
-
-Received packets include a radiotap header with channel and signal information.
-The interface supports reception only. To save a capture, add `tcpdump` to the
-rootfs and run:
-
-```sh
-tcpdump -i mon0 -s 0 -w /tmp/capture.pcap
-```
-
-Stop the capture with Ctrl+C, then remove the interface:
-
-```sh
-iw dev mon0 del
-```
-
-`/tmp` uses RAM, so keep captures small or write them to attached storage.
+`tcpdump` is not selected in the compact rootfs. If adding capture tools for
+development, keep captures bounded: `/tmp` uses RAM, and persist is only
+2120 KiB before filesystem overhead. Use attached storage for larger captures.
 
 ## Access-point mode
 
-Create an AP interface with:
+AP, AP+station, and protected-AP operation are not exposed by the current
+SoftMAC frontend. Selecting the full board configuration or installing
+`hostapd` does not remove this limitation.
+The P4/C6 fixture can still provide an external AP for S31 station tests.
 
-```sh
-iw dev wlan0 interface add ap0 type __ap
-ip link set ap0 up
-```
+## Enterprise authentication
 
-An AP manager must then start the access point and configure its IP address,
-DHCP service, and routing. This port uses firmware authentication offload:
-the AP-start request supplies the WPA2 PSK or WPA3 SAE password. Integration
-with a standard hostapd setup still needs testing.
+Enterprise authentication needs validation through the current Linux station
+stack and the selected `wpa_supplicant` build. No end-to-end enterprise support
+claim is made here. Use the CA and server-identity policy supplied by the
+network administrator when developing that integration; do not disable server
+validation to make a test pass.
 
-The AP configuration accepts:
+## Suspend and recovery
 
-| Setting | Values |
-|---|---|
-| Security | Open, WPA2-PSK, or WPA3-SAE |
-| Protected-network cipher | CCMP |
-| Channel width | 20 MHz |
-| Maximum clients requested from firmware | 4 |
-| Beacon interval | 100–60000 TU |
-| DTIM period | 1–10 |
-| SAE password | 1–63 bytes |
-
-Select one authentication method; mixed WPA2/WPA3 transition mode is currently
-unsupported. For AP+station use, start the AP first, then connect the station
-on the same channel. Restarting the AP can interrupt the station connection.
-
-## Enterprise credentials
-
-Enterprise authentication runs in the radio firmware. Use
-`tools/s31_wifi_eap.py` to provision its identity, CA certificate, server domain,
-and user credentials or client certificate.
-
-The helper runs on a computer with Python and sends commands to `iw` locally
-or over SSH. To use the remote example below, first add an SSH server to the
-board image and set up access. The default image uses the serial console.
-
-### 1. Prepare a profile
-
-For PEAP, create `profile.json`:
-
-```json
-{
-  "identity": "anonymous@example.invalid",
-  "username": "user@example.invalid",
-  "password_file": "password.txt",
-  "ca_file": "ca.pem",
-  "domain": "radius.example.invalid"
-}
-```
-
-Use the identity, CA, and server domain supplied by your network administrator.
-File paths are relative to the JSON file. Password-file contents are used as
-written, including a trailing newline. Keep the profile and credential files
-private.
-
-For certificate-based authentication, supply both `cert_file` and `key_file`
-in place of the username/password pair. The identity, CA, and domain are
-required for both forms. Each field can contain up to 4095 bytes, with a
-253-byte limit for the domain; embedded NUL bytes are rejected.
-
-### 2. Provision the firmware
-
-Disconnect the station and stop automatic reconnection while changing the
-profile. Set the board's clock before certificate-based authentication, then
-run on your computer:
-
-```sh
-python3 tools/s31_wifi_eap.py --ssh root@BOARD profile.json
-```
-
-Replace `BOARD` with the board's SSH address. The helper clears the old profile,
-transfers the fields, and commits the new profile. It sends credentials through
-standard input rather than command-line arguments.
-
-### 3. Connect to the network
-
-After provisioning, initiate a station connection to the enterprise SSID using
-your station integration. The usual `wpa_supplicant` WPA-EAP settings do not
-populate this firmware profile. End-to-end enterprise authentication remains
-an integration task; check authentication and IP traffic with your network.
-
-To clear the installed credentials, disconnect first and run:
-
-```sh
-python3 tools/s31_wifi_eap.py --ssh root@BOARD --clear
-```
-
-If a transfer fails, restore the connection to the board and clear the profile
-before retrying.
-
-### Vendor command format
-
-For tools that implement provisioning directly, use vendor ID `0x18fe34` and
-subcommand `0x1`. Each request contains five little-endian 32-bit integers:
-operation, field, offset, total length, and chunk length. Up to 512 bytes of
-field data follow the header.
-
-Operations are WRITE (`6`), COMMIT (`7`), and CLEAR (`8`). Field IDs 0–6 select
-identity, username, password, CA, domain, client certificate, and private key.
-Send each field in consecutive chunks and complete every field before COMMIT.
-Provisioning is rejected while the station is connected, connecting, or
-suspended.
-
-## After suspend
-
-Wireless connections are re-established after the radio restarts. Restart the
-AP manager when needed and reconnect the station. See
-[Power management](power-management.md) for the available suspend modes and
-current limitations.
+Current SoftMAC has no active-connection replay on resume. Its suspend helper
+returns `EBUSY` for a running interface; do not infer that the whole system
+safely aborts unless the caller propagates that error. Bring Wi-Fi down before
+experimenting with system sleep. Automatic radio restart does
+not imply successful station reassociation. The HIL `--wifi-suspend-cycles`
+option is a diagnostic sequence, not an established recovery capability.
+See [Power management](power-management.md) before testing system sleep.

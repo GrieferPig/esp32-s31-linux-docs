@@ -8,9 +8,11 @@ what each stage does and which files to inspect when boot stops early.
 The on-chip ROM starts after reset. It can accept firmware through the download
 connection or load SPL from flash.
 
-`build/spl_app.bin` contains SPL in the image format expected by ROM. SPL
+`out/images/spl_app.bin` contains SPL in the image format expected by ROM. SPL
 initializes the hardware needed for boot and loads the U-Boot FIT image,
-`build/u-boot.itb`.
+`out/images/u-boot.itb`. The 48 KiB SPL slot starts at raw `0x002000`, after the
+mandatory 8 KiB FlashEncryption reservation. The FIT starts immediately after
+SPL at raw `0x00E000`.
 
 ## 2. OpenSBI and U-Boot
 
@@ -18,15 +20,23 @@ SPL enters OpenSBI in machine mode and supplies the address of U-Boot proper.
 OpenSBI initializes its platform services and starts U-Boot in supervisor mode.
 It remains available to handle Linux SBI calls after boot.
 
+Boot maps all 16 MiB of raw flash linearly at physical `0x40000000`.
+The mapped FIT address is `0x4000E000`, with the OpenSBI XIP payload at
+`0x4000E400`.
+
 U-Boot starts the kernel with the Linux device tree. The default boot command
 uses these mapped addresses:
 
 ```text
-booti 0x40400000 - 0x40200000
+booti 0x40400000 - 0x4005E000
 ```
 
-The first address is the kernel and the second is the device tree. Flashing
-uses the raw offsets listed in [Flash layout](../../hw-reference/flash-layout.md).
+The first address is the kernel and the second is the device tree. Linux starts
+at a 4 MiB Sv32 megapage boundary so an XIP image larger than 4 MiB does not
+cross the unaligned mapping path reported in
+[issue #1](https://github.com/GrieferPig/esp32-s31-linux/issues/1).
+Flashing uses the raw offsets listed in
+[Flash layout](../../hw-reference/flash-layout.md).
 
 ## 3. Linux and the root filesystem
 
@@ -38,7 +48,10 @@ with the SquashFS base using OverlayFS. It then restores saved device-tree
 overlays, loads the selected radio mode, and starts BusyBox init.
 
 If the persistent filesystem fails to mount, the script prints an error and
-continues with the read-only base system. See
+continues in recovery with the read-only base system. Recovery prepares
+volatile `/run`, `/tmp`, and `/var/log`; persistent settings are unavailable.
+The current emulator reaches this path because persistent-flash erase fails.
+A recovery login does not establish working persistence or a normal boot. See
 [Debugging](../../api-guides/debugging.md) for the checks to run in that case.
 
 ## 4. Services and serial login
@@ -60,7 +73,7 @@ test -e /run/rcS.done && cat /run/rcS.status
 | `u-boot.itb` | OpenSBI and U-Boot |
 | `esp32s31_generic.dtb` | Linux hardware description |
 | `xipImage` | Linux kernel |
-| `rootfs.sqfs` | Early init, BusyBox, and applications |
-| `radio.sqfs` | Radio module and external firmware |
+| `rootfs.sqfs` | Early init, BusyBox, applications, and the Linux radio module |
+| `radio.bin` | Prelinked flash-XIP radio payload matched to the kernel/module |
 
 For flashing commands, see [Flash and first boot](../../get-started/flash-and-first-boot.md).

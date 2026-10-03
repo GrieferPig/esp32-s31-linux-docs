@@ -6,7 +6,7 @@ interfaces used by applications and radio developers.
 
 ## Wi-Fi
 
-Wi-Fi uses cfg80211 and appears as a network interface, normally `wlan0`.
+Wi-Fi uses mac80211/cfg80211 and exposes one station interface, normally `wlan0`.
 The image includes `iw`, `wpa_supplicant`, and `wpa_cli` for station setup.
 
 After configuring a connection, check it with:
@@ -17,7 +17,7 @@ wpa_cli -i wlan0 status
 ip addr show wlan0
 ```
 
-For access-point mode, monitor mode, and enterprise authentication, see
+For current AP, monitor, enterprise-authentication, and suspend limitations, see
 [Advanced Wi-Fi](../../api-guides/wifi-advanced.md).
 
 ## Bluetooth
@@ -63,11 +63,12 @@ The module file is `esp32s31-radio.ko`. Linux shows its name as
 |---|---|---|
 | `mode` | `combo` | Enable `wifi`, `bt`, or `combo` |
 | `direct_hci` | `1` | Expose `/dev/s31-hci`; use `0` for Linux HCI |
-| `firmware` | `esp32s31-radio-fw-v1.o` | Radio firmware filename |
 
 These settings are selected when loading the module. Use `esp32-config` for
 routine mode selection; low-level applications should stop clients before
-changing the module configuration.
+changing the module configuration. There is no `firmware` module parameter in
+the XIP loader: it reads the dedicated flash slot containing `radio.bin`. Keep
+that image matched to the installed kernel and module.
 
 ## Radio status
 
@@ -86,19 +87,25 @@ making progress.
 ## Kernel interface
 
 The common radio API is declared in
-[`include/linux/esp32s31-radio.h`](https://github.com/GrieferPig/linux-esp32-s31/blob/affdd96bd65e73b0c2bf3f07d31afc0de5539cb5/include/linux/esp32s31-radio.h).
+[`include/linux/esp32s31-radio.h`](https://github.com/GrieferPig/linux-esp32-s31/blob/7b593bfc0c01d117410dead80868301c3e380fec/include/linux/esp32s31-radio.h).
 It defines the Wi-Fi and HCI callbacks used by the frontends. The core and
 external payload currently use ABI version 1.
 
 | Item | Limit |
 |---|---:|
 | HCI frame | 1,029 bytes |
-| Wi-Fi Ethernet frame | 1,600 bytes |
-| Scan results | 32 access points |
+| Radio bridge frame | 4,144 bytes |
+| Raw SoftMAC frame | 4,096 bytes |
 
-The station receive-copy callback can run in hard-IRQ context and uses
-preallocated buffers. A separate callback schedules packet processing.
-Monitor traffic uses its own receive path.
+The raw SoftMAC limit is defined in `include/linux/esp32s31-radio-control.h`.
+The retained firmware scan API has a 32-entry array, but current station scans
+use mac80211 software scanning; that array is not the current scan-result limit.
+
+The frontend uses `receive_aux` borrowed frames whose storage remains valid
+only during the callback. It copies data that must survive callback return and
+uses NAPI to deliver frames to mac80211. Atomic allocations can occur in this
+path. Generic software monitor reception shares the filtered radio receive
+path and is not a complete promiscuous channel capture.
 
 ```{toctree}
 :maxdepth: 1

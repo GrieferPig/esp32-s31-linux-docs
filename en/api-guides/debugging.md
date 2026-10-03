@@ -61,14 +61,17 @@ the expected locations.
 
 Look for JFFS2 or OverlayFS errors in the boot log and check `/proc/mounts`.
 Linux can start with a read-only root when the persistent filesystem fails to
-mount. Check available space with `df -h`; the persistent partition is small.
+mount. Recovery provides volatile `/run`, `/tmp`, and `/var/log`, but persistent
+settings are unavailable. The current emulator reaches recovery because
+persistent-flash erase fails; a recovery login is not a persistence test.
+Check available space with `df -h`; the persistent partition is small.
 
 ### A peripheral device is missing
 
 Run `s31-overlay status` and check that the peripheral's overlay is active.
 Then inspect `dmesg` for a failed probe or a missing clock, DMA channel, or
 other dependency. Optional peripherals need the
-[full-peripheral build](../get-started/build-profiles.md).
+[full board build](../get-started/build-configuration.md).
 
 ### An overlay command fails
 
@@ -97,6 +100,6 @@ loading and mailbox errors. For suspend problems, see
 ## Report a problem
 
 Include the command that failed, what you expected, and the relevant console
-output. Add your board model, build or release version, and build profile.
+output. Add your board model, build or release version, and build configuration.
 For a peripheral problem, include the wiring and the connected device. Remove
 sensitive information from logs before sharing them.

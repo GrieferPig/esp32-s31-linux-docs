@@ -18,7 +18,7 @@ Range ends in this table are exclusive. For a detailed map, see [ESP32-S31 Techn
 | PSRAM | `0x50000000` | 16 MiB | Linux data and applications |
 | OpenSBI data | `0x2F00F000` | `0x2F018000` | Data, stacks, and heap |
 | Radio low heap | `0x2F018000` | `0x2F030000` | Radio allocations |
-| Radio main area | `0x2F030000` | `0x2F071800` | Radio data and allocations |
+| Radio main area | `0x2F030000` | `0x2F071800` | Radio heap/buffers and the Wi-Fi executable SRAM subregion |
 | Radio exception area | `0x2F071800` | `0x2F072380` | Exception stack and guards |
 | AXI GDMA descriptors | `0x2F072380` | 12 KiB | DMA descriptors |
 | AHB GDMA descriptors | `0x2F075380` | 4 KiB | DMA descriptors |
@@ -30,6 +30,27 @@ The HP reservations are defined in
 [`shared/s31_memory_layout.h`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/shared/s31_memory_layout.h).
 The radio and DMA drivers use these areas directly. Applications allocate
 memory through the usual Linux APIs.
+
+The XIP radio loader has additional address-space contracts in the kernel's
+`drivers/platform/esp32s31-radio-xip.h`:
+
+| Mapping or arena | Address/capacity | Purpose |
+|---|---|---|
+| Radio flash virtual base | `0xBE06E000` | Prelinked payload; raw flash `0x06E000`, physical `0x4006E000` |
+| Wi-Fi executable SRAM | Physical `0x2F060000`, virtual `0xBE420000`; capacity `0x11800` | Hot code copied from the flash image; within the radio main area above |
+| Radio writable arena | 40 KiB at kernel symbol `esp32s31_radio_xip_ram` | Initial data and BSS in kernel PSRAM; its address is build-dependent |
+
+The radio flash mapping uses an aligned 4 MiB Sv32 leaf: virtual
+`[0xBE000000, 0xBE400000)` maps physical `[0x40000000, 0x40400000)`.
+The 1536 KiB payload slot fits inside that leaf. Boot maps the full 16 MiB of
+flash from raw offset zero to physical `0x40000000`; Linux begins at the
+4 MiB-aligned address `0x40400000`. See [Flash layout](flash-layout.md) for
+all raw offsets and the alignment constraint.
+
+The radio heap excludes the live Wi-Fi code bytes and may reclaim only the
+tail after that code. Do not count the executable SRAM reservation as free
+radio heap. The host prelinker records the kernel writable-arena address,
+which is one reason the radio image must match the kernel build.
 
 ## LP memory
 

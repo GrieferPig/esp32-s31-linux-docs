@@ -4,7 +4,7 @@ The port exposes peripherals through standard Linux interfaces, including
 TTY, I2C, SPI, ALSA, and SocketCAN. Use a device-tree overlay to enable an
 optional controller and select its pins.
 
-> Build the [full-peripheral profile](../../get-started/build-profiles.md) for
+> Build the [full board configuration](../../get-started/build-configuration.md) for
 I2C, SPI, I2S, Ethernet, SD/MMC, and the other optional drivers in this chapter.
 
 ## Enable a peripheral
@@ -43,8 +43,8 @@ controllers and their configuration options.
 | GDMA | Kernel DMAengine API | AHB/AXI provider selected by the client |
 | General-purpose timers | Counter framework | `timers` |
 | LEDC, MCPWM, SDM, and pulse counter | PWM and Counter frameworks | `pwm-counter` |
-| ADC, DAC, touch, comparator | IIO, input, or device-specific interface | `analog` and suitable analog pins |
-| Temperature sensor | Thermal/hwmon | Sensor driver |
+| ADC, DAC, touch, comparator | IIO | `analog` and suitable analog pins |
+| Temperature sensor | hwmon | Sensor driver |
 | Watchdogs | Watchdog framework | `watchdogs` |
 | eFuse, random numbers, crypto | NVMEM, hwrng, and kernel crypto APIs | Corresponding kernel drivers |
 
@@ -102,6 +102,12 @@ message. Each batch has a 500 ms completion timeout.
 The driver includes bus recovery. Repeated timeouts should also be checked
 against the pull-ups, wiring, bus speed, and target behavior.
 
+With `CONFIG_I2C_SLAVE`, the driver also implements the kernel I2C target/slave
+API. It supports one registered target client with 7-bit or 10-bit addressing;
+controller transfers return `EBUSY` while that client is active. PEC is not
+supported. This describes the implementation, not board-level acceptance of
+target mode.
+
 ## SPI
 
 GPSPI2 and GPSPI3 can operate as a host or as a target. Choose the matching
@@ -109,6 +115,11 @@ overlay for the instance and role, for example `gpspi2` or `gpspi2-target`.
 
 Host clients use the Linux SPI API. Applications using spidev select their
 mode, clock rate, word size, and transfer buffers through its ioctls.
+
+Host transfers use 8-bit words and are limited to 4096 bytes per transfer.
+The driver advertises modes 0–3, CS-high, and LSB-first. Data-lane capability is
+up to eight lanes on GPSPI2 and four on GPSPI3, subject to the selected device
+and pin configuration; this is not a measured throughput guarantee.
 
 ### Target transfers
 
@@ -186,7 +197,9 @@ Reapplying an identical setting is allowed.
 ### Connect an external codec
 
 Use an ASoC machine driver, such as `simple-audio-card`, for a board with an
-external codec. Add the following properties to the selected controller:
+external codec. Enable the selected machine-card and codec drivers in the
+kernel configuration; for `simple-audio-card`, enable `CONFIG_SND_SIMPLE_CARD`.
+Add the following properties to the selected controller:
 
 ```dts
 &i2s0 {
@@ -198,7 +211,8 @@ external codec. Add the following properties to the selected controller:
 
 Then describe the CPU/codec link, pins, framing, clocks, and any TDM settings
 in the machine card. `espressif,external-card` disables the built-in dummy
-card so the external card can use the controller. The built-in overlay keeps
+card so the external card can use the controller; it does not create or enable
+that external card on its own. The built-in overlay keeps
 its separate playback and capture clock roles.
 
 Raw PDM options are also present in the driver; PCM-to-PDM conversion is not

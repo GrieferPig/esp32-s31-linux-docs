@@ -54,9 +54,13 @@ From the documentation repository, install `requirements.txt` in a Python
 virtual environment and run:
 
 ```sh
-make html
+make html SPHINXOPTS="-E -a -n -W --keep-going"
 make linkcheck
 ```
+
+`-E -a` rereads and rewrites every page, avoiding stale sidebar links after
+heading or navigation changes. `-n -W` treats unresolved references and other
+warnings as build failures.
 
 Open `build/html/index.html` and check the changed pages, navigation, tables,
 and code examples. For a behavior change, update the related usage guide and

@@ -1,8 +1,8 @@
 # Developing the radio firmware
 
 The radio firmware combines Espressif's Wi-Fi and Bluetooth libraries with the
-port's OS adapters. Linux loads it from `radio.sqfs` through the common radio
-module.
+port's OS adapters. Most code executes directly from the prelinked `radio.bin`
+flash image, managed by the common Linux radio module in the rootfs.
 
 Use this guide for changes inside `firmware/radio/`. Changes to Linux network
 or Bluetooth interfaces usually belong in the kernel frontend instead; see
@@ -16,21 +16,26 @@ then activate ESP-IDF and build from the parent project:
 ```sh
 . "$IDF_PATH/export.sh"
 export IDF_EXPORT="$IDF_PATH/export.sh"
-make radio-idf-deps
 make radio-linux-payload
 ```
 
-The first target builds the ESP-IDF libraries used by the radio. The second
-creates the relocatable firmware and regenerates the Linux import stubs.
+This target first builds the ESP-IDF radio dependencies, then creates the
+relocatable intermediate firmware and regenerates Linux import stubs. It does
+not by itself produce the deployed flash image.
 
-To rebuild the Linux module and package the radio filesystem, run:
+To build the kernel/module, rootfs, radio XIP image and verified manifest, run:
 
 ```sh
-make radio-fs
+make image
 ```
 
-The result is `build/radio.sqfs`. Update Linux as well when your change affects
-the module's imports or interface.
+This target produces the prelinked XIP payload `out/images/radio.bin`. The host prelinker uses the kernel's symbol addresses, and the
+rootfs carries the matching Linux module. Deploy kernel, rootfs/module, and
+radio image together after a firmware or kernel change. `make all` creates the
+complete matched image set and manifest; `make flash-all` writes its component
+slots while preserving persist on boards already using the same layout. For
+installation and data-backup instructions, follow
+[Flash and first boot](../get-started/flash-and-first-boot.md).
 
 ## Change an operation
 
@@ -49,8 +54,10 @@ consumer.
 
 ## Check memory use
 
-Static radio data, task stacks, and radio buffers share limited internal SRAM.
-Use the driver's `radio_health` output to check heap usage and allocation
+The XIP payload's writable data/BSS lives in a 40 KiB built-in kernel RAM
+arena in PSRAM. Radio heap allocations, task stacks, buffers, and selected
+Wi-Fi hot code consume internal SRAM. Keep both budgets within their separate
+limits. Use the driver's `radio_health` output to check heap usage and allocation
 failures. The memory regions are described in
 [Memory map](../hw-reference/memory-map.md).
 

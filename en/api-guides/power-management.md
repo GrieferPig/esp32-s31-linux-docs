@@ -39,7 +39,6 @@ work to run.
 
 OpenSBI uses timer 1 in each timer group as a 10 ms wakeup guard. The `timers`
 overlay leaves these channels reserved and exposes timer 0 to applications.
-Older firmware falls back to polling idle.
 
 ## LP wakeup tests
 
@@ -56,7 +55,9 @@ in the [LP reference](../api-reference/lp-core/index.md).
 ## Suspend-to-idle
 
 The `freeze` path exercises Linux device suspend/resume and LP wakeup handling.
-Set a timer before entering it:
+Stop Wi-Fi activity and disable its interface before experimenting; current
+SoftMAC cannot suspend an active interface, and automatic radio recovery is
+not established. Set a timer before entering it:
 
 ```sh
 echo 1000 > /sys/module/esp32s31_lp/parameters/s2idle_wake_ms
@@ -67,12 +68,18 @@ The timer accepts 10–600000 ms. A value of zero disables the automatic timer.
 After returning, check `dmesg` for the LP wake result.
 
 This is a diagnostic suspend path: the HP side polls for LP completion during
-the noirq phase, so it still consumes power. The DWC2 host keeps its controller
-and PHY context active during this test.
+the noirq phase, so it still consumes power. The S31 DWC2 suspend callback
+disables its IRQ and low-level hardware. Resume reinitializes the PHY/controller,
+and attached USB devices may reconnect. Unmount storage and disable USB-backed
+swap before a suspend experiment.
 
 ## Suspend-to-RAM
 
-TODO: fix firmware mismatch
+The source implements an experimental APPWR retention path with a mandatory
+recovery timer and optional LP GPIO wake. Linux, OpenSBI, and LP firmware now
+agree on the 112-byte ABI-v1 control block; rebuild all three together.
+This implementation-level check does not establish successful retention or
+peripheral recovery on a board.
 
 The Linux-side options are available under
 `/sys/module/esp32s31_lp/parameters/` for developers working on this support:
@@ -84,8 +91,12 @@ The Linux-side options are available under
 | `mem_gpio_active_high` | `Y` for high-level wake, `N` for low-level wake |
 | `mem_gpio_pull` | `0` for none, `1` for pull-up, `2` for pull-down |
 
-The intended retention path keeps RAM and uses a timer as the recovery wakeup
-source. Radio services reconnect after their controller restarts. See
+The intended retention path keeps RAM and always arms a recovery timer.
+Suspend with an active SoftMAC interface is unsupported; bring the interface
+down before testing and verify the complete system-suspend result. Active
+Wi-Fi replay and automatic reassociation are not established. Bluetooth and combo
+recovery also need separate validation. The HIL Wi-Fi suspend sequence is a
+diagnostic, not evidence that these recovery paths pass. See
 [LP firmware development](lp-firmware-development.md) for the shared protocol
 and memory layout.
 
@@ -124,6 +135,5 @@ between boards. Its `previous` and `wake_reason` fields are software markers
 for the requested operation. Check the reset log when diagnosing a failed
 sleep transition.
 
-TODO: GPIO deep-sleep wake, LP-UART wake, and WoWLAN packet wake are still pending.
-
-TODO: Measured board-current figures are also pending.
+GPIO deep-sleep wake, LP-UART wake, and WoWLAN packet wake are not implemented
+by this documented path. No measured board-current figures are provided.

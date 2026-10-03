@@ -8,5 +8,5 @@ These guides cover the hardware you need, installation, and your first source bu
 introduction
 flash-and-first-boot
 build-from-source
-build-profiles
+build-configuration
 ```

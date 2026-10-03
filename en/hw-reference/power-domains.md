@@ -8,7 +8,10 @@ power-domain and clock providers to keep the resources they need active.
 
 A device-tree node can refer to a power domain through its `power-domains`
 property. The provider tracks users of that domain, including radio activity.
-A driver releases its request after stopping the device.
+A driver releases its request after stopping the device. The Linux provider
+exposes seven domains, but currently only `hp-connectivity` can power off,
+when its DT policy permits it and no radio vote keeps it active. Other domains
+use an always-on policy.
 
 To view the provider's state, run:
 
@@ -25,7 +28,7 @@ four HP memory banks, switches off HP logic groups, and gates the HP clocks.
 The configured power value is `0x0000aa00`, with clock value `0x00000000`.
 The low-power side supplies the wakeup request.
 
-The Linux integration and current suspend limitation are described in
+The Linux integration, experimental retention path, and radio restrictions are described in
 [Power management](../api-guides/power-management.md). That guide also covers
 CPU idle, shutdown, and timed deep sleep.
 
@@ -34,4 +37,6 @@ CPU idle, shutdown, and timed deep sleep.
 Measure current at the board's power input when comparing power states. USB
 bridges, regulators, LEDs, and connected peripherals can affect the total.
 
-TODO: measure power use data on the core board as ref
+No measured core-board current figures are established by this guide. Record
+board revision, supply voltage, attached peripherals, radio state, wake source,
+and the exact firmware build alongside any measurement.

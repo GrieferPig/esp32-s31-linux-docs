@@ -16,8 +16,11 @@ The build stages the ELF for remoteproc under the firmware name
 `esp32s31/s31-lp-core.elf`. Rebuild the root filesystem to include it in an image:
 
 ```sh
-make rootfs
+make rootfs radio-fs
 ```
+
+The parent rootfs target also rebuilds Linux; refresh `radio.bin` and keep the
+kernel, rootfs/module, and radio image together when deploying the update.
 
 After installing the updated image, check startup with:
 
@@ -29,7 +32,9 @@ s31-lpctl ping
 ## Place code and data
 
 LP SRAM starts at `0x2E000000` and is 32 KiB in size. Keep these shared regions
-free in the linker layout:
+free in the linker layout. The committed LP build reserves only the first
+8 KiB for its application (`CONFIG_ULP_COPROC_RESERVE_MEM=8192`), not the full
+physical SRAM:
 
 | Region | Address range, end exclusive |
 |---|---|
@@ -50,7 +55,7 @@ CRC. Message codes, sequence rules, structure layout, and CRC coverage are
 listed in the [LP reference](../api-reference/lp-core/index.md).
 
 When changing the protocol, update its Linux, firmware, and OpenSBI consumers
-together. The current system-suspend mismatch is described in
+together. Current suspend behavior and validation limits are described in
 [Power management](power-management.md).
 
 ## Add a peripheral

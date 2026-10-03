@@ -22,26 +22,27 @@ firmware instructions in its
 From the parent checkout, run:
 
 ```sh
-python3 tools/tests/test_s31_feature_contracts.py
-python3 tools/tests/test_s31_selftest.py
-make btstack-source
-python3 tools/tests/test_s31_btstack_reset.py
+make check-host
+# Optional sanitizer mode for tests that provide it:
+S31_TEST_SANITIZERS=1 make check-host
 ```
 
-The feature tests use a host C compiler to exercise I2C command generation,
-SPI word ordering, I2S configuration, and EAP provisioning. The BTstack test
-uses the source fetched by `make btstack-source`.
+This validates layout, fetches the pinned BTstack source needed by its test,
+and discovers the complete `tools/tests` suite. The tests use a host C compiler
+and cover build contracts, radio interfaces, overlays, transport cleanup,
+cache/flash helpers, and subsystem behavior. Passing host tests does not prove
+that the corresponding hardware path passes. Use `make check-docs` and
+`make check-dt` for the additional documentation and device-tree checks.
 
 ## 2. Prepare the boards
 
-Build the full-peripheral image and flash the S31:
+Build the full-peripheral image on the host:
 
 ```sh
-export S31_LEAN_RADIO=0
 make all
 ```
 
-Follow the [flashing guide](../get-started/flash-and-first-boot.md), then install
+`make all` does not flash a board. Follow the [flashing guide](../get-started/flash-and-first-boot.md), then install
 the P4 tester firmware for cases that need it. Connect the fixture according
 to its pin map, with a common ground and compatible signal voltages. Close
 serial monitors before starting the host runner.
@@ -97,9 +98,18 @@ The SD/MMC case uses the 1-bit CLK/CMD/DAT0 fixture and reads from the card.
 The USB case is read-only by default. To allow its temporary 64 KiB write
 test on a disposable test drive, add `--allow-usb-write`.
 
+The compact flash layout has no disposable scratch partition and provides no
+flash erase/write HIL case. Keep persistent settings and firmware out of
+storage-test write targets.
+
 ## Radio tests
 
-With the P4/C6 radio peer connected, run:
+Use a dedicated test configuration. Before `c6-wifi`, persistent Wi-Fi must be
+disabled, `/etc/esp32-conf/wpa_supplicant.conf` must be absent, and no other
+supplicant may be running. Back up any profile before preparing that state.
+Before `c6-ble`, both persistent Wi-Fi and Bluetooth must be disabled.
+
+With those prerequisites satisfied and the P4/C6 radio peer connected, run:
 
 ```sh
 python3 tools/hil/s31_hil.py --board both --case c6-wifi \
@@ -109,8 +119,11 @@ python3 tools/hil/s31_hil.py --board both --case c6-ble \
 ```
 
 The Wi-Fi case sets up a fixture access point and temporary station profile,
-then checks association, address assignment, and packet exchange. It also
-temporarily changes radio services and restores them during cleanup.
+then checks association, address assignment, and packet exchange. It can
+restore a BTstack service that was running before the Wi-Fi case, while keeping
+persistent Wi-Fi disabled. The BLE case leaves its temporary Bluetooth runtime
+stopped. Neither case promises to restore an arbitrary prior radio session.
+Inspect cleanup results as well as traffic results.
 
 For power-management tests, check the current
 [suspend limitations](../api-guides/power-management.md) first. GPIO wake

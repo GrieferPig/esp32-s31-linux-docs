@@ -24,7 +24,9 @@ The commonly used APIs include:
 | `reset_control_reset()` | Pulse a peripheral reset |
 
 For shared clocks and power domains, the providers track active users. Use
-these APIs so another active device can keep its dependencies enabled.
+these APIs so another active device can keep its dependencies enabled. The
+current power provider only allows `hp-connectivity` to power off, subject to
+DT policy and the radio vote; the other exposed domains stay always on.
 
 ## Stop or remove a device
 
@@ -34,8 +36,9 @@ startup. Apply the same cleanup to a partially completed probe.
 
 ## Inspect the providers
 
-The clock provider's `clocks` attribute lists clock names, rates, and enable
-state. The power provider's `domains` attribute lists its domain state.
+The clock provider's `clocks` attribute lists clock names, rates, critical
+status, and common-clock-framework prepared state. Its `on`/`off` field is not
+a direct hardware-gate readback. The power provider's `domains` attribute lists its domain state.
 
 ```sh
 for file in /sys/bus/platform/devices/*/clocks; do

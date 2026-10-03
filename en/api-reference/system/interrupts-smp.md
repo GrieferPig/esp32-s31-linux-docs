@@ -10,8 +10,10 @@ SYSTIMER provides Linux timekeeping and per-CPU timer events. Software
 interrupts let one CPU request work from the other, including scheduler and
 wakeup operations.
 
-The radio runtime and its interrupts run on HP core 0. Other drivers use the
-Linux IRQ interfaces to request interrupts and set affinity.
+Radio device interrupts and generic peripheral IRQs run on HP core 0. Peripheral
+drivers request IRQs through Linux, but routing these IRQs to HP core 1 is
+currently unsupported: the interrupt-matrix affinity callback rejects masks
+without CPU0. Per-core timer and IPI routes are managed separately.
 
 ## Inspect interrupt activity
 

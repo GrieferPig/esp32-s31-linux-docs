@@ -1,8 +1,7 @@
 # Development setup
 
 Start with [Build from source](../get-started/build-from-source.md) to install
-the tools and build an image. For peripheral development, select
-`S31_LEAN_RADIO=0`.
+the tools and build an image. Every build includes the full board configuration.
 
 ## Find the source
 
@@ -27,22 +26,38 @@ Create a branch inside the relevant submodule before editing it. The
 Use the parent Makefile for integrated builds:
 
 ```sh
-make linux
-make rootfs
+make linux rootfs radio-fs
 ```
 
-A driver or device-tree change usually needs `make linux`. A target program,
-startup script, or packaged overlay update also needs `make rootfs`. Boot
+A driver or device-tree change needs `make linux`; a packaged userspace or
+overlay change needs `make rootfs`. The native build systems decide which changed objects need rebuilding. The
+radio XIP image is linked against that kernel, so rebuild `radio-fs` and flash
+kernel, rootfs/module, and radio together after integrated changes. `make all`
+creates the complete matched image set. Boot
 firmware changes use `make uboot`, and radio firmware changes use the
 [radio build workflow](../api-guides/radio-payload-development.md).
 
-Keep generated files under `build/`. For lasting kernel or package selections,
+Keep generated files under the selected `out/` tree. Shared downloads
+and toolchains belong under `cache/`; never generate staged firmware in the
+tracked rootfs overlay. For lasting kernel or package selections,
 edit the source configuration described in
-[Build profiles](../get-started/build-profiles.md).
+[Build configuration](../get-started/build-configuration.md).
 
 ## Test a change
 
-Run the relevant host tests before flashing. Then check the feature on the
+Run the relevant host tests before flashing. For the repository's aggregate
+checks, install `docs/requirements.txt` and `dtschema==2026.6` in a host Python
+virtual environment and run:
+
+```sh
+make check-host check-docs
+make check-dt
+```
+
+`check-dt` needs the project cross-toolchain; the CI alternative is
+`python3 tools/checks/devicetree.py --cross-compile riscv64-linux-gnu-`.
+`make check-fast` combines these checks. They validate host-side contracts and
+build inputs, not electrical behavior. Then check the feature on the
 board, including an error case and cleanup after use. The
 [HIL guide](testing-hil.md) covers automated board and peer tests.
 
