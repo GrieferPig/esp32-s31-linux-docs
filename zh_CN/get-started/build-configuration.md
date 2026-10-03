@@ -24,19 +24,18 @@ make image
 | `configs/esp32-config-timezones.list` | 镜像中保留的时区 |
 | `buildroot-external/board/esp32-s31/post-build.sh` | 最终根文件系统的安装与精简策略 |
 
-需要长期保留的更改应写入源码配置。输入变化时，构建会重新生成 `out/linux/.config` 和 `out/buildroot/.config`；输入标识未变化时，保留原生增量构建行为。已有 Buildroot 输出中的软件包或工具链配置输入变化时，构建会要求运行 `make buildroot-reconfigure` 后重建，下载缓存仍保留。
+需要长期保留的更改应写入源码配置。内核配置输入变化时，会重新生成 `out/linux/.config`；输入标识未变化时，保留原生增量构建行为。已有 Buildroot 输出中的软件包或工具链配置输入变化时，构建会要求运行 `make buildroot-reconfigure` 后重建，下载缓存仍保留。
 
-使用以下命令将 Buildroot 菜单选择保存回源码：
+先用 `make fetch` 准备 Buildroot 输出，再打开配置菜单并导出供审查的配置副本：
 
 ```sh
 make buildroot-menuconfig
 make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
-  savedefconfig DEFCONFIG="$PWD/buildroot-external/configs/esp32s31_rootfs_defconfig"
-git diff -- buildroot-external/configs/esp32s31_rootfs_defconfig
+  savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
 ```
 
-重新构建前请检查差异。额外应用仍需在 Buildroot 中单独选择，参见[添加用户空间工具](../api-guides/adding-a-userspace-tool.md)。最终内核选项的核对方法见[内核配置](../resources/kconfig-reference.md)。
+将需要的软件包和系统选项从该文件合入 `buildroot-external/configs/esp32s31_rootfs_defconfig`。不要把已解析的主机专用 `BR2_TOOLCHAIN_EXTERNAL_PATH` 或暂存目录的 `BR2_ROOTFS_OVERLAY` 路径写回源码；主构建会在配置时注入这些值。审查源码差异后，分别运行 `make buildroot-reconfigure`、`make fetch-rootfs` 和 `make image`。这也会清理手工改过的输出配置；主构建会拒绝直接复用该配置。额外应用仍需在 Buildroot 中单独选择，参见[添加用户空间工具](../api-guides/adding-a-userspace-tool.md)。最终内核选项的核对方法见[内核配置](../resources/kconfig-reference.md)。
 
 ## 体积优化
 
@@ -50,11 +49,25 @@ git diff -- buildroot-external/configs/esp32s31_rootfs_defconfig
 
 主机工具保留各自的优化设置。供应商二进制库、工具链运行库和继承的根文件系统二进制不会因此重新编译。重打包基线 rootfs 时，必须将继承代码的优化状态标记为未验证。汇编指令序列不变；CoreMark 性能需要重新建立基准，代码更小并不保证更快。
 
-完整 XIP 内核使用 6 MiB（6,291,456 字节）分区，当前合并构建的内核为 6,228,940 字节，剩余 62,516 字节；ext4 和 JBD2 保持内置。镜像必须通过体积检查；超出预算会直接失败，不会自动禁用驱动或发布超大镜像。请以当前构建清单和报告中的实际字节数为准。
+完整 XIP 内核使用 6 MiB（6,291,456 字节）分区；ext4 和 JBD2 保持内置。镜像必须通过体积检查；超出预算会直接失败，不会自动禁用驱动或发布超大镜像。影响内核体积的更改需要明确修改源码配置并重新验证。
+
+`make image` 成功后，检查本次发布产物的实际大小，不要依赖其他构建记录中的数值：
+
+```sh
+stat -c %s dist/current/xipImage
+```
+
+实际大小及清单对应具体的源码和配置；主机体积检查通过不代表硬件启动成功。
 
 ## 内核导出符号裁剪
 
-默认启用 `CONFIG_TRIM_UNUSED_KSYMS=y`。内核保留同次构建中的模块所引用的导出符号，并通过 `CONFIG_UNUSED_KSYMS_WHITELIST` 保留外部 XIP 无线载荷所需的导入。构建从载荷生成 `out/generated/radio-kernel-symbols.txt`，当前包含 162 个符号；原生内核配置使用该文件的绝对路径。不能清空白名单，否则可能裁掉运行时所需的导出。
+默认启用 `CONFIG_TRIM_UNUSED_KSYMS=y`。内核保留同次构建中的模块所引用的导出符号，并通过 `CONFIG_UNUSED_KSYMS_WHITELIST` 保留外部 XIP 无线载荷所需的导入。构建从载荷生成 `out/generated/radio-kernel-symbols.txt`，其内容随载荷输入重新生成；原生内核配置使用该文件的绝对路径。用以下命令查看自己构建生成的列表行数：
+
+```sh
+wc -l out/generated/radio-kernel-symbols.txt
+```
+
+不能清空白名单，否则可能裁掉运行时所需的导出。
 
 此设置不承诺未来模块或树外模块的 ABI。新增模块应与内核一起构建，或明确将必要导出加入原生白名单，然后重新检查分区预算及模块加载。
 

@@ -48,9 +48,10 @@ overlays, loads the selected radio mode, and starts BusyBox init.
 If the persistent filesystem fails to mount, the script prints an error and
 continues in recovery with the read-only base system. Recovery prepares
 volatile `/run`, `/tmp`, and `/var/log`; persistent settings are unavailable.
-Runtime boot and persistence of the merged image remain unverified.
-A recovery login does not establish working persistence or a normal boot. See
-[Debugging](../../api-guides/debugging.md) for the checks to run in that case.
+The early overlay-restore and radio-load steps are skipped on this path.
+Board acceptance of the current image's boot and persistence paths is still
+pending. A recovery login does not establish working persistence or a normal
+boot. See [Debugging](../../api-guides/debugging.md) for the checks to run in that case.
 
 ## 4. Services and serial login
 

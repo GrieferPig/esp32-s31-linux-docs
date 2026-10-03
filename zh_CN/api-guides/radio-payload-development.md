@@ -13,7 +13,7 @@ make image
 make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
-`make image` 构建并验证完整组件集，将镜像写入 `out/images/`，再发布到 `dist/<build-id>/` 并更新 `dist/current`。烧录目标从 `dist/current` 读取已验证组件集，不重新构建，并保留 persist。替换串口路径，烧录前关闭串口监视程序。
+`make image` 构建并验证完整组件集，将镜像写入 `out/images/`，再发布到 `dist/<build-id>/` 并更新 `dist/current`。烧录目标从 `dist/current` 读取已验证组件集，不重新构建；只有开发板已采用相同 Flash 布局时，保留 persist 才能保留可用的原有数据。替换串口路径，烧录前关闭串口监视程序。
 
 内核、rootfs 中的模块和无线镜像具有构建关联，不能只凭 ABI 编号判断可混用。部分更新目标会拒绝执行；应部署匹配集。详见[烧录与首次启动](../get-started/flash-and-first-boot.md)。
 
@@ -41,7 +41,7 @@ make flash-existing-all PORT=/dev/ttyUSB0
 
 跟踪当前 STA 行为时，从 mac80211 回调与原始帧发送/接收路径开始。不要将固件内部连接、AP 或 EAP 操作视为 Linux 当前前端的公开能力。当前支持边界见[Wi-Fi 高级用法](wifi-advanced.md)。
 
-新增入口时，需同步更新载荷导出、加载器包装和调用方，并重新生成导入桩。不要手工编辑生成文件。共享结构或调用约定变化时，更新所有使用方及相应 ABI，重建整套镜像。内核默认裁剪未使用导出；新的模块依赖也需参与同次内核构建，参见[构建配置](../get-started/build-configuration.md)。
+新增入口时，需同步更新载荷导出、加载器包装和调用方，并通过正常构建重新生成导入桩和 `out/generated/radio-kernel-symbols.txt` 导出保留列表。该列表通过 `CONFIG_UNUSED_KSYMS_WHITELIST` 供内核裁剪使用；不要手工编辑生成文件。共享结构或调用约定变化时，更新所有使用方及相应 ABI，重建整套镜像。内核默认裁剪未使用导出；新的模块依赖也需参与同次内核构建，参见[构建配置](../get-started/build-configuration.md)。
 
 ## 内存和回调
 

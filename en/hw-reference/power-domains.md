@@ -43,7 +43,7 @@ done
 | `on=`, `off=` | Successful genpd on/off callbacks; `on` also includes initial HPCNNT ownership at probe |
 | `reclaim=` | Reclaim attempts after payload PMU initialization |
 | `errors=` | Force-register readback failures during transitions |
-| `radio-vote=` | Active radio veto; reported only for `hp-connectivity` |
+| `radio-vote=` | Active radio veto for `hp-connectivity`; printed as zero for the other domains |
 
 Despite the field name, `hardware=` decodes a force-control register. It is not
 an independent power-good signal, current reading or proof of retention.

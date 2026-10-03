@@ -65,22 +65,23 @@ source "$BR2_EXTERNAL_ESP32_S31_PATH/package/s31-hello/Config.in"
 
 ### 3. 选择并保存软件包
 
-打开 Buildroot 菜单：
+先用 `make fetch` 准备 Buildroot 输出，再打开配置菜单：
 
 ```sh
 make buildroot-menuconfig
 ```
 
-在外部 ESP32-S31 软件包菜单中找到并启用 `s31-hello`。保存配置并退出，然后使用 [Buildroot 的 savedefconfig 目标](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) 将选择写回源码中的 defconfig：
+在外部 ESP32-S31 软件包菜单中找到并启用 `s31-hello`。保存配置并退出，然后使用 [Buildroot 的 savedefconfig 目标](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) 导出供审查的配置副本：
 
 ```sh
 make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
-  savedefconfig \
-  DEFCONFIG="$PWD/buildroot-external/configs/esp32s31_rootfs_defconfig"
+  savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
 ```
 
-请在再次运行 `make rootfs` 前完成这一步：主项目以源码 `esp32s31_rootfs_defconfig` 为配置输入，输入变化时会重新生成输出配置。源码 defconfig 中此时应包含 `BR2_PACKAGE_S31_HELLO=y`。
+将需要的软件包选择合入 `buildroot-external/configs/esp32s31_rootfs_defconfig`；本例应添加 `BR2_PACKAGE_S31_HELLO=y`。保留源码中 `BR2_TOOLCHAIN_EXTERNAL_PATH` 和 `BR2_ROOTFS_OVERLAY` 的路径表达式：审查副本包含主构建注入的主机、工具链及暂存目录的绝对路径，不应整份覆盖可移植的源码 defconfig。
+
+重新配置前先审查源码差异。现有 Buildroot 输出会拒绝手工更改的输出配置，以及已更改的软件包或工具链输入；重新配置会清理该输出，但保留下载缓存。
 
 ### 4. 构建、烧录并运行
 
@@ -88,6 +89,7 @@ make -C buildroot O="$PWD/out/buildroot" \
 
 ```sh
 make buildroot-reconfigure
+make fetch-rootfs
 make image
 ls -l out/buildroot/target/usr/bin/s31-hello
 make flash-existing-all PORT=/dev/ttyUSB0
@@ -119,7 +121,7 @@ make flash-existing-all PORT=/dev/ttyUSB0
 
 [构建后处理脚本](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/post-build.sh)会在软件包安装后精简部分程序和共享库。运行 `make rootfs` 后，检查 `out/buildroot/target`，包括程序依赖的库。软件包构建成功，并不代表运行所需文件仍保留在镜像中。
 
-例如，脚本会移除 `libstdc++`、`libatomic`、BlueZ 工具和守护进程，以及 D-Bus/GLib/BlueALSA 文件。因此，添加 C++ 应用或基于 BlueZ 的系统时，也需检查相关移除规则。当前脚本还要求 `s31-btstack-a2dp` 和 `s31-ext-test` 保持可执行；替换 BTstack 时，需同时修改该检查和服务启动流程。主项目构建会检查最终根文件系统是否超出 Flash 分区。
+例如，脚本会移除 `libstdc++`、`libatomic`、BlueZ 工具和守护进程，以及 D-Bus/GLib/BlueALSA 文件。因此，添加 C++ 应用或基于 BlueZ 的系统时，也需检查相关移除规则。当前脚本还要求 `s31-btstack-a2dp`、`s31-ext-test`、`s31-gpio`、`s31-config-archive` 和 `esp32-config` 保持可执行；替换其中的工具时，需同时修改该检查及使用它的服务或命令。主项目构建会检查最终根文件系统是否超出 Flash 分区。
 
 (deploy-files-that-must-survive-reboot)=
 ## 部署重启后需要保留的文件

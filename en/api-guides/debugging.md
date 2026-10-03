@@ -69,8 +69,8 @@ check. These messages provide useful landmarks:
 
 If persist erase or mounting fails, the system can reach recovery login.
 In recovery `/run`, `/tmp`, and `/var/log` are volatile and settings cannot
-persist. Runtime validation of the merged image and hardware acceptance are
-pending; a console prompt alone does not establish normal boot.
+persist. Board acceptance of the current image's boot and persistence paths is
+still pending; a console prompt alone does not establish normal boot.
 
 ### Settings disappear after reboot
 
@@ -83,8 +83,9 @@ the `active:` and `persisted:` entries in `s31-overlay status`.
 
 Run `s31-overlay status` and check that the peripheral's overlay is active.
 Then inspect `dmesg` for a failed probe or a missing clock, DMA channel, or
-other dependency. Optional peripherals need the
-[full-peripheral build](../get-started/build-configuration.md).
+other dependency. The standard
+[build configuration](../get-started/build-configuration.md) includes the native
+optional drivers; check the resolved configuration if using a custom kernel.
 
 ### An overlay command fails
 
@@ -110,16 +111,16 @@ attribute for initialization results. A loaded module can still have a failed
 device probe or missing frontend. The [radio reference](../api-reference/radio/index.md)
 shows how to read its health state.
 
-For Wi-Fi, check `iw dev` and `wpa_cli -i wlan0 status`. If association
+For Wi-Fi, check `iw dev` and `wpa_cli -p /run/wpa_supplicant -i wlan0 status`. If association
 completes but DHCP remains pending, inspect
 `/run/esp32-config/udhcpc.wlan0.log`. The normal connection procedure is in
 [Network setup](../user-guides/networking.md).
 
 ### An LP command fails
 
-Run `s31-lpctl status`. A missing driver points to the `lp` overlay or kernel
-configuration; `ready=0` points to firmware startup. Check `dmesg` for firmware
-loading and mailbox errors. For suspend problems, see
+Run `s31-lpctl status`. The base device tree already enables the LP node. If the
+driver is not bound, check kernel configuration and probe errors; `ready=0`
+points to firmware startup. Check `dmesg` for firmware loading and mailbox errors. For suspend problems, see
 [Power management](power-management.md).
 
 ## Report a problem

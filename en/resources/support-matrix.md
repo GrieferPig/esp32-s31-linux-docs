@@ -18,7 +18,7 @@ and peripheral recovery of the merged image remain unverified.
 | 🔴 Absent | No ESP32-S31 implementation is provided in this repository |
 
 These labels describe the [build configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/Makefile)
-and driver support. Hardware reports and their tested scope are listed below.
+and driver support. The validation limits below apply to all availability labels.
 
 ## System
 
@@ -26,7 +26,8 @@ and driver support. Hardware reports and their tested scope are listed below.
 |---|---|---|
 | Linux, Sv32 MMU, and flash XIP | 🟢 Included | Configured for 16 MiB flash and 16 MiB PSRAM |
 | Dual-core SMP | 🟢 Included | Both HP harts are configured to run Linux |
-| Persistent root filesystem | 🟢 Included | SquashFS with a JFFS2 writable layer |
+| Persistent root filesystem | 🟢 Included | SquashFS with a JFFS2 writable layer; writable-root acceptance pending |
+| Removable storage and swap | 🟢 Included | FAT/VFAT, built-in ext4, SD/MMC, USB storage, and swap; device/fixture acceptance pending |
 | Runtime overlays | 🟢 Included | Peripheral selection, pin routing, and saved settings |
 | CPU frequency scaling | 🟢 Included | Shared 80, 160, 240, and 320 MHz policy |
 | CPU idle | 🟢 Included | Firmware-assisted WFI |
@@ -36,8 +37,7 @@ and driver support. Hardware reports and their tested scope are listed below.
 | Normal poweroff | 🟡 Implemented | Does not arm timed wake; restart through external reset or a power cycle |
 | Suspend-to-RAM and LP GPIO wake | 🟠 WIP | Timer/GPIO wake paths exist; acceptance needs retention, wake-cause, and resumed-device results |
 
-The sleep protocol definitions now agree across Linux, LP firmware, and OpenSBI.
-The previously documented protocol mismatch is resolved in the source. Board
+Linux, LP firmware, and OpenSBI use matching sleep protocol definitions. Board
 validation of suspend-to-RAM and LP GPIO wake remains outstanding. No board-current
 measurement is provided here. See [Power management](../api-guides/power-management.md)
 for commands and wake-source settings. Source references:
@@ -50,10 +50,10 @@ for commands and wake-source settings. Source references:
 |---|---|---|
 | Wi-Fi station | 🟢 Included | Single-station mac80211/cfg80211, `iw`, and `wpa_supplicant`; runtime validation pending |
 | Bluetooth | 🟢 Included | BTstack with direct HCI; an alternate Linux HCI frontend exists |
-| AP and AP+station | 🔴 Absent | Current SoftMAC frontend exposes only a station interface |
-| Protected AP | 🔴 Absent | AP mode is not exposed by the current Linux frontend |
+| AP, AP+station, and protected AP | 🔴 Absent | These modes are not exposed by the current SoftMAC frontend |
+| Software monitor | 🟠 WIP | Uses the station-filtered receive path; not full promiscuous capture |
 | Enterprise authentication | 🟠 WIP | Needs current station-stack acceptance; no firmware EAP vendor interface is exposed |
-| Active Wi-Fi suspend/recovery | 🟠 WIP | Running interface vetoes suspend with `EBUSY`; replay/reassociation is not established |
+| Active Wi-Fi suspend/recovery | 🔴 Absent | A running interface vetoes suspend with `EBUSY`; active-link replay/reassociation is not implemented |
 
 The supplied root filesystem uses BTstack. Trying BlueZ also requires selecting
 the Linux HCI frontend and changing the rootfs package/post-build settings:
@@ -77,9 +77,9 @@ For the available setup paths, see
 | I2S/TDM | 🟡 Implemented | Playback/capture and configurable framing; supplied overlays consume external BCLK/WS |
 | SD/MMC | 🟡 Implemented | Slot wiring and bus width selected by overlay; card and mode coverage need fixture results |
 | Ethernet | 🟡 Implemented | Requires matching external PHY configuration and wiring |
-| USB gadget | 🟡 Implemented | Requires the full-peripheral build and a configured gadget function; outside the standard HIL suite |
+| USB gadget | 🟡 Implemented | The standard kernel includes ACM/ECM configfs support; select a function at runtime; outside the standard HIL suite |
 | USB host | 🟢 Included | Host controller and storage support are selected by default; device interoperability remains WIP |
-| AHB/AXI GDMA | 🟡 Implemented | Used by peripheral drivers; AXI GDMA needs the full-peripheral build |
+| AHB/AXI GDMA | 🟡 Implemented | Both providers are built in and used by the corresponding peripheral drivers |
 | Timers, PWM, and pulse counter | 🟡 Implemented | Timer 1 in each timer group is reserved for CPU idle |
 | Analog and sensor blocks | 🟡 Implemented | ADC/DAC/touch/comparator through IIO; temperature through hwmon; accuracy/calibration need separate validation |
 | Watchdog, NVMEM, RNG, and crypto | 🟡 Implemented | Integrated with their Linux subsystems; each needs its own functional acceptance |
@@ -102,10 +102,14 @@ commands, fixture setup, and result collection.
 Acceptance of the current compact image requires a raw run identifying the
 image/commit, board and module revision, fixture wiring, transfer settings,
 result and cleanup evidence. Keep failures and skipped cases in the record.
-Source contracts, old image reports and a recovery console do not establish
-current hardware behavior.
+Source contracts and a recovery console do not establish current hardware
+behavior; acceptance results must identify the exact tested image.
 
 ### Flash and persistent storage
+
+The compact layout gives persist 2120 KiB and Linux/rootfs 6 MiB each, with no
+HIL scratch partition. Only matched slot-wise updates of the same layout
+preserve persist; back up externally before changing the layout.
 
 NOR programming and JFFS2 failures can affect saved settings or startup.
 Persistent-flash erase and normal writable-root startup require validation

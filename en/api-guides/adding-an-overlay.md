@@ -72,13 +72,13 @@ with your overlay name:
 dtb-$(CONFIG_ARCH_ESPRESSIF) += esp32s31-overlay-NAME.dtbo
 ```
 
-From the parent project, build and flash the full-peripheral configuration.
+From the parent project, build and flash the complete matched image set.
 Use the [flash guide](../get-started/flash-and-first-boot.md) to select the port
 and prepare the serial connection:
 
 ```sh
 make image
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 The DTBO is built in `out/linux/arch/riscv/boot/dts/espressif/` and

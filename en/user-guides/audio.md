@@ -1,6 +1,6 @@
 # Audio with an external codec
 
-Run the S31 commands as root on the full-peripheral image. Complete the
+Run the S31 commands as root on the standard full board image. Complete the
 [common pin and overlay checks](peripheral-setup) first.
 Commands explicitly marked for the build host run on the Linux host.
 
@@ -16,7 +16,7 @@ ordinary clock-consuming DAC work.
 
 The following is a complete **new board-integration example** for stereo
 playback through a PCM5102A. It is derived from the S31 DAI, simple-card and
-PCM5102A drivers; it is not a shipped or hardware-validated S31 board profile.
+PCM5102A drivers; it is not a shipped or hardware-validated S31 board configuration.
 The S31 produces BCLK and WS; the DAC consumes both. Capture is not provided
 by this codec.
 
@@ -140,7 +140,7 @@ select the port and prepare the serial connection:
 
 ```sh
 make image
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 The rootfs packaging copies `esp32s31-overlay-*.dtbo` into its overlay

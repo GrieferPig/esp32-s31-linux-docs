@@ -2,7 +2,9 @@
 
 Every build uses the full board configuration. Wi-Fi, Bluetooth, USB, I2C, SPI,
 I2S, Ethernet, SD/MMC and the other native board drivers use one configuration.
-There is no build variant selector. Optional hardware is enabled at runtime with
+There is no build variant selector. This includes native controllers and the
+required Linux frameworks, not every external display, USB HID device or USB
+audio class driver. Optional hardware is enabled at runtime with
 [overlays](../resources/overlay-catalog.md).
 
 ```sh
@@ -15,12 +17,20 @@ Native outputs, staging and reports live in `out/`; final images are in
 and toolchains stay in `cache/`. Published matched sets live in `dist/<build-id>/`
 with `dist/current` updated only after verification.
 
-The full XIP kernel fits the 6 MiB slot using size optimization and unused-export
-trimming. The integrated kernel build measures 6,228,940 bytes, leaving 62,516 bytes
-in the 6,291,456-byte slot. This is a host artifact measurement, not hardware
-validation, and changes with the exact source/configuration. Builds fail the size gate rather
-than silently remove drivers or publish oversized images. Kernel-size changes
-require explicit source configuration changes and revalidation.
+The full XIP kernel uses size optimization and unused-export trimming. It must
+fit the 6 MiB (6,291,456-byte) slot. Builds fail the size gate rather than silently
+remove drivers or publish oversized images. Kernel-size changes require explicit
+source configuration changes and revalidation.
+
+After `make image` succeeds, inspect that published artifact rather than relying
+on a size recorded for another build:
+
+```sh
+stat -c %s dist/current/xipImage
+```
+
+The artifact size and manifest describe the exact source/configuration; passing
+the host size check does not establish a successful hardware boot.
 
 ## Source configuration
 
@@ -29,18 +39,36 @@ require explicit source configuration changes and revalidation.
 | `linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig` | Native board defaults |
 | `configs/kernel/common.config`, `configs/kernel/board.config` | Canonical full kernel choices |
 | `configs/kernel/debug.config` | Optional `DEBUG=1` diagnostic additions |
+| `mk/config.mk` | Paths, toolchain, kernel command line and fragment selection |
 | `buildroot-external/configs/esp32s31_rootfs_defconfig` | Rootfs packages and system options |
+| `buildroot-external/board/esp32-s31/busybox.fragment` | BusyBox tools, including network time |
+| `configs/esp32-config-timezones.list` | Retained time zones |
 | `buildroot-external/board/esp32-s31/post-build.sh` | Rootfs installation policy |
 
-Edit source configuration for lasting changes. Generated `out/linux/.config`
-and `out/buildroot/.config` are regenerated when their source inputs change.
-Unchanged input identities retain native incremental builds. Buildroot refuses
+Edit source configuration for lasting changes. Linux regenerates
+`out/linux/.config` when its configuration inputs change. Unchanged input
+identities retain native incremental builds. Buildroot refuses
 changed package/toolchain inputs in a populated output; use
 `make buildroot-reconfigure` before rebuilding it. Download caches are retained.
 
-`make buildroot-menuconfig` opens the Buildroot menu. Save desired choices back
-to the source defconfig. Additional applications must be selected in Buildroot;
-see [Adding a userspace tool](../api-guides/adding-a-userspace-tool.md).
+After `make fetch` has prepared the Buildroot output, open its configuration
+menu and export a review copy:
+
+```sh
+make buildroot-menuconfig
+make -C buildroot O="$PWD/out/buildroot" \
+  BR2_EXTERNAL="$PWD/buildroot-external" \
+  savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
+```
+
+Copy the intended package/system selections from that file into
+`buildroot-external/configs/esp32s31_rootfs_defconfig`. Do not copy the resolved
+host-specific `BR2_TOOLCHAIN_EXTERNAL_PATH` or staged `BR2_ROOTFS_OVERLAY` paths;
+the parent injects those during configuration. Review the source diff, then run
+`make buildroot-reconfigure`, `make fetch-rootfs`, and `make image` separately.
+This also discards the manually edited output configuration, which the build
+correctly refuses to reuse. Additional applications must be selected in
+Buildroot; see [Adding a userspace tool](../api-guides/adding-a-userspace-tool.md).
 
 ## Configuration tools and time zones
 
@@ -95,8 +123,12 @@ moved into a module by this policy; ext4 and JBD2 remain built-in.
 used by modules built in the same invocation. The radio payload also needs
 kernel exports resolved dynamically during XIP prelinking. The parent derives
 `out/generated/radio-kernel-symbols.txt` from the payload's undefined symbols
-and passes it as `CONFIG_UNUSED_KSYMS_WHITELIST`; the validated integrated build
-retains 162 symbols through that generated list.
+and passes its absolute path as `CONFIG_UNUSED_KSYMS_WHITELIST`. The list changes
+with the payload inputs. Inspect the list from your own build with:
+
+```sh
+wc -l out/generated/radio-kernel-symbols.txt
+```
 
 Do not remove that list merely because the radio module links: the payload's
 runtime imports are a separate contract. Regenerate it through the normal radio

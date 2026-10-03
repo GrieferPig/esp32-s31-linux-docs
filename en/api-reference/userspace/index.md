@@ -34,10 +34,10 @@ cache/toolchains/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
 install -D -m 0755 hello \
   buildroot-external/board/esp32-s31/overlay/usr/bin/hello
 make image
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
-`make image` publishes the verified set to `dist/current`; `flash-all` verifies
+`make image` publishes the verified set to `dist/current`; `flash-existing-all` verifies
 and writes that set without rebuilding. It preserves persist only on boards
 already using the same flash layout. Reopen the serial console after flashing,
 log in, and run on the board:
@@ -91,7 +91,7 @@ cache/toolchains/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
 install -D -m 0755 simd-demo \
   buildroot-external/board/esp32-s31/overlay/usr/bin/simd-demo
 make image
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 Run `simd-demo` from the board console. With initialization successful, it prints

@@ -14,7 +14,8 @@ Before you start building for the ESP32-S31 Linux port, make sure you have the f
   usage depends on clone depth and retained toolchain/package caches. Check
   available space with `df -h` before building and leave room for temporary
   downloads and rebuilds.
-- Modest amount of RAM (8+ GiB recommended).
+- RAM usage depends on the configured packages and build parallelism; no
+  measured minimum is specified here. Reduce `JOBS` if the host runs out of RAM.
 
 ## 1. Clone the Repository
 
@@ -130,10 +131,11 @@ To update a connected board already using the compact layout while preserving
 its persist partition, select the port explicitly:
 
 ```sh
-make PORT=/dev/ttyUSB0 BAUD=2000000 flash-all
+make PORT=/dev/ttyUSB0 BAUD=2000000 flash-existing-all
 ```
 
-This target verifies and writes the immutable `dist/current` set without rebuilding. Complete
+This target verifies and writes the immutable `dist/current` set without rebuilding;
+`flash-all` is its alias. Complete
 `make image` first, before flashing. Partial update targets are disabled because the installed companion
 identities are unknown. `make build-flash` explicitly combines build and flash. For first
 installation, data backup, and release-image updates, see

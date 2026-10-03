@@ -54,8 +54,11 @@ and register new overlay targets in the DTS directory Makefile. Keep lasting
 changes in these inputs rather than generated `out/linux/.config`.
 
 The build enables `CONFIG_TRIM_UNUSED_KSYMS=y`: build new modules together with
-the kernel to retain required exports. Out-of-tree modules may need an explicit
-export whitelist. A driver selected as `m` also needs an explicit package/install
+the kernel to retain required exports. The radio build generates
+`out/generated/radio-kernel-symbols.txt` from the external payload's undefined
+symbols and passes it as `CONFIG_UNUSED_KSYMS_WHITELIST`; do not hand-edit that
+generated file. Other out-of-tree consumers need their own export-retention
+integration. A driver selected as `m` also needs an explicit package/install
 step; the parent does not install every `.ko` automatically.
 
 From the parent project, build and verify the matching kernel, rootfs/module,
@@ -63,7 +66,7 @@ and radio XIP payload, then flash the complete set:
 
 ```sh
 make image
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 The rootfs post-build step installs built overlays into `/usr/lib/s31-overlays`.

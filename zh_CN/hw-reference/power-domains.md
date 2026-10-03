@@ -34,7 +34,7 @@ done
 | `on=`、`off=` | 成功的 genpd 开启 / 关闭回调计数；`on` 还包含探测时首次取得 HPCNNT 控制权 |
 | `reclaim=` | 载荷初始化 PMU 后尝试重新应用状态的次数 |
 | `errors=` | 状态切换期间强制控制寄存器回读失败的次数 |
-| `radio-vote=` | 当前无线否决投票；仅对 `hp-connectivity` 报告 |
+| `radio-vote=` | `hp-connectivity` 的当前无线否决投票；其他电源域也显示该字段，但值为零 |
 
 尽管字段名为 `hardware=`，它解释的是强制控制寄存器，并非独立的电源就绪信号、电流读数或保持状态的证明。输出格式定义于 [`domains_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/pmdomain/esp32s31-pmu.c)。
 

@@ -65,10 +65,9 @@ The derived key is saved; the plaintext passphrase is not retained. For a protec
 network whose SSID contains a zero byte, use `configure-hex` and a precomputed
 PSK. Open networks with such an SSID need only `configure-hex`.
 
-For existing automation, noninteractive `wifi configure` retains its three-line
-input contract: SSID, password, matching password. That compatibility path only
-saves the profile. New scripts can use `wifi connect`, with one password line
-on standard input, for save-and-connect behavior.
+Noninteractive `wifi configure` reads three input lines: SSID, password,
+matching password. It only saves the profile. Use `wifi connect`, with one
+password line on standard input, for save-and-connect behavior.
 
 A connection action returns `0` when connected, `1` on an apply failure, or `2`
 when the bounded wait ends with connection work still pending. Check
@@ -94,8 +93,8 @@ name restarts Bluetooth. `clear-pairings` clears the current controller's
 Classic and BLE keys and restarts its running service.
 
 Enabled Bluetooth provides Classic A2DP transport and a BLE peripheral.
-The bundled application does not decode audio for PCM playback. The legacy
-`bluetooth scan` command still reports that scanning is unsupported; there is
+The bundled application does not decode audio for PCM playback. The
+`bluetooth scan` command reports that scanning is unsupported; there is
 no scanning item in the menu.
 
 Changing the Wi-Fi/Bluetooth enabled combination reloads their shared radio.
@@ -124,7 +123,7 @@ and clears their saved assignments. `read` reads a managed input; for a managed
 output it reports the configured level. For usage and ownership, see
 [Use peripherals](../user-guides/peripherals.md).
 
-The existing diagnostic commands remain available from the CLI:
+The following diagnostic commands are available from the CLI:
 
 ```text
 esp32-config gpio info [CHIP]

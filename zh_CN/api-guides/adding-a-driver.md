@@ -28,18 +28,19 @@ I2C 示例的 probe 先映射寄存器资源，获取并启用时钟，注册托
 
 ## 3. 构建驱动与覆盖层
 
-添加驱动的 Kconfig 依赖和对象文件规则，在 `arch/riscv/configs/esp32s31_defconfig` 或所选 `DEFCONFIG` 中启用驱动，并在 DTS 目录的 Makefile 中注册新的覆盖层目标。主项目的 `linux` 目标会重新应用所选 defconfig，因此应将需要保留的配置更改写入该配置文件。
+添加驱动的 Kconfig 依赖和对象文件规则，在 `arch/riscv/configs/esp32s31_defconfig` 及主项目 `configs/kernel/` 配置片段中启用驱动，并在 DTS 目录的 Makefile 中注册新的覆盖层目标。持久改动应保存在这些输入中，不应只修改生成的 `out/linux/.config`。
 [主项目的 Linux 构建目标](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/linux.mk)。
 
-在主项目目录中构建并烧录完整外设配置。按[烧录指南](../get-started/flash-and-first-boot.md)选择端口并准备串口连接：
+构建启用 `CONFIG_TRIM_UNUSED_KSYMS=y`；新增模块必须与内核一起构建，才能保留其需要的导出。无线构建从外部载荷的未定义符号生成 `out/generated/radio-kernel-symbols.txt`，并通过 `CONFIG_UNUSED_KSYMS_WHITELIST` 传入内核；不要手工编辑该生成文件。其他树外使用者需要各自的导出保留集成。选为 `m` 的驱动还需显式添加打包和安装步骤，主项目不会自动安装所有 `.ko`。
+
+在主项目中构建并验证匹配的内核、rootfs/模块及无线 XIP 载荷，再烧录完整组件集：
 
 ```sh
 make image
 make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
-`rootfs` 已依赖 `linux`，后者会构建内核、模块和设备树。完整配置保留原生可选外设驱动。根文件系统的 post-build 步骤将构建好的覆盖层安装到 `/usr/lib/s31-overlays`。
-[构建配置](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/linux.mk)；[Linux 构建产物](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/linux.mk)；[rootfs 依赖](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/linux.mk)；[覆盖层安装](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/post-build.sh)。
+根文件系统的 post-build 步骤将构建好的覆盖层安装到 `/usr/lib/s31-overlays`。前置准备及持久化数据注意事项见[构建配置](../get-started/build-configuration.md)和[烧录与首次启动](../get-started/flash-and-first-boot.md)。
 
 开发板重启后，按照[添加覆盖层](adding-an-overlay.md)中的流程启用覆盖层。
 

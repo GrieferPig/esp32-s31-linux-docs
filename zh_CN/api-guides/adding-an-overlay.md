@@ -58,7 +58,7 @@
 dtb-$(CONFIG_ARCH_ESPRESSIF) += esp32s31-overlay-NAME.dtbo
 ```
 
-然后在主项目中构建并烧录完整外设配置。按[烧录指南](../get-started/flash-and-first-boot.md)
+然后在主项目中构建并烧录完整匹配镜像集。按[烧录指南](../get-started/flash-and-first-boot.md)
 选择端口并准备串口连接：
 
 ```sh

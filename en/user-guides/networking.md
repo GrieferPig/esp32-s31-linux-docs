@@ -23,8 +23,11 @@ an input page before submitting keeps the saved profile unchanged. The Wi-Fi
 page shows the selected network, connection state, and assigned IPv4 address.
 Use **Reconnect saved network** to connect again without entering its password.
 
-The setup page supports open networks and WPA/WPA2 Personal. A protected network
-accepts an 8–63-byte password or a 64-digit hexadecimal PSK. Network names are
+The setup page offers open networks and a **WPA/WPA2 Personal** option. The
+current [SoftMAC driver](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/net/wireless/espressif/esp32s31_softmac.c) advertises only CCMP encryption, so use an AP configured
+for WPA2-Personal with CCMP/AES; TKIP-only and WEP networks are unsupported.
+The menu label does not establish compatibility with every WPA/WPA2 mode. A
+protected network accepts an 8–63-byte password or a 64-digit hexadecimal PSK. Network names are
 preserved even when they contain spaces, punctuation, or non-ASCII characters.
 For other authentication methods, see [Advanced Wi-Fi](../api-guides/wifi-advanced.md).
 

@@ -38,8 +38,10 @@ firmware changes use `make uboot`, and radio firmware changes use the
 Integrated native outputs are under `out/`; LP firmware and generated rootfs
 files are staged in `out/staging/` rather than the source overlay. Shared
 downloads/toolchains remain in `cache/`, and verified matched images are published
-under `dist/`. For lasting kernel or package selections, edit the source inputs
-in [Build configuration](../get-started/build-configuration.md).
+under `dist/`. Component builds alone do not publish a new matched set. Finish
+with `make image`, then use `make flash-existing-all` to deploy that set.
+For lasting kernel or package selections, edit the source inputs in
+[Build configuration](../get-started/build-configuration.md).
 
 ## Test a change
 
@@ -49,10 +51,11 @@ Run host regressions from the parent repository root before flashing:
 make check-host
 ```
 
-This target checks the layout and runs the
-`tools/tests` suite. It needs Python, the source submodules, a host C compiler,
+This target checks the layout and runs `tools/tests`, `tests`, and the GPIO
+shell regressions. It needs Python, the source submodules, a host C compiler,
 and the build tools installed by the source-build guide. Prepare pinned
-BTstack sources with `make fetch` first; checks and build targets do not download.
+BTstack sources with `make btstack-source` first; checks do not download.
+Use `make fetch` when also preparing the full firmware build.
 
 After activating the documentation environment described below, install the
 DT schema dependency used by CI. With the project toolchain installed, run the

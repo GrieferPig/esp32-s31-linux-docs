@@ -116,6 +116,19 @@ The runner coordinates `s31-hil-agent` on the S31 and optional peer firmware.
 See [Hardware-in-the-loop testing](../contribute/testing-hil.md) for complete
 commands and fixture setup.
 
+## Wi-Fi diagnostics
+
+```sh
+iw dev
+iw phy
+wpa_cli -p /run/wpa_supplicant -i wlan0 status
+ip addr show wlan0
+```
+
+The mac80211 SoftMAC frontend supports one station and does not expose firmware
+EAP-credential vendor commands. See [Advanced Wi-Fi](../api-guides/wifi-advanced.md)
+for AP, monitor, authentication, and suspend limitations.
+
 ## Development utilities
 
 The project includes sources for CoreMark, memory and libc tests, extension

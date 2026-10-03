@@ -57,9 +57,10 @@ contains the complete build, link and run example; the
 The ordinary application flags omit XespV and Xesploop. The SIMD package
 explicitly compiles hand-written extension assembly; this project does not
 depend on automatic XespV vectorization.
-Xesploop state handling exists, but live
-loop state is not safe across all S-mode return paths used by arbitrary
-libraries. Keep extension use within the reviewed library/firmware paths;
-do not enable Xesploop globally for ordinary applications. See the
-[build configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/config.mk) and
+Linux and OpenSBI implement HWLoop/PIE context handling, but that source support
+does not establish validation of arbitrary extension-enabled applications on the
+current image. Keep extension use within the reviewed library/firmware paths;
+the ordinary application flags do not globally enable Xesploop. See the
+[application flags](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig),
+[Linux context handling](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/kernel/esp32s31-ext.c), and
 [SIMD package flags](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/esp-simd/esp-simd.mk).

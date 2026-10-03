@@ -29,8 +29,9 @@ S31 defconfig 位于 `linux-esp32-s31/arch/riscv/configs/` 下。
 | `ESP32S31_RADIO_SMODE`, `ESP32S31_RADIO_SMODE_DRIVER` | Linux S-mode 无线运行时 |
 | `ESP32S31_WIFI`、`ESP32S31_WIFI_SOFTMAC` | mac80211 单 STA 前端 |
 | `ESP32S31_RADIO_XIP` | 专用 Flash 分区中的预链接无线载荷 |
-| `CC_OPTIMIZE_FOR_SIZE` | 内核体积优化 |
-| `TRIM_UNUSED_KSYMS` | 结合动态无线白名单裁剪未使用的导出 |
+| `CC_OPTIMIZE_FOR_SIZE` | 原生内核体积优化（`-Os`） |
+| `TRIM_UNUSED_KSYMS` | 上游未使用导出裁剪机制，保留自动生成的无线导入白名单 |
+| `UNUSED_KSYMS_WHITELIST` | 顶层构建传入的 `out/generated/radio-kernel-symbols.txt` 路径 |
 | `EXT4_FS`、`JBD2` | 完整配置中的内置 ext4 与日志支持 |
 | `BT_ESP32S31` | 蓝牙前端 |
 | `CRYPTO_DEV_ESP32S31` | 硬件加密驱动 |
@@ -40,6 +41,10 @@ S31 defconfig 位于 `linux-esp32-s31/arch/riscv/configs/` 下。
 支持等要求，必须先启用这些依赖。I2S 选项还会选中通用 DMAengine PCM 辅助
 组件。每 CPU 时钟事件由 RISC-V 定时器驱动实现，它会调用 S31 SYSTIMER 事件
 辅助函数；`ESP32S31_SYSTEM_TIMERS` 则是独立的 Counter 接口。
+
+顶层构建强制检查体积优化、无线 XIP、带自动生成无线白名单的上游导出裁剪、
+内置 ext4 和完整开发板外设配置。关闭这些必需选项会使配置检查失败。
+白名单在原生 Linux 构建前根据无线载荷的未定义符号生成，不应改为手工维护列表。
 
 ## 检查构建
 

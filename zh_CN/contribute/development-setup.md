@@ -39,7 +39,7 @@ make rootfs
 make check-host
 ```
 
-该目标检查布局并运行 `tools/tests`、`tests` 和 GPIO shell 回归测试，不获取依赖。先运行 `make fetch` 准备固定源码和工具链。
+该目标检查布局并运行 `tools/tests`、`tests` 和 GPIO shell 回归测试，不获取依赖。先运行 `make btstack-source` 准备固定的 BTstack 源码；若还需完整固件构建，则用 `make fetch` 准备全部固定依赖。
 它需要 Python、源码子模块、主机 C 编译器，以及源码构建指南中安装的构建工具。
 
 激活下文的文档虚拟环境后，安装 CI 使用的设备树 schema 依赖。项目工具链

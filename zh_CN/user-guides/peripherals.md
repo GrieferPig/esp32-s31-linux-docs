@@ -1,6 +1,6 @@
 # 使用外设
 
-这些示例适用于完整外设镜像。目标端命令在 S31 上以 root 身份运行；明确标注
+这些示例适用于标准的完整开发板镜像。目标端命令在 S31 上以 root 身份运行；明确标注
 为构建命令的步骤在 Linux 构建主机上执行。按[从源码构建](../get-started/build-from-source.md)
 准备完整匹配镜像集。rootfs 包含 libgpiod v2 工具、I2C 工具、
 `spidev_test`、`aplay`/`arecord`、`candump` 和 `cansend`。下文 CAN 示例还需要
@@ -212,10 +212,17 @@ umount /mnt/usb
 rootfs 选择了 `candump` 和 `cansend`，但当前源 defconfig **没有选择 iproute2**。
 使用下方 `ip ... type can` 命令之前，应在主机上的
 `buildroot-external/configs/esp32s31_rootfs_defconfig` 中，用以下设置替换现有的
-禁用项，运行 `make buildroot-reconfigure`，再用 `make image` 构建完整匹配集并通过 `make flash-existing-all` 烧录：
+禁用项，然后重新配置、获取所需软件包源码，并构建和烧录完整匹配集：
 
 ```text
 BR2_PACKAGE_IPROUTE2=y
+```
+
+```sh
+make buildroot-reconfigure
+make fetch
+make image
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 在 S31 上配置 500 kbit/s 总线：

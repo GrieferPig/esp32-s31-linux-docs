@@ -32,7 +32,7 @@ make image
 This target produces the prelinked XIP payload `out/images/radio.bin`. The host prelinker uses the kernel's symbol addresses, and the
 rootfs carries the matching Linux module. Deploy kernel, rootfs/module, and
 radio image together after a firmware or kernel change. `make all` creates the
-complete matched image set and manifest; `make flash-all` writes its component
+complete matched image set and manifest; `make flash-existing-all` writes its component
 slots while preserving persist on boards already using the same layout. For
 installation and data-backup instructions, follow
 [Flash and first boot](../get-started/flash-and-first-boot.md).
@@ -45,8 +45,10 @@ hardware-library calls inside the firmware.
 
 When adding a firmware entry point, update its export and the loader's import
 or export handling as needed, then regenerate the stubs with the normal build
-target. Changes to structures or calling conventions also need an ABI update
-on the components that exchange them.
+target. That build also regenerates `out/generated/radio-kernel-symbols.txt`
+for the kernel's `CONFIG_TRIM_UNUSED_KSYMS` export retention. Do not hand-edit
+the generated stubs or whitelist. Changes to structures or calling conventions
+also need an ABI update on the components that exchange them.
 
 Radio code can run from a worker or an interrupt callback. Keep interrupt work
 short, and copy data that must outlive a callback into storage owned by its

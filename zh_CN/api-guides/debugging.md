@@ -2,8 +2,6 @@
 
 先查看串口控制台和 `dmesg`。结合两者可以查看引导程序输出、驱动信息，以及 Linux 运行时的错误信息。
 
-当前合并镜像尚未重新进行模拟器运行或物理开发板启动、烧录验证。构建成功不代表这些运行路径已通过；请保留镜像标识及完整日志作为验证依据。
-
 ## 查看日志
 
 以 115200 波特率、8N1 连接 UART0，然后运行：
@@ -56,6 +54,8 @@ s31-overlay status
 | `S31 early overlay restore failed` | 恢复已保存的设备树覆盖层时返回错误 | 按[使用覆盖层](../resources/overlay-catalog.md)检查当前覆盖层和保存选择。 |
 | 串口登录提示符 | Linux 已启动控制台登录服务 | 检查 `/run/rcS.log` 和 `/run/rcS.done`，确认是否还有服务正在启动。 |
 
+如果 persist 擦除或挂载失败，系统可能进入恢复登录。恢复模式下 `/run`、`/tmp` 和 `/var/log` 是易失存储，设置无法持久保存。当前镜像的启动与持久化路径仍需板端验收；仅出现控制台提示符不能证明正常启动。
+
 ### 重启后设置丢失
 
 通过 `df -h`、`/proc/mounts` 和启动日志检查存储错误。
@@ -86,13 +86,13 @@ esp32-config bluetooth info
 模块已加载时，仍可能存在设备 probe 失败或前端缺失的情况。
 读取健康状态的方法见[无线参考](../api-reference/radio/index.md)。
 
-对于 Wi-Fi，还应检查 `iw dev` 和 `wpa_cli -i wlan0 status`。
+对于 Wi-Fi，还应检查 `iw dev` 和 `wpa_cli -p /run/wpa_supplicant -i wlan0 status`。
 如果关联已完成，但 DHCP 仍未完成，请查看 `/run/esp32-config/udhcpc.wlan0.log`。
 常规连接步骤见[网络配置](../user-guides/networking.md)。
 
 ### LP 命令失败
 
-运行 `s31-lpctl status`。如果驱动不存在，检查 `lp` 覆盖层或内核配置；如果显示 `ready=0`，检查固件启动情况。查看 `dmesg` 中的固件加载和邮箱错误。挂起问题见[电源管理](power-management.md)。
+运行 `s31-lpctl status`。基础设备树已启用 LP 节点；驱动未绑定时，检查内核配置和探测错误。若显示 `ready=0`，检查固件启动情况。查看 `dmesg` 中的固件加载和邮箱错误。挂起问题见[电源管理](power-management.md)。
 
 ## 报告问题
 

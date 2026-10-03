@@ -28,7 +28,12 @@ Names below omit the `CONFIG_` prefix used in `.config` files.
 | `ESP32S31_LP_REMOTEPROC` | LP-core firmware and mailbox |
 | `ESP32S31_RADIO_BLOBS` | Radio firmware integration |
 | `ESP32S31_RADIO_SMODE`, `ESP32S31_RADIO_SMODE_DRIVER` | Linux S-mode radio runtime |
-| `ESP32S31_WIFI` | mac80211 single-station frontend |
+| `ESP32S31_WIFI`, `ESP32S31_WIFI_SOFTMAC` | mac80211 single-station frontend |
+| `ESP32S31_RADIO_XIP` | Prelinked radio payload in its dedicated flash slot |
+| `CC_OPTIMIZE_FOR_SIZE` | Native kernel size optimization (`-Os`) |
+| `TRIM_UNUSED_KSYMS` | Upstream unused-export trimming, retaining the generated radio import whitelist |
+| `UNUSED_KSYMS_WHITELIST` | Generated `out/generated/radio-kernel-symbols.txt` path supplied by the parent build |
+| `EXT4_FS`, `JBD2` | Built-in ext4 filesystem and journal support |
 | `BT_ESP32S31` | Bluetooth frontend |
 | `CRYPTO_DEV_ESP32S31` | Hardware crypto driver |
 
@@ -39,6 +44,13 @@ requirements such as clocks and device-tree support; those dependencies must
 already be enabled. The I2S option also selects the generic DMAengine PCM
 helper. Per-CPU clockevents use the RISC-V timer driver, which calls the S31
 SYSTIMER event helper; `ESP32S31_SYSTEM_TIMERS` is a separate Counter interface.
+
+The parent build enforces size optimization, radio XIP, upstream export
+trimming with the generated radio whitelist, built-in ext4, and the full board
+peripheral contract. Removing these required options makes configuration
+validation fail. The whitelist is generated from the radio payload's undefined
+symbols before the native Linux build; do not replace it with a hand-maintained
+list.
 
 ## Check a build
 

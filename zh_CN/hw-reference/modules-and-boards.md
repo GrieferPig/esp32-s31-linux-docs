@@ -1,7 +1,7 @@
 # 模组和开发板
 
-本移植面向 ESP32-S31 平台。[维护者的开发板测试说明](https://github.com/GrieferPig/esp32-s31-linux/blob/main/README.md)
-列出了以下开发板和模组：
+本移植面向 ESP32-S31 平台。[项目 README](https://github.com/GrieferPig/esp32-s31-linux/blob/main/README.md)
+列出以下目标开发板和模组；这不代表当前合并镜像已通过这些硬件的验收：
 
 - 乐鑫 ESP32-S31 Coreboard
 - 乐鑫 ESP32-S31 Korvo
@@ -33,7 +33,7 @@ GPIO 驱动的有效引脚掩码还排除了 GPIO29；它已包含在保留的 2
 
 以下默认值适用于启用相应的[预置覆盖层](https://github.com/GrieferPig/linux-esp32-s31/tree/v6.18-esp32-s31/arch/riscv/boot/dts/espressif)
 且未覆盖引脚分配的情况。可选控制器还需要
-[完整外设配置](../get-started/build-configuration.md)中的相应驱动。
+[完整开发板配置](../get-started/build-configuration.md)中的相应驱动。
 
 ### 通过矩阵路由的信号
 

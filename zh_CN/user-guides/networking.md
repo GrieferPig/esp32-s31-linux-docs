@@ -18,8 +18,10 @@ Wi-Fi 和蓝牙共用一个无线模块。改变启用的服务组合会重启�
 Wi-Fi 页面显示选中的网络、连接状态和获得的 IPv4 地址。
 选择 **Reconnect saved network** 可以使用已有密码重新连接。
 
-配置页面支持开放网络和 WPA/WPA2 Personal。
-加密网络接受 8–63 字节的密码，或 64 位十六进制 PSK。
+配置页面提供开放网络和 **WPA/WPA2 Personal** 选项。当前 [SoftMAC 驱动](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/net/wireless/espressif/esp32s31_softmac.c)只声明
+CCMP 加密支持，因此请将 AP 配置为 WPA2-Personal 与 CCMP/AES；不支持仅提供
+TKIP 的网络和 WEP 网络。菜单名称不代表所有 WPA/WPA2 模式均可用。
+加密网络接受 8–63 字节的密码，或 64 个十六进制字符组成的 PSK。
 包含空格、标点或非 ASCII 字符的网络名会按原样保存。
 其他认证方式见[进阶 Wi-Fi](../api-guides/wifi-advanced.md)。
 

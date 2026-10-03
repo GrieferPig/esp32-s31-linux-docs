@@ -25,6 +25,8 @@ esp32-config system password
 选择 **Date and time → Time zone and automatic time**。
 选择已安装的时区，例如 `America/Los_Angeles` 或 `Asia/Shanghai`，
 再选择是否使用网络时间服务器。系统会自动应用该时区的夏令时规则。
+镜像按 `configs/esp32-config-timezones.list` 安装九个选定时区，并不包含完整时区库；
+可用名称列在 `/usr/share/esp32-config/timezones` 中。
 
 例如，选择洛杉矶时间并启用网络校时：
 

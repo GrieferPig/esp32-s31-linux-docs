@@ -4,8 +4,9 @@ The port exposes peripherals through standard Linux interfaces, including
 TTY, I2C, SPI, ALSA, and SocketCAN. Use a device-tree overlay to enable an
 optional controller and select its pins.
 
-> Build the [full board configuration](../../get-started/build-configuration.md) for
-I2C, SPI, I2S, Ethernet, SD/MMC, and the other optional drivers in this chapter.
+The standard [build configuration](../../get-started/build-configuration.md)
+includes the native I2C, SPI, I2S, Ethernet, SD/MMC and other optional controller
+drivers in this chapter. External devices can require additional drivers.
 
 ## Enable a peripheral
 
@@ -36,7 +37,7 @@ describe the shipped routes and reservations.
 
 | Peripheral | Linux interface | Overlay or setup |
 |---|---|---|
-| GPIO | GPIO character device; `gpioinfo`, `gpioget`, `gpioset` | Select free pins on the board |
+| GPIO | GPIO character device; libgpiod and `esp32-config gpio` | Select free pins; managed GPIO settings persist at boot |
 | UART | `/dev/ttyS*` | `uart1`, `uart2`, `uart3`, or `uart3-dma` |
 | I2C | `/dev/i2c-*` | `i2c0` or `i2c1` |
 | SPI | SPI subsystem; `/dev/spidev*` for userspace clients | `gpspi2`, `gpspi3`, or their target variants |
@@ -44,7 +45,7 @@ describe the shipped routes and reservations.
 | TWAI/CAN | SocketCAN | `twai0` or `twai1`; external transceiver |
 | SD/MMC | MMC block devices | `sdmmc0`, `sdmmc1`, `sdmmc-dual`, or `sdmmc-uhs` |
 | Ethernet | Network interface and PHY driver | `gmac`; external PHY |
-| USB | DWC2 host or USB gadget | Host setup or `usb-device` |
+| USB | DWC2 host, ACM serial gadget, or ECM network gadget | `esp32-config usb configure host\|serial\|network` |
 | GDMA | Kernel DMAengine API | AHB/AXI provider selected by the client |
 | General-purpose timers | Counter framework | `timers` |
 | LEDC, MCPWM, SDM, and pulse counter | PWM and Counter frameworks | `pwm-counter` |
@@ -226,10 +227,14 @@ Use the MMC block layer for SD cards, SocketCAN for TWAI, and the normal Linux
 network interfaces for Ethernet. Their overlays select the controller and
 pins; the carrier board supplies the socket, transceiver, or PHY.
 
-The base device tree enables DWC2 host mode, including the USB storage path.
-The `usb-device` overlay selects gadget mode; a gadget function must then be
-configured and bound to the UDC. Unmount USB filesystems and disable
-USB-backed swap before switching roles. The
+The base device tree enables DWC2 host mode, including USB storage; ext4 support
+is built into the standard kernel. Use `esp32-config usb` for managed host,
+ACM serial and ECM network modes. The manager applies `usb-device` temporarily,
+creates the selected ConfigFS gadget and binds it to the UDC. A raw `usb-device`
+overlay by itself only switches the controller role; custom gadget developers
+must configure and bind their own function. Do not give a manually configured
+gadget and the manager ownership of the same UDC. Unmount USB filesystems and
+disable USB-backed swap before switching roles. The
 [storage and gadget examples](../../user-guides/peripherals.md) cover setup
 and cleanup; implementation availability is separate from the recorded
 hardware status in the support matrix.

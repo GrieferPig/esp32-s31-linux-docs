@@ -78,26 +78,31 @@ distribution. `s31-tools` and `esp-simd` are local examples.
 
 ### 3. Select and save the package
 
-Open the Buildroot menu:
+After `make fetch` has prepared the Buildroot output, open its menu:
 
 ```sh
 make buildroot-menuconfig
 ```
 
 Find `s31-hello` under the external ESP32-S31 packages menu and enable it. Exit
-with the configuration saved, then use [Buildroot’s savedefconfig target](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) to save the choices to the source defconfig:
+with the configuration saved, then use [Buildroot’s savedefconfig target](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) to export a review copy:
 
 ```sh
 make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
-  savedefconfig \
-  DEFCONFIG="$PWD/buildroot-external/configs/esp32s31_rootfs_defconfig"
+  savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
 ```
 
-Save before reconfiguring: the tracked defconfig is the durable input.
-A populated Buildroot output rejects changed package/toolchain configuration;
-run `make buildroot-reconfigure` after saving and `make fetch` for new sources.
-The source defconfig should now contain `BR2_PACKAGE_S31_HELLO=y`.
+Merge the intended package selections into
+`buildroot-external/configs/esp32s31_rootfs_defconfig`; this example adds
+`BR2_PACKAGE_S31_HELLO=y`. Preserve the source expressions for
+`BR2_TOOLCHAIN_EXTERNAL_PATH` and `BR2_ROOTFS_OVERLAY`: the review copy contains
+resolved host/toolchain and staging paths injected by the parent, so do not
+replace the portable source defconfig with that whole file.
+
+Review the source diff before reconfiguring. A populated Buildroot output
+rejects manually changed output configuration and changed package/toolchain
+inputs. Reconfiguration discards that output while retaining download caches.
 
 ### 4. Build, flash, and run
 
@@ -105,9 +110,11 @@ The application is deployed as part of a verified matched image set. With the
 ESP-IDF environment active, run on the host:
 
 ```sh
+make buildroot-reconfigure
+make fetch-rootfs
 make image
 ls -l out/buildroot/target/usr/bin/s31-hello
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 Replace the port and close its serial monitor before flashing. This updates
@@ -123,15 +130,15 @@ SSH server on the board.
 
 ### 5. Rebuild after changing local source
 
-The parent Makefile explicitly rebuilds its own local utility packages; your new
-package is not in that list. After editing `rootfs/s31-hello/hello.c`, remove this
+The parent tracks changed inputs for its existing local utility packages; your
+new package is not in that list. After editing `rootfs/s31-hello/hello.c`, remove this
 package's build directory before rebuilding the image:
 
 ```sh
 make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" s31-hello-dirclean
 make image
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 This makes Buildroot copy and compile the updated local source. Repeat the board
@@ -148,10 +155,10 @@ package build alone does not show that its runtime files remain in the image.
 For example, the script removes `libstdc++`, `libatomic`, BlueZ tools and daemon,
 and D-Bus/GLib/BlueALSA files. Adding a C++ application or a BlueZ-based system
 therefore needs a corresponding review of those removal rules. The current
-script also requires `s31-btstack-a2dp` and `s31-ext-test` to remain executable;
-replacing BTstack requires updating that check and service startup as part of
-your image changes. The parent build checks that the finished rootfs fits its
-flash partition.
+script requires `s31-btstack-a2dp`, `s31-ext-test`, `s31-gpio`,
+`s31-config-archive`, and `esp32-config` to remain executable. Replacing one of
+these tools requires updating that check and the services or commands that use
+it. The parent build checks that the finished rootfs fits its flash partition.
 
 (deploy-files-that-must-survive-reboot)=
 ## Deploy files that must survive reboot

@@ -50,8 +50,9 @@ reservations and [Flash layout](../../hw-reference/flash-layout.md) for slots.
 
 Radio device interrupts and the common worker use HP core 0. Compatibility
 tasks retain their requested affinity; no-affinity tasks can migrate. SoftMAC
-processing also uses HP core 1 when it is available. Wi-Fi-only SoftMAC uses
-native task servicing without the common radio worker.
+receive NAPI and I/O target HP core 1, falling back to HP core 0 if core 1 is
+offline. Wi-Fi-only SoftMAC uses native task servicing without the common radio
+worker.
 
 The compatibility layer supplies tasks, queues, timers, and synchronization
 for the radio libraries. The current Wi-Fi frontend receives borrowed auxiliary

@@ -17,7 +17,7 @@
 | M-mode | RISC-V machine mode, used by OpenSBI |
 | S-mode | RISC-V supervisor mode, used by Linux |
 | OpenSBI | Firmware that supplies low-level RISC-V services to Linux and U-Boot |
-| Payload | In the radio guides, the external radio firmware loaded by the Linux driver |
+| Payload | In the radio guides, the prelinked radio code/data in the fixed flash XIP slot, built together with its Linux kernel and module |
 | Persist | The writable JFFS2 flash partition used for saved files and settings |
 | PSRAM | External pseudo-static RAM used for Linux's writable memory |
 | Resource claim | An overlay entry that reserves a controller, DMA channel, or other shared resource |

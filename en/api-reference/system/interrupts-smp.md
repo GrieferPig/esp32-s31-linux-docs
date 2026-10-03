@@ -14,10 +14,11 @@ IRQ affinity write cannot move these handlers to HP core 1. Local timer and
 IPI routes use their separate per-core setup. See
 [`esp_intmtx_set_affinity()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp-intmtx.c).
 
-The radio service worker and generic radio IRQ path run on HP core 0. The
-Wi-Fi frontend schedules receive NAPI and buffer-refill work on HP core 1.
-Payload-created compatibility tasks retain their requested CPU affinity, so
-“all radio work runs on HP0” is too broad. See the
+The generic radio IRQ path and the common radio worker use HP core 0. Wi-Fi-only
+SoftMAC uses native task servicing without that common worker. The frontend
+targets HP core 1 for receive NAPI and I/O work, falling back to HP core 0 if
+core 1 is offline. Payload-created compatibility tasks retain their requested
+CPU affinity; tasks without a fixed affinity can migrate. See the
 [radio worker](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-smode.c),
 [task binding](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-rtos.c) and
 [frontend receive work](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/net/wireless/espressif/esp32s31_softmac.c).

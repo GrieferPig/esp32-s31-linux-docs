@@ -1,9 +1,9 @@
 # USB functions
 
 Use **Interfaces → USB** in `esp32-config` to choose host mode, a serial
-connection, or a USB network connection. Device functions need the
-[full-peripheral image](../get-started/build-configuration.md) and their compiled
-kernel support; the menu offers only the functions available in the image.
+connection, or a USB network connection. The standard
+[full board image](../get-started/build-configuration.md) includes the controller
+and ACM/ECM gadget support; the menu offers only the functions available in the image.
 Run the board commands below as root.
 
 These settings control DWC2. The fixed USB Serial/JTAG port is a separate

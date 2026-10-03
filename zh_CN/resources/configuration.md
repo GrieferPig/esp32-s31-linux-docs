@@ -27,8 +27,10 @@ esp32-config
 ## 持久化文件
 
 根文件系统通过 OverlayFS 将只读 SquashFS 镜像与可写 JFFS2 层合并。
-写入合并后根文件系统的普通文件会在重启后保留，包括 `/etc/esp32-conf` 和
-`/var/lib/btstack` 中的蓝牙配对数据。应用程序使用这些常规路径；JFFS2 存储层在早期启动阶段完成挂载与组合。
+persist 成功挂载时，写入合并后根文件系统的普通文件会存入持久层，包括
+`/etc/esp32-conf` 和 `/var/lib/btstack` 中的蓝牙配对数据。应用程序使用这些常规路径；
+JFFS2 存储层在早期启动阶段完成挂载与组合。当前紧凑镜像的持久化仍需物理开发板验证；
+只读恢复启动不能保存这些更改。
 
 以下位置用于临时存储：
 
@@ -96,7 +98,7 @@ esp32-config maintenance reset network
 
 ## 无线设置
 
-无线模式在模块加载时选择。模块参数 `mode` 和 `direct_hci` 分别选择 Wi-Fi/蓝牙组合与蓝牙前端。XIP 加载器读取专用 Flash 分区中的 `radio.bin`，没有 `firmware` 参数。日常设置应使用配置工具；如需更改这些模块参数，
+无线模式在模块加载时选择。模块参数 `mode` 和 `direct_hci` 分别选择 Wi-Fi/蓝牙组合与蓝牙前端。XIP 加载器读取烧入专用 Flash 分区的预链接无线镜像，不按文件名加载，也没有 `firmware` 参数。日常设置应使用配置工具；如需更改这些模块参数，
 应先停止无线应用程序，再重新加载模块。
 
 参数值和 Linux 接口见[无线参考](../api-reference/radio/index.md)。

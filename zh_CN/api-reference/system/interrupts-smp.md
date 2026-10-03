@@ -6,7 +6,7 @@
 
 **当前通用外设中断固定在 HP 核 0 上。** 矩阵 irqchip 只接受包含 CPU 0 的亲和性掩码，并将实际亲和性报告为 CPU 0。仅指定 CPU 1 会返回 `-EINVAL`；普通的 IRQ 亲和性写操作不能将这些处理函数迁移到 HP 核 1。本地定时器和 IPI 路由通过独立的每核流程配置。参见 [`esp_intmtx_set_affinity()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp-intmtx.c)。
 
-无线通用 IRQ 和公共工作线程运行在 HP 核 0。SoftMAC 在可用时也使用 HP 核 1；仅 Wi-Fi 的 SoftMAC 模式使用原生任务服务，不启动公共无线工作线程。兼容任务保留请求的亲和性，无亲和性任务可以迁移。参见[无线工作线程](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-smode.c)、[任务绑定](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-rtos.c)及[前端接收工作](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/net/wireless/espressif/esp32s31_softmac.c)。
+无线通用 IRQ 和公共工作线程使用 HP 核 0；仅 Wi-Fi 的 SoftMAC 模式使用原生任务服务，不启动公共无线工作线程。前端将接收 NAPI 和 I/O 工作定向到 HP 核 1；核 1 不在线时回退到 HP 核 0。兼容任务保留请求的亲和性，无固定亲和性的任务可以迁移。参见[无线工作线程](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-smode.c)、[任务绑定](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-rtos.c)及[前端接收工作](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/net/wireless/espressif/esp32s31_softmac.c)。
 
 ## 查看中断活动
 

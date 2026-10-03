@@ -1,6 +1,6 @@
 # Use peripherals
 
-These examples cover the full-peripheral image. Run target commands as root
+These examples cover the standard full board image. Run target commands as root
 on the S31; run the explicitly marked build commands on the Linux build host.
 Prepare the image using [Build from source](../get-started/build-from-source.md)
 in the standard full board configuration. The rootfs includes libgpiod v2 tools, I2C tools,
@@ -247,7 +247,7 @@ BR2_PACKAGE_IPROUTE2=y
 make buildroot-reconfigure
 make fetch
 make image
-make flash-all PORT=/dev/ttyUSB0
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 On the S31, configure a 500 kbit/s bus:

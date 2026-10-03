@@ -55,14 +55,13 @@ esp32-config network static ADDRESS PREFIX GATEWAY_OR_- [DNS ...]
 `connect` 通过参数接收 SSID，从终端或标准输入读取一次密码。
 选择 `open` 时不读取密码。`configure-hex` 接收以十六进制表示的完整 SSID 字节。
 
-加密配置接受 8–63 字节的密码，或 64 位十六进制 PSK。
+加密配置接受 8–63 字节的密码，或 64 个十六进制字符组成的 PSK。
 工具保存派生密钥，不保留明文口令。
 加密网络的 SSID 包含零字节时，需要使用 `configure-hex` 和预先计算好的 PSK；
 开放网络只需使用 `configure-hex`。
 
-为兼容已有自动化，非交互式 `wifi configure` 保留三行输入约定：SSID、密码、相同密码。
-该兼容流程只保存配置。新脚本可以使用 `wifi connect`，从标准输入提供一行密码，
-完成保存并连接。
+非交互式 `wifi configure` 读取三行输入：SSID、密码、相同密码。此方式只保存配置。
+使用 `wifi connect` 并从标准输入提供一行密码，可以完成保存并连接。
 
 连接操作在完成后返回 `0`，应用失败时返回 `1`，等待结束但连接仍未完成时返回 `2`。
 重试前可先查看 `wifi status`；等待未完成时，连接进程会继续运行。
@@ -111,7 +110,7 @@ GPIO 配置立即生效，退出菜单后继续保持，并由 Linux 启动服�
 `read` 读取受管理的输入；读取受管理的输出时，返回配置的电平。
 使用方式和引脚占用规则见[使用外设](../user-guides/peripherals.md)。
 
-原有诊断命令继续保留在 CLI 中：
+CLI 还提供以下诊断命令：
 
 ```text
 esp32-config gpio info [CHIP]

@@ -28,10 +28,12 @@ For runtime peripheral selection, see [Using overlays](overlay-catalog.md).
 ## Persistent files
 
 The root filesystem combines the read-only SquashFS image with a writable
-JFFS2 layer using OverlayFS. Ordinary files written to this merged root survive
-a reboot, including `/etc/esp32-conf` and Bluetooth pairing data in
-`/var/lib/btstack`. Applications use these normal paths; the JFFS2 backing
-store is assembled during early boot.
+JFFS2 layer using OverlayFS. When persist mounts successfully, ordinary files
+written to this merged root are stored across reboots, including `/etc/esp32-conf`
+and Bluetooth pairing data in `/var/lib/btstack`. Applications use these normal
+paths; the JFFS2 backing store is assembled during early boot. Persistence on
+the current compact image still needs physical-board validation; a read-only
+recovery boot cannot save these changes.
 
 The following locations are temporary:
 
@@ -44,8 +46,9 @@ The following locations are temporary:
 The persistent partition has **2120 KiB** of raw flash capacity, before JFFS2
 metadata overhead. There is no HIL scratch partition in the compact layout.
 Use an SD card or USB storage for larger applications, media, and logs, enabling
-the required storage overlay. The standard configuration includes the native
-storage drivers; external-device support still depends on the selected driver.
+the required SDMMC overlay for an SD card. The standard configuration includes
+USB host storage, FAT/VFAT, and built-in ext4 support; device and filesystem
+interoperability still require testing.
 
 Some firmware-owned files are refreshed from the image during boot. See
 [Deploy files that must survive reboot](deploy-files-that-must-survive-reboot)
@@ -53,8 +56,9 @@ for those exceptions and the appropriate way to install replacements.
 
 ## Keep settings during an update
 
-Use complete matched slot images or `make flash-all` to preserve persist only
-when the board already uses the same compact layout. Back up data externally
+Use `make image` to publish a matched image set, then
+`make flash-existing-all` to flash that set without rebuilding. Persist is
+preserved only when the board already uses the same compact layout. Back up data externally
 before a layout change. Writing `s31_full_flash.bin` or erasing flash destroys
 persist. The `flash-persist` and `erase` Make targets refuse destructive operations. See
 [Flash and first boot](../get-started/flash-and-first-boot.md).

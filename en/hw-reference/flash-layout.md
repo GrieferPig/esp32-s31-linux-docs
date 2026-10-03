@@ -30,7 +30,8 @@ read-only `/dev/mtdNro` alias; identify `N` from the sysfs name
 covers the complete 16 MiB, including the reserved prefix and every partition,
 without granting write access through that alias. With `CONFIG_MTD_BLOCK=y`,
 `/dev/mtdblockN` also exposes the complete master as a block device. The writable
-master remains available as requested.
+master is intentionally retained by the full-board configuration. These are
+source-defined interfaces; erase/write acceptance of the merged image remains pending.
 
 ## Raw offsets and XIP addresses
 
@@ -67,7 +68,7 @@ matching kernel/module. The Linux radio module lives in `rootfs.sqfs`.
 
 ## Preserve data
 
-Slot-wise `make flash-all` leaves persist untouched **only when the board
+Slot-wise `make flash-existing-all` (`flash-all` is an alias) leaves persist untouched **only when the board
 already uses this layout**. Writing the contiguous `s31_full_flash.bin`
 overwrites persist, even without a separate chip erase.
 

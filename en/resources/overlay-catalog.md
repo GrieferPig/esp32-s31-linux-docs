@@ -23,8 +23,9 @@ s31-overlay status
 
 `list` shows the overlays installed in the image. In `status`, `active:`
 entries come from the running kernel; `persisted:` lists the desired selections
-saved for the next boot. Optional peripheral drivers
-need the [full board configuration](../get-started/build-configuration.md).
+saved for the next boot. Optional peripheral drivers are included in the
+standard [full board configuration](../get-started/build-configuration.md);
+the overlays and physical hardware still need configuration.
 
 | Group | Overlay names | Notes |
 |---|---|---|

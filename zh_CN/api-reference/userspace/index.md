@@ -22,7 +22,8 @@ int main(void)
 
 ```sh
 cache/toolchains/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
-  -Os -mabi=ilp32 hello.c -o hello
+  -Os -march=rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs \
+  -mabi=ilp32 -mtune=esp-base hello.c -o hello
 install -D -m 0755 hello \
   buildroot-external/board/esp32-s31/overlay/usr/bin/hello
 make image
@@ -68,7 +69,8 @@ int main(void)
 
 ```sh
 cache/toolchains/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
-  -Os -mabi=ilp32 -Iout/buildroot/staging/usr/include \
+  -Os -march=rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs \
+  -mabi=ilp32 -mtune=esp-base -Iout/buildroot/staging/usr/include \
   simd-demo.c -Lout/buildroot/staging/usr/lib -lesp-simd -o simd-demo
 install -D -m 0755 simd-demo \
   buildroot-external/board/esp32-s31/overlay/usr/bin/simd-demo

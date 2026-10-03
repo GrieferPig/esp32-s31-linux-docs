@@ -40,7 +40,7 @@ before removing the drive. The configuration tool does not format storage.
 
 Filesystem mounting is available when the running image includes the matching
 filesystem driver. The standard [full board configuration](../get-started/build-configuration.md)
-includes FAT/VFAT and ext4 support. For SD cards, enable the appropriate SDMMC
+includes FAT/VFAT and built-in ext4 support. For SD cards, enable the appropriate SDMMC
 interface and connect the card as described in [Use peripherals](peripherals.md).
 
 Choose **Removable storage → Select volume and mount**, then select:

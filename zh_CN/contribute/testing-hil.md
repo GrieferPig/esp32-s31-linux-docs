@@ -22,12 +22,12 @@ make check-host
 
 该目标包含功能契约、selftest、覆盖层和 BTstack 回归测试。功能测试使用主机
 C 编译器检查 I2C 命令生成、SPI 字序和 I2S 配置，并检查无线及构建接口约定。
-BTstack 测试使用 `make fetch` 获取的固定源码。前置条件及完整的 `check-fast`
+BTstack 测试使用 `make btstack-source` 获取的固定源码；`make fetch` 也包含这一步。前置条件及完整的 `check-fast`
 流程见[开发环境](development-setup.md)。主机测试通过与开发板测试证据是两回事。
 
 ## 2. 准备开发板
 
-构建完整外设镜像并烧录 S31：
+构建完整开发板镜像并烧录 S31：
 
 ```sh
 make image
@@ -35,7 +35,7 @@ make PORT=/dev/ttyUSB0 BAUD=2000000 flash-existing-all
 ```
 
 请将 `PORT` 替换为 S31 串口设备。`make image` 在主机上构建并验证镜像；
-`make flash-existing-all` 写入 `dist/current` 的完整匹配集，不重新构建。完成
+`make flash-existing-all` 写入 `dist/current` 的完整匹配集，不重新构建；只有已安装布局相同时才保留 persist。首次安装或变更布局应先按[烧录与首次启动](../get-started/flash-and-first-boot.md)备份并全新安装。完成
 [首次登录和启动检查](../get-started/flash-and-first-boot.md)后，为需要对端的用例
 安装 P4 测试固件。按引脚表连接夹具，确保共地且信号电压兼容。启动主机测试程序前，关闭串口监视程序。
 
@@ -100,6 +100,8 @@ python3 tools/hil/s31_hil.py --board both --case c6-ble \
 ```
 
 Wi-Fi 用例设置夹具接入点和临时 STA 配置，然后检查关联、地址分配和数据包交换。它还会临时更改无线服务，并在清理时恢复。
+
+当前合并镜像的运行时及物理开发板验收仍未完成。必须在对应镜像上验证正常启动、可写持久化与 LP 就绪；恢复环境中的登录不能证明这些功能正常。
 
 进行电源管理测试前，先查看当前的[挂起限制](../api-guides/power-management.md)。GPIO 唤醒需要连接 LP GPIO0–7，而不是夹具通常使用的较高编号引脚。
 

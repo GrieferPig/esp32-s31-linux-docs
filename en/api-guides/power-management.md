@@ -55,13 +55,17 @@ These commands check the mailbox and LP timer with Linux running. The
 [LP reference](../api-reference/lp-core/index.md) gives GPIO transition examples,
 argument ranges and result fields. Start there before testing system sleep.
 
-## Suspend-to-idle (`freeze`)
+## Prepare for system suspend
 
 With LP firmware ready, stop Wi-Fi activity and bring the interface down before
-testing. Current SoftMAC returns `EBUSY` for a running interface; the radio
-module propagates that veto before suspending Bluetooth or stopping the payload.
+either `freeze` or `mem` testing. Current SoftMAC returns `EBUSY` for a running
+interface; the radio module propagates that veto before suspending Bluetooth or
+stopping the payload.
 Active Wi-Fi replay/reassociation is not implemented. Unmount USB storage and
 disable USB-backed swap before a suspend experiment, since devices may reconnect.
+
+## Suspend-to-idle (`freeze`)
+
 Enable a one-second diagnostic timer and enter freeze:
 
 ```sh
@@ -83,8 +87,8 @@ This path exercises Linux device suspend/resume and LP transactions. The HP
 side polls for LP completion during the noirq phase; it is not evidence of an
 HP low-power state. See the [polling implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c).
 
-The S31 DWC2 suspend callback disables its IRQ, global interrupts and low-level
-hardware, and sets `phy_off_for_suspend`. There is no freeze-specific exception
+The S31 DWC2 suspend callback disables its IRQ, the controller’s global
+interrupt enable and low-level hardware, and sets `phy_off_for_suspend`. There is no freeze-specific exception
 that keeps the controller/PHY active. The resume path re-enables and restores
 the controller as needed; USB devices may reconnect. See
 [DWC2 suspend/resume](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/dwc2/platform.c).
@@ -108,7 +112,7 @@ Parameters under `/sys/module/esp32s31_lp/parameters/` are:
 
 The timer remains required as a recovery source even when GPIO wake is added.
 A selected GPIO must be inactive when ARM runs, as in the awake GPIO test.
-LP starts the retention timer after OpenSBI publishes `HP_ASLEEP`. The profile
+LP starts the retention timer after OpenSBI publishes `HP_ASLEEP`. The power policy
 and memory reservations are in [Power domains](../hw-reference/power-domains.md)
 and [Memory map](../hw-reference/memory-map.md).
 

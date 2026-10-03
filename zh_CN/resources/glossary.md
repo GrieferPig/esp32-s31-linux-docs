@@ -17,7 +17,7 @@
 | M-mode | RISC-V 机器模式，由 OpenSBI 使用 |
 | S-mode | RISC-V 监管者模式，由 Linux 使用 |
 | OpenSBI | 为 Linux 和 U-Boot 提供底层 RISC-V 服务的固件 |
-| Payload | 在无线指南中，指由 Linux 驱动加载的外部无线固件 |
+| Payload | 在无线指南中，指固定 flash XIP 分区中的预链接无线代码和数据，与配套 Linux 内核及模块一同构建 |
 | Persist | 用于保存文件和设置的可写 JFFS2 flash 分区 |
 | PSRAM | 外部伪静态 RAM，用作 Linux 的可写内存 |
 | 资源声明 | 用于预留控制器、DMA 通道或其他共享资源的覆盖层条目 |

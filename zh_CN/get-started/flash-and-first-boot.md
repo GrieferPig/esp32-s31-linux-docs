@@ -51,13 +51,7 @@ USB 桥接芯片和开发板接线决定了设备名称，以及是否支持自�
 ## 3. 安装发布镜像
 
 从项目的[发布页面](https://github.com/GrieferPig/esp32-s31-linux/releases)
-下载 `s31_full_flash.bin`，并通过发布说明确认其源码版本。当前自动发布只上传合并镜像；完整组件集和清单位于源码构建的 `dist/current`。若此次发布另外提供可信的 `SHA256SUMS`，应在下载目录校验后再烧录：
-
-```sh
-sha256sum --check --ignore-missing SHA256SUMS
-```
-
-若已提供校验和，Windows 使用 `Get-FileHash .\s31_full_flash.bin -Algorithm SHA256`，与 `SHA256SUMS` 中同名条目比较。校验不匹配时停止；文件和校验和必须来自同一次可信发布。
+下载 `s31_full_flash.bin`，并通过发布标签确认其对应的主仓库源码提交。当前自动发布只上传合并镜像，不附带组件镜像、清单或 `SHA256SUMS`。仅计算已下载文件的哈希，不能独立验证文件的完整性或来源。请在下载目录执行下列命令。
 
 > **警告：** 下列命令会擦除整个 Flash 芯片，包括已保存的设置。即使省略显式
 > 擦除步骤，烧录合并镜像仍会覆盖 persist 区域。若要更新并保留该区域，请使用
@@ -157,19 +151,9 @@ persist 位于 `[0x1EE000, 0x400000)`，总容量为 2120 KiB。擦除后的区�
 
 ## 7. 保留设置更新系统
 
-### 使用发布组件
+以下方法仅适用于开发板已经使用上述布局的情况。即使布局相同，更新前也应在其他设备上保留重要数据的已验证备份。
 
-此方法要求已取得全部六个组件和对应校验和/清单，例如源码构建的已验证集合，或明确提供完整集合的发布。当前只提供合并镜像的自动发布不能单独用于保留设置的组件更新。取得完整集合并验证后，保持整套文件不混用。无线 XIP 载荷使用该内核的地址，不能任意搭配其他构建。在 Linux 下载目录运行：
-
-```sh
-PORT=/dev/ttyUSB0
-python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash \
-  --flash-mode dio --flash-freq 80m --flash-size 16MB \
-  0x002000 spl_app.bin 0x00E000 u-boot.itb 0x05E000 esp32s31_generic.dtb \
-  0x06E000 radio.bin 0x400000 xipImage 0xA00000 rootfs.sqfs
-```
-
-PowerShell 中使用 `$PORT="COM3"`，将 `python` 替换为 `& $S31_PYTHON`，并将续行反斜杠改为反引号。同布局更新不要执行 `erase-flash`；上述六个写入范围不包含 persist。当前布局没有 HIL 临时分区。
+发布的合并安装镜像无法保留 persist。应通过[源码构建](build-from-source.md)生成完整、经过验证的匹配组件集，再进行下面的更新。
 
 ### 使用源码构建
 

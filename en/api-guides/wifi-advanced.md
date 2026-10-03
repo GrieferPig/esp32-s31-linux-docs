@@ -16,7 +16,7 @@ Run on the board:
 ```sh
 iw dev
 iw phy
-wpa_cli -i wlan0 status
+wpa_cli -p /run/wpa_supplicant -i wlan0 status
 ```
 
 Use `iw phy` to inspect the capabilities of the kernel you actually booted.

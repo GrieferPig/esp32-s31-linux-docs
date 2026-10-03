@@ -11,7 +11,7 @@
 | 应用与库 | `rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs` | `ilp32`，项目 Linux/musl 工具链 |
 | 无线载荷 | `rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv2p2` | `ilp32f`，ESP ELF/picolibc 构建 |
 
-这些配置来自[父项目 Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/main/Makefile)、[musl 工具链配置](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/riscv32-esp-linux-musl.config)、[应用编译标志](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig)、[内核 ABI 修改](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/Makefile)和[无线构建](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/Makefile)。
+这些配置来自[原生构建配置](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/config.mk)、[musl 工具链配置](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/riscv32-esp-linux-musl.config)、[应用编译标志](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig)、[内核 ABI 修改](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/Makefile)和[无线构建](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/Makefile)。
 
 `-march` 选择指令，`-mabi` 选择参数与返回值的调用约定。`ilp32` 应用可以在内部使用 F 指令，同时按软浮点调用约定传递浮点参数。内核的 `ilp32f` 标志不会改变 musl 应用 ABI。Linux 应用及其依赖库应统一采用 `ilp32`；无线载荷使用的独立运行时库不能替代 musl。
 
@@ -27,4 +27,4 @@
 
 普通应用编译标志不包含 XespV 和 Xesploop。SIMD 软件包显式编译手写的扩展汇编；项目不依赖自动 XespV 向量化。
 
-Xesploop 状态处理已存在，但父项目 Makefile 明确指出，任意库使用的所有 S 模式返回路径还不能安全保留活动循环状态。应将扩展使用限制在已审查的库 / 固件路径内，不要为普通应用全局启用 Xesploop。参见[构建限制](https://github.com/GrieferPig/esp32-s31-linux/blob/main/Makefile)和 [SIMD 软件包标志](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/esp-simd/esp-simd.mk)。
+Linux 和 OpenSBI 实现了 HWLoop/PIE 上下文处理，但源码支持不代表当前镜像已验证任意启用扩展的应用。应将扩展使用限制在已审查的库 / 固件路径内；普通应用的编译标志没有全局启用 Xesploop。参见[应用编译标志](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig)、[Linux 上下文处理](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/kernel/esp32s31-ext.c)和 [SIMD 软件包标志](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/esp-simd/esp-simd.mk)。

@@ -15,7 +15,9 @@ make image                        # Merge, verify and publish the image set
 make check                        # Host, documentation and devicetree checks
 ```
 
-Every build uses the full board configuration. `DEBUG=1` adds the debug fragment.
+Every build uses the full board configuration and native `-Os` optimization.
+Linux uses upstream `TRIM_UNUSED_KSYMS` with the generated radio import
+whitelist; ext4 is built in. `DEBUG=1` adds the debug fragment.
 Use `JOBS=4` to bound native parallelism. Machine paths and job limits may be set
 in ignored `local.mk`. See [Build configuration](../get-started/build-configuration.md).
 
@@ -23,6 +25,8 @@ in ignored `local.mk`. See [Build configuration](../get-started/build-configurat
 
 | Target | Description |
 |---|---|
+| `help` | Show the public commands; this is the default target |
+| `doctor` | Diagnose host tools and configured paths |
 | `build` | Build boot firmware, Linux, rootfs and the paired radio image |
 | `image`, `all`, `flash-image` | Build, merge, verify and atomically publish the image set |
 | `fetch` | Explicitly prepare pinned sources, toolchain, BTstack and Buildroot downloads |
@@ -36,10 +40,10 @@ in ignored `local.mk`. See [Build configuration](../get-started/build-configurat
 | `linux` | Build XIP kernel, device trees, overlays and radio module |
 | `rootfs`, `initramfs` | Build the SquashFS root filesystem |
 | `radio-idf-deps` | Build the ESP-IDF radio dependency closure |
-| `radio-linux-payload` | Build relocatable payload and generated import stubs |
+| `radio-linux-payload` | Build the intermediate payload, import stubs, and kernel export whitelist |
 | `radio-module` | Build and check the radio module and payload outputs |
 | `radio-image`, `radio-fs` | Build the radio XIP image bound to this kernel/module |
-| `radio-package` | Create an engineering archive from the verified image set |
+| `radio-package` | Package verified existing outputs as `out/images/esp32s31-radio-engineering-only.tar.xz`; does not build |
 | `lp-firmware` | Build LP firmware and stage it in the build staging overlay |
 | `persist` | Create an empty JFFS2 image; does not flash it |
 | `coremark` | Build and copy the benchmark into build staging |
@@ -106,7 +110,8 @@ are host checks; they do not establish a successful hardware boot.
 |---|---|
 | `DEBUG` | `1` adds debug kernel configuration |
 | `JOBS` | Parallel native build jobs |
-| `OUT_ROOT`, `CACHE_DIR` | Output and shared-cache roots |
+| `OUT_ROOT`, `CACHE_DIR` | Output and shared-cache roots, defaulting to `out/` and `cache/` |
+| `DEFCONFIG`, `LINUX_TARGET` | Native kernel configuration and image target, defaulting to `esp32s31_defconfig` and `xipImage` |
 | `PORT`, `BAUD` | Device port and baud rate |
 | `IDF_EXPORT`, `IDF_PATH`, `IDF_ROOT` | Local ESP-IDF paths |
 | `TOOLCHAIN_PREFIX` | Installed cross-toolchain directory |

@@ -15,6 +15,22 @@
 
 布局来源为主仓库的 `configs/esp32s31-layout.cfg`，镜像打包、大小检查与烧录共用该文件。所有分区以 8 KiB NOR 擦除粒度对齐，Linux 起点还满足 Sv32 的 4 MiB 大页对齐要求。
 
+## MTD 设备与原始访问
+
+设备树定义七个子分区，除 persist 外都标为只读。`CONFIG_MTD_PARTITIONED_MASTER=y`
+还会有意导出名为 `40000000.flash` 的完整 16 MiB 可写 master。通过 master
+写入可绕过子分区的只读标志，并覆盖 ROM 保留区和启动槽位；原始操作必须自行
+核对范围。persist 和 rootfs 按标签查找，不应假定固定的 MTD 编号。
+
+完整 master 可从偏移 0 连续读取到 `0xFFFFFF`。根据 sysfs 中的名称
+`40000000.flash` 找到编号 `N`；`/dev/mtdNro` 是完整 master 的只读别名，
+可读取保留区及所有分区而不通过该别名授予写权限。`/dev/mtdN` 仍可写，
+`CONFIG_MTD_BLOCK=y` 也提供完整 master 的 `/dev/mtdblockN` 块设备。
+这些是当前配置与驱动的接口，不代表当前镜像已通过擦写验证。
+
+参见[内核 Flash 设备树](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
+及 [Flash 驱动](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/mtd/devices/esp32s31_flash.c)。
+
 ## Flash 地址换算
 
 SPL 将原始 Flash `[0, 16 MiB)` 线性映射到物理地址 `0x40000000`：
@@ -35,7 +51,7 @@ FIT 的 OpenSBI 数据固定在 FIT 偏移 `0x400`，因此 OpenSBI 从 `0x4000E
 
 ## 更新与持久化数据
 
-`make flash-existing-all` 使用 `dist/current` 中已验证的匹配组件集，写入 SPL、FIT、DTB、无线、内核和 rootfs，保留 persist。`make flash-all` 是其别名，同样不会构建。更改源码后先运行 `make image`，或使用显式的 `make build-flash`。
+`make flash-existing-all` 使用 `dist/current` 中已验证的匹配组件集，写入 SPL、FIT、DTB、无线、内核和 rootfs；只有开发板已使用完全相同布局时，才能保留 persist。`make flash-all` 是其别名，同样不会构建。更改源码后先运行 `make image`，或使用显式的 `make build-flash`。
 
 合并安装镜像 `s31_full_flash.bin` 包含分区间的填充，烧录它会覆盖 persist。整片擦除也会清除设置。更换布局时，不能假设旧位置的数据会自动迁移；先在实际运行的旧系统中备份，再按目标发布说明迁移。
 
@@ -44,5 +60,7 @@ FIT 的 OpenSBI 数据固定在 FIT 偏移 `0x400`，因此 OpenSBI 从 `0x4000E
 ## 修改布局
 
 修改 `configs/esp32s31-layout.cfg` 时，必须同步更新 U-Boot 映射与启动地址、Linux 设备树、XIP 内核地址、无线预链接约定及有关测试。运行 `make check-layout`，并重新验证所有镜像体积和完整匹配集。不得绕过容量检查或让分区重叠。
+
+当前紧凑布局尚未完成物理开发板启动与烧录验证；主机布局检查通过不代表硬件启动成功。
 
 烧录与控制台步骤见[烧录与首次启动](../get-started/flash-and-first-boot.md)。

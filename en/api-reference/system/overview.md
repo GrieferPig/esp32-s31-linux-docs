@@ -35,15 +35,17 @@ see [Configuration](../../resources/configuration.md).
 
 Applications use Linux interfaces such as GPIO character devices, I2C, SPI,
 ALSA and sockets. `s31-overlay` enables optional peripherals and selects their
-pins. Most peripheral examples need the full-peripheral
-[build configuration](../../get-started/build-configuration.md).
+pins. The standard [build configuration](../../get-started/build-configuration.md)
+includes the native peripheral drivers; external devices can require additional
+drivers and board wiring.
 
 ## Radio and low-power core
 
-Wi-Fi and Bluetooth share a Linux radio module and payload. The radio service
-worker runs on HP core 0; Wi-Fi frontend receive NAPI and buffer refill run on
-HP core 1. Payload compatibility tasks preserve requested affinity. The
-[interrupts and SMP reference](interrupts-smp.md) explains these execution and
+Wi-Fi and Bluetooth share a Linux radio module and payload. Its common worker,
+when used, runs on HP core 0; Wi-Fi-only SoftMAC uses native task servicing.
+Frontend receive NAPI and I/O target HP core 1, with HP core 0 as the fallback
+when core 1 is offline. Payload compatibility tasks preserve requested affinity.
+The [interrupts and SMP reference](interrupts-smp.md) explains these execution and
 IRQ-routing boundaries. Bluetooth normally uses BTstack through `/dev/s31-hci`.
 
 LP firmware is loaded by Linux remoteproc and handles mailbox, timer and GPIO

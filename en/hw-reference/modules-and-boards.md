@@ -1,7 +1,8 @@
 # Modules and boards
 
-The port targets ESP32-S31 platforms. The [maintainer's board report](https://github.com/GrieferPig/esp32-s31-linux/blob/main/README.md)
-lists these boards and module:
+The port targets ESP32-S31 platforms. The [project README](https://github.com/GrieferPig/esp32-s31-linux/blob/main/README.md)
+lists these target boards and module; it does not establish hardware acceptance
+of the current merged image:
 
 - Espressif ESP32-S31 Coreboard
 - Espressif ESP32-S31 Korvo

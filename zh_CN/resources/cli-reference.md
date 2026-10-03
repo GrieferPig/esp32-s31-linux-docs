@@ -112,7 +112,7 @@ python3 tools/hil/s31_hil.py --help
 ```sh
 iw dev
 iw phy
-wpa_cli -i wlan0 status
+wpa_cli -p /run/wpa_supplicant -i wlan0 status
 ip addr show wlan0
 ```
 
@@ -121,5 +121,5 @@ ip addr show wlan0
 ## 开发工具
 
 项目包含 CoreMark、内存和 libc 测试、扩展指令测试及其他诊断工具的源码。
-其中有多个工具会被 `post-build.sh` 从精简 rootfs 中移除。
+其中有多个工具会被 `post-build.sh` 从 6 MiB rootfs 中移除。
 如需将工具加入镜像，请参照[添加用户空间工具](../api-guides/adding-a-userspace-tool.md)。

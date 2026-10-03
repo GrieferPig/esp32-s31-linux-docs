@@ -32,7 +32,7 @@ GPIO 编号表示 SoC 信号；[开发板默认配置](../../hw-reference/module
 
 | 外设 | Linux 接口 | 覆盖层或设置 |
 |---|---|---|
-| GPIO | GPIO 字符设备；`gpioinfo`、`gpioget`、`gpioset` | 选择板上的空闲引脚 |
+| GPIO | GPIO 字符设备；libgpiod 和 `esp32-config gpio` | 选择空闲引脚；托管 GPIO 设置在启动时恢复 |
 | UART | `/dev/ttyS*` | `uart1`、`uart2`、`uart3` 或 `uart3-dma` |
 | I2C | `/dev/i2c-*` | `i2c0` 或 `i2c1` |
 | SPI | SPI 子系统；用户空间客户端使用 `/dev/spidev*` | `gpspi2`、`gpspi3` 或对应的目标模式配置 |
@@ -40,7 +40,7 @@ GPIO 编号表示 SoC 信号；[开发板默认配置](../../hw-reference/module
 | TWAI/CAN | SocketCAN | `twai0` 或 `twai1`；需要外部收发器 |
 | SD/MMC | MMC 块设备 | `sdmmc0`、`sdmmc1`、`sdmmc-dual` 或 `sdmmc-uhs` |
 | 以太网 | 网络接口和 PHY 驱动 | `gmac`；需要外部 PHY |
-| USB | DWC2 主机或 USB gadget | 主机设置或 `usb-device` |
+| USB | DWC2 主机、ACM 串口 gadget 或 ECM 网络 gadget | `esp32-config usb configure host\|serial\|network` |
 | GDMA | 内核 DMAengine API | 由客户端选择 AHB/AXI 提供者 |
 | 通用定时器 | Counter 框架 | `timers` |
 | LEDC、MCPWM、SDM 和脉冲计数器 | PWM 和 Counter 框架 | `pwm-counter` |
@@ -202,8 +202,11 @@ TDM 设置。`espressif,external-card` 会禁用内置虚拟声卡，让外部�
 SD 卡使用 MMC 块层，TWAI 使用 SocketCAN，以太网使用常规 Linux 网络接口。
 对应的覆盖层选择控制器和引脚，底板则提供卡座、收发器或 PHY。
 
-基础设备树启用 DWC2 主机模式，包含 USB 存储路径。`usb-device` 覆盖层选择
-gadget 模式，随后还需配置 gadget 功能并将其绑定到 UDC。切换角色之前，
+基础设备树启用 DWC2 主机模式及 USB 存储路径，标准内核内建 ext4 支持。使用
+`esp32-config usb` 管理主机、ACM 串口和 ECM 网络模式。管理器临时应用
+`usb-device`、创建所选 ConfigFS gadget 并绑定到 UDC。单独应用原始
+`usb-device` 覆盖层只会切换控制器角色；自定义 gadget 仍需自行配置功能并绑定。
+不要让手工配置的 gadget 与管理器同时拥有同一个 UDC。切换角色之前，
 请卸载 USB 文件系统并禁用位于 USB 存储上的 swap。
 [存储和 gadget 示例](../../user-guides/peripherals.md)给出了配置与清理步骤；
 实现是否存在与支持矩阵中记录的硬件状态是两个不同的问题。

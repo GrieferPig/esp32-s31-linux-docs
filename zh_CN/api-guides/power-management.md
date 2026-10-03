@@ -41,9 +41,9 @@ s31-lpctl sleep-test 1000
 
 这些命令在 Linux 运行时检查邮箱与 LP 定时器。[LP 参考](../api-reference/lp-core/index.md)提供 GPIO 电平变化示例、参数范围和结果字段。测试系统睡眠前应先完成这些检查。
 
-## 无线挂起前置条件
+## 系统挂起前的准备
 
-当前 SoftMAC 在 Wi-Fi 接口仍运行时返回 `EBUSY`，无线模块在停止蓝牙和共享载荷前返回该错误。进行任何系统挂起实验前，先关闭 Wi-Fi 接口。当前没有活动连接恢复实现，运行时重启不保证 Wi-Fi、蓝牙或组合模式自动重连。参见[无线架构](../api-reference/radio/architecture.md)。
+确认 LP 固件就绪。当前 SoftMAC 在 Wi-Fi 接口仍运行时返回 `EBUSY`，无线模块在停止蓝牙和共享载荷前返回该错误。进行 `freeze` 或 `mem` 实验前，先停止 Wi-Fi 活动并关闭接口，卸载 USB 文件系统并禁用 USB 存储上的 swap，因为设备可能重新连接。当前没有活动连接恢复实现，运行时重启不保证 Wi-Fi、蓝牙或组合模式自动重连。参见[无线架构](../api-reference/radio/architecture.md)。
 
 ## Suspend-to-idle（`freeze`）
 
@@ -63,7 +63,7 @@ echo 0 > /sys/module/esp32s31_lp/parameters/s2idle_wake_ms
 
 该路径测试 Linux 设备挂起 / 恢复和 LP 事务。HP 侧在 noirq 阶段轮询 LP 完成状态，因此不能据此证明 HP 进入了低功耗状态。参见[轮询实现](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c)。
 
-S31 DWC2 挂起回调禁用自身 IRQ、全局中断及底层硬件，并设置 `phy_off_for_suspend`。这里不存在专门为 freeze 保持控制器 / PHY 活动的例外。恢复路径按需重新启用并恢复控制器，USB 设备可能重新连接。参见 [DWC2 挂起 / 恢复](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/dwc2/platform.c)。
+S31 DWC2 挂起回调禁用自身 IRQ、控制器的全局中断使能及底层硬件，并设置 `phy_off_for_suspend`。这里不存在专门为 freeze 保持控制器 / PHY 活动的例外。恢复路径按需重新启用并恢复控制器，USB 设备可能重新连接。参见 [DWC2 挂起 / 恢复](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/dwc2/platform.c)。
 
 ## Suspend-to-RAM（`mem` / `deep`）
 

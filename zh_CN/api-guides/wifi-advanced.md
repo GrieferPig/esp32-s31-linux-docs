@@ -9,7 +9,7 @@
 ```sh
 iw dev
 iw phy
-wpa_cli -i wlan0 status
+wpa_cli -p /run/wpa_supplicant -i wlan0 status
 ```
 
 以实际启动内核的 `iw phy` 输出为准。当前驱动接受一个 STA 接口，拒绝额外的 STA 或 AP 接口。

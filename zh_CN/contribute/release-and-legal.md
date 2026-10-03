@@ -4,13 +4,13 @@
 
 ## 镜像集与发布文件
 
-`make image` 生成并验证六个组件：`spl_app.bin`、`u-boot.itb`、`esp32s31_generic.dtb`、`radio.bin`、`xipImage` 和 `rootfs.sqfs`，以及合并镜像、`radio.json`、`build-manifest.json`、校验和及发布清单。通过验证后，完整匹配集位于 `dist/<build-id>/`，`dist/current` 指向该集合。
+`make image` 生成并验证六个组件：`spl_app.bin`、`u-boot.itb`、`esp32s31_generic.dtb`、`radio.bin`、`xipImage` 和 `rootfs.sqfs`，以及合并镜像、`radio.json`、`build-manifest.json`、校验和文件。通过验证后，完整匹配集位于 `dist/<build-id>/`，`dist/current` 指向该集合。
 
-本地镜像清单由 `tools/release/assets.py` 管理。当前 GitHub Release 工作流验证完整集合后，只上传 `s31_full_flash.bin`，并使用仓库的 `configs/release-notes.md` 作为安装说明。不能假设 GitHub Release 提供全部本地组件或校验文件；以该次发布的实际附件为准。
+本地镜像清单由 `tools/release/assets.py` 管理。当前 GitHub Release 工作流验证完整集合后，只上传 `s31_full_flash.bin`，并使用仓库的 `configs/release-notes.md` 作为说明正文，只包含 `root` 用户名、`esp32-config` 提示和 Linux/Windows 烧录命令。发布标签对应主仓库源码提交。参见[发布工作流](https://github.com/GrieferPig/esp32-s31-linux/blob/main/.github/workflows/release-images.yml)和[发布正文](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/release-notes.md)。不能假设 GitHub Release 提供全部本地组件或校验文件；以该次发布的实际附件为准。
 
 ## 准备发布
 
-构建并测试改动，更新当前功能状态和安装说明，确认镜像符合 Flash 容量及匹配关系。清单应记录来源、工具链、配置、哈希及继承产物的来源；无法验证的优化或硬件能力应明确标注。
+构建并测试改动，更新当前功能状态和安装说明，确认镜像符合 Flash 容量及匹配关系。清单应记录来源、工具链、配置、哈希及继承产物的来源；无法验证的优化或硬件能力应明确标注。迁移与验证细节保存在文档及测试记录中。
 
 合并镜像会覆盖 persist。向现有用户提供保留数据的更新时，应提供并验证完整匹配组件集，而且用户已安装的布局必须相同。更换布局必须先备份并全新安装；参见[Flash 布局](../hw-reference/flash-layout.md)。
 

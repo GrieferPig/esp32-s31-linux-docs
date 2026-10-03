@@ -28,6 +28,6 @@ Linux 在 ESP32-S31 的两个高性能核上运行，并使用 Sv32 虚拟内存
 
 ## 无线与低功耗核
 
-Wi-Fi 和 Bluetooth 共享 Linux 无线模块与载荷。无线服务工作线程运行在 HP 核 0；Wi-Fi 前端接收 NAPI 和缓冲区补充工作运行在 HP 核 1。载荷兼容任务保留其请求的亲和性。[中断与 SMP 参考](interrupts-smp.md)解释这些执行位置及 IRQ 路由边界。Bluetooth 通常通过 `/dev/s31-hci` 使用 BTstack。
+Wi-Fi 和 Bluetooth 共享 Linux 无线模块与载荷。使用公共工作线程时，该线程运行在 HP 核 0；仅 Wi-Fi 的 SoftMAC 模式使用原生任务服务。前端接收 NAPI 和 I/O 定向到 HP 核 1，核 1 不在线时回退到 HP 核 0。载荷兼容任务保留其请求的亲和性。[中断与 SMP 参考](interrupts-smp.md)解释这些执行位置及 IRQ 路由边界。Bluetooth 通常通过 `/dev/s31-hci` 使用 BTstack。
 
 LP 固件由 Linux remoteproc 加载，处理邮箱、定时器和 GPIO 唤醒请求。它们各自的接口见[无线参考](../radio/index.md)及 [LP 参考](../lp-core/index.md)。
