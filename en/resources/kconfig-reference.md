@@ -1,9 +1,11 @@
 # Kernel configuration
 
 Kernel options select the drivers and system features built into Linux. The
-S31 defconfig is under `linux-esp32-s31/arch/riscv/configs/`. The parent
-Makefile applies the selected [build configuration](../get-started/build-configuration.md)
-when building the kernel.
+S31 defconfig is `linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig`. The
+parent Makefile combines it with `configs/kernel/common.config` and
+`configs/kernel/board.config`; `DEBUG=1` also adds
+`configs/kernel/debug.config`. See
+[Build configuration](../get-started/build-configuration.md).
 
 ## S31 options
 
@@ -51,6 +53,11 @@ grep '^CONFIG_ESP32S31_RADIO_SMODE_DRIVER=' out/linux/.config
 `y` builds a feature into the kernel; `m` builds a loadable module where the
 option supports it. Disabled options are shown as `# CONFIG_NAME is not set`.
 
-`.config` is ephemeral. For lasting changes, update the source defconfig and any relevant board
-settings. The next parent build reapplies the source defconfig to `.config`. Enable the corresponding
-overlay on the board to use an optional peripheral.
+For lasting changes, update the source defconfig or the relevant tracked
+fragment in `configs/kernel/`. The parent regenerates `.config` when those
+inputs or the toolchain identity change, or when `.config` is missing.
+Unchanged inputs keep the native incremental configuration. Direct edits to
+`out/linux/.config` are not a reproducible source configuration and can be
+replaced by that regeneration; the parent also checks required feature
+contracts before each build. Enable the corresponding overlay on the board
+to use an optional peripheral.

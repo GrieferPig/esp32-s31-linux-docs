@@ -70,8 +70,9 @@ Check available space with `df -h`; the persistent partition is small.
 
 Run `s31-overlay status` and check that the peripheral's overlay is active.
 Then inspect `dmesg` for a failed probe or a missing clock, DMA channel, or
-other dependency. Optional peripherals need the
-[full board build](../get-started/build-configuration.md).
+other dependency. The
+[standard build](../get-started/build-configuration.md) includes the native
+peripheral drivers; optional controllers still need their runtime overlays.
 
 ### An overlay command fails
 

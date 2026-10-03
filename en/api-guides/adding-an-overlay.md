@@ -68,7 +68,8 @@ make linux rootfs radio-fs
 The DTBO is built in `out/linux/arch/riscv/boot/dts/espressif/` and
 installed into `/usr/lib/s31-overlays` in the rootfs. `radio-fs` refreshes the
 radio image against the rebuilt kernel. Keep the kernel, rootfs/module, and
-radio image from the same build when updating the board.
+radio image from the same build when updating the board. Run `make image`
+to verify and publish the complete matched set for the flashing workflow.
 
 ## 4. Test it on the board
 

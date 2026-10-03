@@ -2,9 +2,13 @@
 
 This page summarizes the port's features and current limitations. Status labels
 are the project's reported maturity, not a claim that every feature has passed
-hardware testing on every current build. Build with the
-[full board configuration](../get-started/build-configuration.md) for optional buses,
-audio, storage, and networking drivers.
+hardware testing on every current build. The standard
+[full board configuration](../get-started/build-configuration.md) includes optional
+bus, audio, storage, and networking drivers; runtime overlays enable the devices.
+
+Hardware boot and flashing validation of the current
+[compact flash layout](../hw-reference/flash-layout.md) is pending. Successful
+host checks and image builds do not establish runtime validation.
 
 ## Legend
 
@@ -39,7 +43,11 @@ still needs measurement.
 
 ## Radio
 
-> Note on Bluetooth: Due to memory and flash overhead, `BTstack` is used instead of the full Linux `bluez` stack. However, you can technically compile and use `bluez`.
+The supplied rootfs uses BTstack through direct HCI. BlueZ and its supporting
+userspace stack are not packaged; the post-build script also removes those
+files from the target tree. Using BlueZ with the alternate Linux HCI frontend
+requires a custom rootfs configuration and packaging changes, plus a radio
+reload with `direct_hci=0`.
 
 | Feature | Status | Notes |
 |---|---|---|

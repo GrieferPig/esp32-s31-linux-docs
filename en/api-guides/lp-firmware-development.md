@@ -21,6 +21,7 @@ make rootfs radio-fs
 
 The parent rootfs target also rebuilds Linux; refresh `radio.bin` and keep the
 kernel, rootfs/module, and radio image together when deploying the update.
+Run `make image` to verify and publish the complete matched set before flashing.
 
 After installing the updated image, check startup with:
 

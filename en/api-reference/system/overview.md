@@ -41,14 +41,17 @@ See [Memory map](../../hw-reference/memory-map.md) and
 
 Applications use Linux interfaces such as GPIO character devices, I2C, SPI,
 ALSA, and network sockets. Use `s31-overlay` to enable optional peripherals
-and choose their pins. Most peripheral examples require the full-peripheral
-[build configuration](../../get-started/build-configuration.md).
+and choose their pins. The standard
+[build configuration](../../get-started/build-configuration.md) includes all
+native peripheral drivers.
 
 ## Radio and low-power core
 
 Wi-Fi and Bluetooth share a Linux radio module and firmware runtime. The
-runtime executes on HP core 0, while Linux can schedule other work on either
-core. Bluetooth normally uses BTstack through `/dev/s31-hci`.
+device interrupts and common worker run on HP core 0; compatibility tasks
+retain their requested affinity, and SoftMAC also uses HP core 1. Linux can
+schedule other work on either core. Bluetooth normally uses BTstack through
+`/dev/s31-hci`.
 
 The LP core runs its own firmware, loaded by Linux remoteproc. It exchanges
 messages with Linux and handles timer and GPIO wakeup requests. See the

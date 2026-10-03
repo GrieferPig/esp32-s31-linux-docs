@@ -4,8 +4,9 @@ The port exposes peripherals through standard Linux interfaces, including
 TTY, I2C, SPI, ALSA, and SocketCAN. Use a device-tree overlay to enable an
 optional controller and select its pins.
 
-> Build the [full board configuration](../../get-started/build-configuration.md) for
-I2C, SPI, I2S, Ethernet, SD/MMC, and the other optional drivers in this chapter.
+The [standard build](../../get-started/build-configuration.md) includes I2C,
+SPI, I2S, Ethernet, SD/MMC, and the other native peripheral drivers. Enable
+optional controllers with the overlays below.
 
 ## Enable a peripheral
 

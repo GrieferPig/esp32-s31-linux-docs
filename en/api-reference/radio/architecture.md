@@ -63,9 +63,10 @@ not an exclusively preallocated receive path.
 
 The common runtime contains stop/reset/restart support, including restoring
 initial mutable firmware data. This does not establish working recovery for
-every frontend. Current SoftMAC rejects suspend while its interface is running
-and has no active-connection replay implementation. Do not rely on automatic
-Wi-Fi, Bluetooth, or combo reconnection after system sleep. The Wi-Fi suspend
+every frontend. Current SoftMAC rejects suspend while its interface is running;
+the radio module returns that error before stopping Bluetooth or the shared
+payload. SoftMAC has no active-connection replay implementation. Do not rely on
+automatic Wi-Fi, Bluetooth, or combo reconnection after system sleep. The Wi-Fi suspend
 HIL sequence is a diagnostic rather than a support guarantee.
 
 See [Power management](../../api-guides/power-management.md) for sleep limits

@@ -35,11 +35,13 @@ and size required by the mapping.
 
 ## Examples in the port
 
-The [SPI driver](https://github.com/GrieferPig/linux-esp32-s31/blob/7b593bfc0c01d117410dead80868301c3e380fec/drivers/spi/spi-esp32s31.c)
+In the current checkout,
+`linux-esp32-s31/drivers/spi/spi-esp32s31.c`
 uses private DMA buffers with explicit synchronization. It also handles RX
 alignment and terminates DMA during transfer cleanup.
 
-The [I2S driver](https://github.com/GrieferPig/linux-esp32-s31/blob/7b593bfc0c01d117410dead80868301c3e380fec/sound/soc/espressif/esp32s31-i2s.c)
+The I2S driver at
+`linux-esp32-s31/sound/soc/espressif/esp32s31-i2s.c`
 uses `SNDRV_DMA_TYPE_NONCOHERENT`, allowing ALSA to synchronize PCM buffers.
 Sv32 has no uncached page-table attribute for making these PSRAM buffers
 coherent.

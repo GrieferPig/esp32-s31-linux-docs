@@ -23,7 +23,7 @@ jobs:
       - name: Check documentation policy
         shell: bash
         run: |
-          test -f bootlog.png
+          test -f index.md
           ! grep -RInP '[\x{4e00}-\x{9fff}]' --include='*.md' .
           ! grep -RInE '/home/[^/]+|[[:xdigit:]]{2}(:[[:xdigit:]]{2}){5}' --include='*.md' .
       - name: Configure GitHub Pages

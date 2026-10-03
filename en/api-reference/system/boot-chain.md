@@ -31,11 +31,9 @@ uses these mapped addresses:
 booti 0x40400000 - 0x4005E000
 ```
 
-The first address is the kernel and the second is the device tree. Linux starts
-at a 4 MiB Sv32 megapage boundary so an XIP image larger than 4 MiB does not
-cross the unaligned mapping path reported in
-[issue #1](https://github.com/GrieferPig/esp32-s31-linux/issues/1).
-Flashing uses the raw offsets listed in
+The first address is the kernel and the second is the device tree. The kernel
+start is aligned to a 4 MiB Sv32 megapage boundary. Preserve that alignment
+when modifying the XIP layout. Flashing uses the raw offsets listed in
 [Flash layout](../../hw-reference/flash-layout.md).
 
 ## 3. Linux and the root filesystem

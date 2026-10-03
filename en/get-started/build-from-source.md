@@ -43,7 +43,7 @@ sudo apt-get install -y \
   git curl wget file python3 python3-venv cmake \
   bison bc build-essential ccache cpio device-tree-compiler flex gperf \
   libffi-dev libssl-dev ninja-build python3-pkg-resources python3-pyelftools \
-  rsync unzip xz-utils mtd-utils squashfs-tools
+  python3-dev swig rsync unzip xz-utils mtd-utils squashfs-tools
 ```
 
 ---
@@ -156,8 +156,7 @@ For more build targets, see the [Make reference](../resources/make-reference.md)
 
 Native build trees live beside `images/`: `linux/`, `opensbi/`, `u-boot/`,
 `idf-radio/`, `radio/`, `lp/`, and `buildroot/`. Shared downloads and toolchains
-are under `cache/`; `make clean` only removes the build output. The old
-`build/` tree is preserved and is not used as an implicit input.
+are under `cache/`; `make clean` only removes the build output.
 
 Host-specific settings belong in the ignored `local.mk`, for example:
 
@@ -167,7 +166,7 @@ JOBS := 4
 ```
 
 An explicitly requested `ROOTFS_BASELINE=/absolute/path/to/rootfs.sqfs` build
-repackages a verified legacy rootfs with the current radio module. Its manifest
+repackages a verified existing rootfs with the current radio module. Its manifest
 records incremental provenance, validates the full runtime inventory and module
 list, and rejects incomplete userspace. With explicit `ROOTFS_BUSYBOX_BUILD`
 evidence it can restore only missing stock logging/cron init scripts from pinned

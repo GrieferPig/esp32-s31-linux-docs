@@ -50,11 +50,14 @@ checks, install `docs/requirements.txt` and `dtschema==2026.6` in a host Python
 virtual environment and run:
 
 ```sh
+make btstack-source
 make check-host check-docs
 make check-dt
 ```
 
-`check-dt` needs the project cross-toolchain; the CI alternative is
+`btstack-source` prepares the pinned source before the host suite;
+`check-host` does not download it and skips its BTstack regression when the
+source is absent. `check-dt` needs the project cross-toolchain; the CI alternative is
 `python3 tools/checks/devicetree.py --cross-compile riscv64-linux-gnu-`.
 `make check-fast` combines these checks. They validate host-side contracts and
 build inputs, not electrical behavior. Then check the feature on the

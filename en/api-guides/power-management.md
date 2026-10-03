@@ -56,8 +56,10 @@ in the [LP reference](../api-reference/lp-core/index.md).
 
 The `freeze` path exercises Linux device suspend/resume and LP wakeup handling.
 Stop Wi-Fi activity and disable its interface before experimenting; current
-SoftMAC cannot suspend an active interface, and automatic radio recovery is
-not established. Set a timer before entering it:
+SoftMAC returns `EBUSY` for a running interface. The radio module propagates
+that veto before stopping Bluetooth or resetting the payload. Automatic
+connection recovery after sleep is not established. Set a timer before
+entering it:
 
 ```sh
 echo 1000 > /sys/module/esp32s31_lp/parameters/s2idle_wake_ms
@@ -76,7 +78,7 @@ swap before a suspend experiment.
 ## Suspend-to-RAM
 
 The source implements an experimental APPWR retention path with a mandatory
-recovery timer and optional LP GPIO wake. Linux, OpenSBI, and LP firmware now
+recovery timer and optional LP GPIO wake. Linux, OpenSBI, and LP firmware
 agree on the 112-byte ABI-v1 control block; rebuild all three together.
 This implementation-level check does not establish successful retention or
 peripheral recovery on a board.

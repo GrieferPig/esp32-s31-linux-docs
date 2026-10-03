@@ -10,9 +10,9 @@ For installation, see [Build from source](../get-started/build-from-source.md).
 make help                         # Default; no build or hardware access
 make doctor                       # Diagnose host tools and configured paths
 make fetch                        # Explicitly prepare pinned dependencies
-make build # Build the matched component set
-make image # Merge, verify and publish the image set
-make check    # Host, documentation and devicetree checks
+make build                        # Build the matched component set
+make image                        # Merge, verify and publish the image set
+make check                        # Host, documentation and devicetree checks
 ```
 
 Every build uses the full board configuration. `DEBUG=1` adds the debug fragment.
@@ -25,7 +25,8 @@ in ignored `local.mk`. See [Build configuration](../get-started/build-configurat
 |---|---|
 | `build` | Build boot firmware, Linux, rootfs and the paired radio image |
 | `image`, `all`, `flash-image` | Build, merge, verify and atomically publish the image set |
-| `fetch` | Explicitly prepare sources, pinned toolchain and BTstack source cache |
+| `fetch` | Explicitly prepare pinned sources, toolchain, BTstack and Buildroot downloads |
+| `fetch-rootfs` | Fetch the selected Buildroot package sources without building target packages |
 | `download` | Initialize pinned source submodules |
 | `toolchain` | Validate an installed toolchain |
 | `toolchain-fetch` | Fetch the pinned prebuilt Linux toolchain |
@@ -51,19 +52,26 @@ in ignored `local.mk`. See [Build configuration](../get-started/build-configurat
 | `check-dt` | Validate device trees, schemas and overlays |
 | `check`, `check-fast` | Combine host, documentation and devicetree validation |
 | `build-manifest` | Verify existing artifacts and record build provenance |
+| `check-artifacts` | Verify existing images against `out/images/build-manifest.json` |
 | `clean`, `fullclean` | Remove the build output; retain shared caches |
 
-Final artifacts live in `out/images/`. Native component objects,
-generated files, staging and reports stay under that output tree. Downloads and
-toolchains are shared in `cache/`. Existing `build/` output is retained as a
-legacy baseline and is never migrated automatically.
+Final build artifacts live in `out/images/`; verified published sets live in
+`dist/`, with `dist/current` selecting the current set. Native component
+objects, generated files, staging and reports stay under `out/`. Downloads
+and toolchains are shared in `cache/`.
 
 For lasting selections, edit tracked defconfigs and `configs/kernel/*.config`.
-Changed configuration inputs trigger native reconfiguration; unchanged inputs
-retain native incremental builds. `ROOTFS_BASELINE=/absolute/path/to/rootfs.sqfs`
-is an explicit incremental repack option with recorded provenance, not a clean
-Buildroot rebuild. It checks the full userspace runtime inventory and the exact
-module list; an incomplete baseline is rejected. Inherited target binaries are
+Changed Linux, U-Boot, or radio configuration inputs trigger native
+reconfiguration; unchanged inputs retain native incremental builds. Buildroot
+package-selection or toolchain changes require `make buildroot-reconfigure`
+before rebuilding, so stale target contents cannot survive a configuration
+change. Save intended Buildroot menu changes in its tracked defconfig before
+that command, which removes the selected Buildroot output tree.
+
+`ROOTFS_BASELINE=/absolute/path/to/rootfs.sqfs` is an explicit incremental
+repack option with recorded provenance, not a clean Buildroot rebuild. It
+checks the full userspace runtime inventory and the exact module list; an
+incomplete baseline is rejected. Inherited target binaries are
 not claimed to have been rebuilt with size optimization.
 If only stock logging/cron startup scripts are missing, set
 `ROOTFS_BUSYBOX_BUILD=/path/to/busybox-build` to explicitly allow their restoration

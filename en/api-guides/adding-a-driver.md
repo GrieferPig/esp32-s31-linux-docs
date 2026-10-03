@@ -43,9 +43,14 @@ where the device needs to save or restore state.
 
 Add a Kconfig entry and Makefile rule in the driver directory. Include the
 subsystem and provider dependencies in Kconfig, then select the driver in the
-S31 defconfig where appropriate.
+S31 defconfig and parent `configs/kernel/` fragments where appropriate.
+Keep lasting changes in these source files, not generated `out/linux/.config`.
+The build enables `CONFIG_TRIM_UNUSED_KSYMS=y`, so build new modules together
+with the kernel to retain their required exports. Out-of-tree modules may
+require an explicit export whitelist; see
+[Build configuration](../get-started/build-configuration.md).
 
-From the parent project, build the full-peripheral image:
+From the parent project, rebuild the kernel, rootfs, and radio image:
 
 ```sh
 make linux rootfs radio-fs
@@ -55,7 +60,8 @@ The rootfs build installs the Linux radio module and device-tree overlays; `radi
 prelinks the radio image against the rebuilt kernel. Update kernel,
 rootfs/module, and `radio.bin` as a matched set. A new driver selected as `m`
 needs an explicit package/install step for its `.ko`; the parent build does
-not install every kernel module automatically. Follow
+not install every kernel module automatically. Run `make image` to verify and
+publish the matched image set before flashing. Follow
 [Flash and first boot](../get-started/flash-and-first-boot.md) to update the board.
 
 ## 5. Test it

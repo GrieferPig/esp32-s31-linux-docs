@@ -22,13 +22,16 @@ firmware instructions in its
 From the parent checkout, run:
 
 ```sh
+make btstack-source
 make check-host
 # Optional sanitizer mode for tests that provide it:
 S31_TEST_SANITIZERS=1 make check-host
 ```
 
-This validates layout, fetches the pinned BTstack source needed by its test,
-and discovers the complete `tools/tests` suite. The tests use a host C compiler
+`btstack-source` prepares the pinned source used by the BTstack regression.
+`check-host` itself performs no downloads: it validates layout and discovers
+the complete `tools/tests` suite. Without that source, the BTstack test is
+skipped. The tests use a host C compiler
 and cover build contracts, radio interfaces, overlays, transport cleanup,
 cache/flash helpers, and subsystem behavior. Passing host tests does not prove
 that the corresponding hardware path passes. Use `make check-docs` and

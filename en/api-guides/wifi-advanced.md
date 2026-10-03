@@ -38,8 +38,8 @@ development, keep captures bounded: `/tmp` uses RAM, and persist is only
 ## Access-point mode
 
 AP, AP+station, and protected-AP operation are not exposed by the current
-SoftMAC frontend. Selecting the full board configuration or installing
-`hostapd` does not remove this limitation.
+SoftMAC frontend. The standard image includes the full board configuration;
+installing or running `hostapd` does not add AP support.
 The P4/C6 fixture can still provide an external AP for S31 station tests.
 
 ## Enterprise authentication
@@ -53,9 +53,9 @@ validation to make a test pass.
 ## Suspend and recovery
 
 Current SoftMAC has no active-connection replay on resume. Its suspend helper
-returns `EBUSY` for a running interface; do not infer that the whole system
-safely aborts unless the caller propagates that error. Bring Wi-Fi down before
-experimenting with system sleep. Automatic radio restart does
+returns `EBUSY` for a running interface, and the radio module propagates
+that error before suspending Bluetooth or stopping the shared payload. Bring
+Wi-Fi down before experimenting with system sleep. Automatic radio restart does
 not imply successful station reassociation. The HIL `--wifi-suspend-cycles`
 option is a diagnostic sequence, not an established recovery capability.
 See [Power management](power-management.md) before testing system sleep.
