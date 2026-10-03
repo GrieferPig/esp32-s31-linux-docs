@@ -12,15 +12,15 @@ irqchip accepts an affinity mask only if it includes CPU 0 and reports the
 effective affinity as CPU 0. A CPU-1-only request returns `-EINVAL`; an ordinary
 IRQ affinity write cannot move these handlers to HP core 1. Local timer and
 IPI routes use their separate per-core setup. See
-[`esp_intmtx_set_affinity()`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp-intmtx.c#L117-L124).
+[`esp_intmtx_set_affinity()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp-intmtx.c).
 
 The radio service worker and generic radio IRQ path run on HP core 0. The
 Wi-Fi frontend schedules receive NAPI and buffer-refill work on HP core 1.
 Payload-created compatibility tasks retain their requested CPU affinity, so
 “all radio work runs on HP0” is too broad. See the
-[radio worker](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-smode.c#L3405-L3415),
-[task binding](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-rtos.c#L893-L898) and
-[frontend receive work](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/net/wireless/espressif/esp32s31_wifi.c#L428-L463).
+[radio worker](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-smode.c),
+[task binding](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-rtos.c) and
+[frontend receive work](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/net/wireless/espressif/esp32s31_softmac.c).
 
 ## Inspect interrupt activity
 
@@ -45,7 +45,7 @@ Keep hard-IRQ work bounded and non-sleeping. Defer processing to a threaded
 handler, worker or NAPI when the subsystem permits it. Protect data shared
 with another CPU or context using the appropriate kernel synchronization
 primitive; CPU0-only IRQ routing does not make the rest of the driver single
-threaded. The [I2C IRQ registration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L816-L830)
+threaded. The [I2C IRQ registration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/i2c/busses/i2c-esp32s31.c)
 is one concrete platform-driver example.
 
 ## DMA completion

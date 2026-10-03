@@ -7,8 +7,8 @@ The port uses Linux 6.18, U-Boot, OpenSBI, and Buildroot.
 
 ## Feature support
 
-The included drivers depend on the [build profile](build-profiles.md). Local
-builds default to lean radio; the release workflow selects full peripherals.
+Every build uses the [full board configuration](build-configuration.md).
+Optional hardware is enabled at runtime with device-tree overlays.
 See [Feature support](../resources/support-matrix.md) for available interfaces,
 evidence of testing, and current limitations.
 

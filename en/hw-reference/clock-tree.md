@@ -22,9 +22,9 @@ below describe this provider's registrations and rate calculations.
 | `apb` | `sys` | System rate divided by the APB divider |
 | `emac-rgmii-txc` | `mpll` | Programmable transmit-clock divider |
 
-See the [registered parents](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1382-L1390),
-[clock registrations](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1485-L1632), and
-[rate calculations](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L910-L962).
+See the [registered parents](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c),
+[clock registrations](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c), and
+[rate calculations](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c).
 Peripheral clock entries are often registered separately with a fixed or
 initial bus rate, without a CCF parent edge.
 
@@ -44,8 +44,8 @@ divides `sys`:
 
 The driver also has a 40 MHz XTAL configuration for the power-off handoff; it
 is not an OPP exposed by the supplied CPU table. Source/mux and divider updates
-are latched together. See the [divider table and update sequence](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L982-L1060)
-and [shared OPPs](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L103-L125).
+are latched together. See the [divider table and update sequence](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)
+and [shared OPPs](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi).
 For frequency controls, see [Power management](../api-guides/power-management.md).
 
 ## Timer and peripheral inputs
@@ -58,7 +58,7 @@ For frequency controls, see [Power management](../api-guides/power-management.md
 | `gpspi2`, `gpspi3` | 80 MHz provider input | SPI transfer-clock divider |
 
 The peripheral input rates are not the resulting UART baud rate, I2C/SPI bus
-speed or PWM frequency. See [peripheral registrations](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1635-L1747)
+speed or PWM frequency. See [peripheral registrations](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)
 and the [reserved interrupt routes](interrupt-routing.md).
 
 Driver acquisition and the `clocks` diagnostic attribute are documented once

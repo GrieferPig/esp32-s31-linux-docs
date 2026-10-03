@@ -3,7 +3,7 @@
 These examples cover the full-peripheral image. Run target commands as root
 on the S31; run the explicitly marked build commands on the Linux build host.
 Prepare the image using [Build from source](../get-started/build-from-source.md)
-and `S31_LEAN_RADIO=0`. The rootfs includes libgpiod v2 tools, I2C tools,
+in the standard full board configuration. The rootfs includes libgpiod v2 tools, I2C tools,
 `spidev_test`, `aplay`/`arecord`, `candump`, and `cansend`. The CAN recipe below
 also needs full iproute2, and the external-codec recipe needs extra kernel
 options.
@@ -111,7 +111,7 @@ line; applications must not rely on its output level after ownership ends.
 Remove the loopback wire before assigning these pins to a peripheral.
 
 These commands use the libgpiod v2 syntax used by the
-[GPIO HIL runner](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/s31_hil.py#L278-L398).
+[GPIO HIL runner](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/s31_hil.py).
 
 ## UART1 wire loopback
 
@@ -130,8 +130,8 @@ wire, timeout, or mismatch fails the command. This uses a physical echo path;
 `uart-loopback` is the helper's separate internal-loopback operation.
 For an external UART device, connect its TX to S31 RX and its RX to S31 TX,
 and match framing and baud rate. Keep UART0 available for the console.
-See the [UART helper implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/rootfs/s31_hil_io.c#L74-L164)
-and [UART1 routes](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-uart1.dtso#L10-L33).
+See the [UART helper implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/s31_hil_io.c)
+and [UART1 routes](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-uart1.dtso).
 
 (spi-host-loopback)=
 
@@ -155,9 +155,9 @@ The shipped spidev child also caps transfers at 20 MHz.
 
 The existing `s31-hil-io spi` helper expects an external responder that returns
 a specific transformed pattern; it is not a MOSI/MISO echo checker. Sources:
-[host word mask](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/spi/spi-esp32s31.c#L896-L925),
-[overlay defaults](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-gpspi2.dtso#L14-L42),
-[spidev_test options](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/tools/spi/spidev_test.c#L241-L313).
+[host word mask](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/spi/spi-esp32s31.c),
+[overlay defaults](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-gpspi2.dtso),
+[spidev_test options](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/tools/spi/spidev_test.c).
 
 ## SD card and USB storage
 
@@ -177,7 +177,7 @@ pull-up on the card's DAT3 pin even if DAT3 is disconnected from the S31.
 DAT3 must stay high during initialization for native SD mode; a pull-up on
 an unconnected S31 pad cannot bias the card pin. See the pinned
 [S31 card wiring and 1-bit note](https://github.com/espressif/esp-idf/blob/a602e67b0bf9ee0806dc4e1df7afc9affedf5c33/examples/storage/sd_card/sdmmc/README.md#L92-L108)
-and Linux's [SD initialization requirement](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/mmc/core/mmc_ops.c#L162-L180).
+and Linux's [SD initialization requirement](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/mmc/core/mmc_ops.c).
 With the socket wired and powered, run:
 
 ```sh
@@ -209,7 +209,7 @@ device enumerates, inspect power, wiring, the driver probe messages, and the
 selected role. If the disk appears but mounting fails, check the partition
 and filesystem type. The full kernel includes VFAT and EXT4; this example
 mounts VFAT read-only. The repository also provides
-[SD read and USB mount HIL cases](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent#L309-L399).
+[SD read and USB mount HIL cases](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent).
 
 (audio-with-an-external-codec)=
 
@@ -236,10 +236,18 @@ the receive check.
 The rootfs selects `candump` and `cansend`, but the current source defconfig
 **does not select iproute2**. Before using the `ip ... type can` command below,
 set this in `buildroot-external/configs/esp32s31_rootfs_defconfig` on the host,
-replacing its existing disabled entry, and rebuild/flash the rootfs:
+replacing its existing disabled entry, then save, reconfigure and rebuild the
+matched image set:
 
 ```text
 BR2_PACKAGE_IPROUTE2=y
+```
+
+```sh
+make buildroot-reconfigure
+make fetch
+make image
+make flash-all PORT=/dev/ttyUSB0
 ```
 
 On the S31, configure a 500 kbit/s bus:
@@ -268,8 +276,8 @@ s31-overlay remove twai0 --volatile
 
 Inspect error counters and peer reception if transmission fails. CAN remains
 work in progress in the support matrix. Sources:
-[rootfs package choices](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/configs/esp32s31_rootfs_defconfig#L63-L66),
-[SocketCAN bitrate setup](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/networking/can.rst#L1340-L1375).
+[rootfs package choices](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig),
+[SocketCAN bitrate setup](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/networking/can.rst).
 
 ## Ethernet with the shipped PHY configuration
 
@@ -298,9 +306,9 @@ ip link set eth0 down
 s31-overlay remove gmac --volatile
 ```
 
-The recipe follows the [specific PHY description](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L830-L876)
-and [existing Ethernet probe/link checks](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent#L253-L307).
-Record your board revision, PHY, kernel/profile, link partner, and observations
+The recipe follows the [specific PHY description](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
+and [existing Ethernet probe/link checks](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent).
+Record your board revision, PHY, kernel/configuration, link partner, and observations
 when reporting hardware results.
 
 ```{toctree}

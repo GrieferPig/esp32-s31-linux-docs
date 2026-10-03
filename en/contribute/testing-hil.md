@@ -15,7 +15,7 @@ and saves the results.
 The P4 tester keeps fixture outputs disabled until a test arms them and
 returns them to the disarmed state afterwards. Use the fixture wiring and
 firmware instructions in its
-[README](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/esp32p4-tester/README.md).
+[README](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/esp32p4-tester/README.md).
 
 ## 1. Run host tests
 
@@ -27,8 +27,9 @@ make check-host
 
 This includes the feature-contract, selftest, overlay, and BTstack regressions.
 The feature tests use a host C compiler to exercise I2C command generation,
-SPI word ordering, and I2S configuration, and also check EAP provisioning.
-The BTstack test uses the source fetched by the target dependency. See
+SPI word ordering, and I2S configuration. Firmware/helper tests do not imply
+that their operations are exposed by the current SoftMAC frontend. The BTstack
+test uses pinned sources explicitly prepared with `make fetch`. See
 [Development setup](development-setup.md) for prerequisites and the complete
 `check-fast` workflow. Host-test success is separate from board-test evidence.
 
@@ -37,13 +38,12 @@ The BTstack test uses the source fetched by the target dependency. See
 Build the full-peripheral image and flash the S31:
 
 ```sh
-export S31_LEAN_RADIO=0
 make all
 make PORT=/dev/ttyUSB0 BAUD=2000000 flash-all
 ```
 
 Replace `PORT` with the S31 serial device. `make all` builds host-side images;
-`make flash-all` rebuilds dependencies and writes the board. Confirm the
+`make flash-all` verifies and writes the published `dist/current` set without rebuilding. Confirm the
 [first login and startup checks](../get-started/flash-and-first-boot.md), then install
 the P4 tester firmware for cases that need it. Connect the fixture according
 to its pin map, with a common ground and compatible signal voltages. Close
@@ -117,6 +117,11 @@ python3 tools/hil/s31_hil.py --board both --case c6-ble \
 The Wi-Fi case sets up a fixture access point and temporary station profile,
 then checks association, address assignment, and packet exchange. It also
 temporarily changes radio services and restores them during cleanup.
+
+Runtime validation and hardware acceptance of the merged compact image remain
+pending. Verify normal boot, writable persistence and LP readiness on that exact
+image. A recovery login is not proof of those properties. No HIL scratch
+partition exists in this layout.
 
 For power-management tests, check the current
 [suspend limitations](../api-guides/power-management.md) first. GPIO wake

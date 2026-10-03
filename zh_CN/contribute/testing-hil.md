@@ -10,7 +10,7 @@ HIL 工具在 ESP32-S31 开发板上运行检查；有线或无线对端测试�
 | `s31-hil-agent` | ESP32-S31 Linux | 运行板端检查 |
 | `tools/hil/esp32p4-tester/` | ESP32-P4 测试板 | 提供 GPIO、串口、总线等对端功能 |
 
-P4 测试程序在测试启用输出前，保持夹具输出禁用，并在测试结束后恢复禁用状态。夹具接线和固件说明见其 [README](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/esp32p4-tester/README.md)。
+P4 测试程序在测试启用输出前，保持夹具输出禁用，并在测试结束后恢复禁用状态。夹具接线和固件说明见其 [README](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/esp32p4-tester/README.md)。
 
 ## 1. 运行主机测试
 
@@ -21,8 +21,8 @@ make check-host
 ```
 
 该目标包含功能契约、selftest、覆盖层和 BTstack 回归测试。功能测试使用主机
-C 编译器检查 I2C 命令生成、SPI 字序和 I2S 配置，并检查 EAP 凭据配置。
-BTstack 测试使用目标依赖步骤获取的源码。前置条件及完整的 `check-fast`
+C 编译器检查 I2C 命令生成、SPI 字序和 I2S 配置，并检查无线及构建接口约定。
+BTstack 测试使用 `make fetch` 获取的固定源码。前置条件及完整的 `check-fast`
 流程见[开发环境](development-setup.md)。主机测试通过与开发板测试证据是两回事。
 
 ## 2. 准备开发板
@@ -30,13 +30,12 @@ BTstack 测试使用目标依赖步骤获取的源码。前置条件及完整的
 构建完整外设镜像并烧录 S31：
 
 ```sh
-export S31_LEAN_RADIO=0
-make all
-make PORT=/dev/ttyUSB0 BAUD=2000000 flash-all
+make image
+make PORT=/dev/ttyUSB0 BAUD=2000000 flash-existing-all
 ```
 
-请将 `PORT` 替换为 S31 串口设备。`make all` 在主机上构建镜像；
-`make flash-all` 重新构建依赖并写入开发板。完成
+请将 `PORT` 替换为 S31 串口设备。`make image` 在主机上构建并验证镜像；
+`make flash-existing-all` 写入 `dist/current` 的完整匹配集，不重新构建。完成
 [首次登录和启动检查](../get-started/flash-and-first-boot.md)后，为需要对端的用例
 安装 P4 测试固件。按引脚表连接夹具，确保共地且信号电压兼容。启动主机测试程序前，关闭串口监视程序。
 
@@ -103,6 +102,10 @@ python3 tools/hil/s31_hil.py --board both --case c6-ble \
 Wi-Fi 用例设置夹具接入点和临时 STA 配置，然后检查关联、地址分配和数据包交换。它还会临时更改无线服务，并在清理时恢复。
 
 进行电源管理测试前，先查看当前的[挂起限制](../api-guides/power-management.md)。GPIO 唤醒需要连接 LP GPIO0–7，而不是夹具通常使用的较高编号引脚。
+
+## Flash 安全
+
+当前连续布局没有 HIL scratch 分区。破坏性 Flash 测试必须验证实际 MTD 范围，不得使用 persist 或其他有效分区；缺少明确安全范围时应拒绝测试。不要通过旧偏移或手工创建 MTD 节点绕过检查。
 
 ## 查看结果
 

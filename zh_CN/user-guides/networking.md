@@ -107,7 +107,7 @@ USB 网络使用独立的地址设置，见 [USB 功能](usb-gadget.md)。
 
 启用蓝牙后，镜像通过 `/etc/init.d/S40btstack` 启动 `/usr/sbin/s31-btstack-a2dp`。这是一个使用 `/dev/s31-hci` 的 BTstack 主机，在同一进程中提供 Classic A2DP 接收端、AVRCP 支持和一个小型 BLE GATT 外设。
 
-**[内置 A2DP 应用](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/btstack-s31/btstack-s31.mk#L30-L35)接收压缩的 SBC 媒体数据，用于传输测试。SBC 解码已在编译时移除，也没有 PCM 播放后端。** 因此，连接手机并启动媒体流后，会在日志中得到状态和数据包计数；要实际播放声音，还需要开发应用。
+**[内置 A2DP 应用](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/btstack-s31/btstack-s31.mk)接收压缩的 SBC 媒体数据，用于传输测试。SBC 解码已在编译时移除，也没有 PCM 播放后端。** 因此，连接手机并启动媒体流后，会在日志中得到状态和数据包计数；要实际播放声音，还需要开发应用。
 
 ### 1. 启动蓝牙
 
@@ -128,7 +128,7 @@ cat /run/s31-btstack-a2dp.log
 
 ### 3. 读取 BLE 测试特征
 
-在另一台设备上使用 BLE 中心设备或 GATT 查看应用。扫描配置的蓝牙名称（初始为 `S31 Radio`），连接后发现服务 `0xff10`，并读取特征 `0xff11`。它的值为文本 `ready`；该[测试特征](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/btstack-s31/0013-a2dp-add-minimal-ble-gatt.patch#L22-L56)不要求配对。手机普通蓝牙设备列表可能不显示 GATT 外设，请使用 BLE 应用的扫描功能。
+在另一台设备上使用 BLE 中心设备或 GATT 查看应用。扫描配置的蓝牙名称（初始为 `S31 Radio`），连接后发现服务 `0xff10`，并读取特征 `0xff11`。它的值为文本 `ready`；该[测试特征](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/btstack-s31/0013-a2dp-add-minimal-ble-gatt.patch)不要求配对。手机普通蓝牙设备列表可能不显示 GATT 外设，请使用 BLE 应用的扫描功能。
 
 开发板上的 `esp32-config bluetooth scan` 命令会报告不支持扫描。内置主机提供外设角色；BLE 随 Classic 蓝牙一同启用。
 

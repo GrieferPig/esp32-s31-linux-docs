@@ -116,19 +116,6 @@ The runner coordinates `s31-hil-agent` on the S31 and optional peer firmware.
 See [Hardware-in-the-loop testing](../contribute/testing-hil.md) for complete
 commands and fixture setup.
 
-## Wi-Fi enterprise helper
-
-Run on the host:
-
-```text
-python3 tools/s31_wifi_eap.py [--interface wlan0] [--ssh USER@HOST] profile.json
-python3 tools/s31_wifi_eap.py [--interface wlan0] [--ssh USER@HOST] --clear
-```
-
-The helper uses Python locally and `iw` at the destination. Remote use also
-needs an SSH server on the board. See
-[Advanced Wi-Fi](../api-guides/wifi-advanced.md) for the profile format.
-
 ## Development utilities
 
 The project includes sources for CoreMark, memory and libc tests, extension

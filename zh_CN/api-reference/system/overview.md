@@ -24,7 +24,7 @@ Linux 在 ESP32-S31 的两个高性能核上运行，并使用 Sv32 虚拟内存
 
 ## 外设
 
-应用通过 GPIO 字符设备、I2C、SPI、ALSA 和套接字等 Linux 接口访问硬件。`s31-overlay` 启用可选外设并选择其引脚。大多数外设示例需要完整外设[构建配置](../../get-started/build-profiles.md)。
+应用通过 GPIO 字符设备、I2C、SPI、ALSA 和套接字等 Linux 接口访问硬件。`s31-overlay` 启用可选外设并选择其引脚。统一的[完整构建配置](../../get-started/build-configuration.md)保留原生外设驱动，外接器件仍需对应驱动和接线。
 
 ## 无线与低功耗核
 

@@ -2,6 +2,17 @@
 
 主仓库将 Linux、OpenSBI、U-Boot、Buildroot 和文档作为子模块引入。每个子模块都有独立的提交和分支。
 
+## 仓库默认分支
+
+| 仓库 | 默认分支 |
+|---|---|
+| 主仓库与 docs | `main` |
+| Linux | `v6.18-esp32-s31` |
+| OpenSBI | `v1.9-esp32-s31` |
+| U-Boot | `v2024.07-esp32s31` |
+
+默认分支用于浏览与开发，不是可重复构建的版本选择。集成构建以主仓库记录的子模块 gitlink 提交为准，并配合 `configs/build-versions.mk` 中的 ESP-IDF、工具链和 BTstack 固定版本。
+
 ## 获取源码
 
 新建检出目录时，请按照[从源码构建](../get-started/build-from-source.md)选择

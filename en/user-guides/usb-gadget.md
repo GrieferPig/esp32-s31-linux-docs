@@ -2,7 +2,7 @@
 
 Use **Interfaces → USB** in `esp32-config` to choose host mode, a serial
 connection, or a USB network connection. Device functions need the
-[full-peripheral image](../get-started/build-profiles.md) and their compiled
+[full-peripheral image](../get-started/build-configuration.md) and their compiled
 kernel support; the menu offers only the functions available in the image.
 Run the board commands below as root.
 
@@ -83,7 +83,7 @@ Disconnect the device-mode cable before reconnecting host peripherals.
 
 For a custom gadget with your own USB identifiers, use the configfs recipe
 below. It is source-derived; USB gadget mode remains
-[outside the standard HIL suite](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/README.md#L146-L150).
+[outside the standard HIL suite](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/README.md).
 Complete the [common pin and overlay checks](peripheral-setup), and release
 any gadget created by the configuration tool first:
 
@@ -165,6 +165,6 @@ s31-overlay remove usb-device --volatile
 
 The cleanup releases the function and restores the base host role. Disconnect
 the device-mode cable before reconnecting host peripherals. Sources:
-[kernel configfs lifecycle](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/usb/gadget_configfs.rst#L55-L300),
-[S31-aware serial allocation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/usb/gadget/function/u_serial.c#L1299-L1325),
-[ACM port number](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/usb/gadget/function/f_acm.c#L818-L823).
+[kernel configfs lifecycle](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/usb/gadget_configfs.rst),
+[S31-aware serial allocation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/gadget/function/u_serial.c),
+[ACM port number](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/gadget/function/f_acm.c).

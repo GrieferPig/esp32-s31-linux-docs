@@ -3,8 +3,8 @@
 The S31 device tree declares SoC DMA non-coherent. Linux supplies cache writeback
 and invalidation through vendor SBI calls, so drivers must transfer ownership
 of PSRAM buffers between the CPU and DMA through the DMA API.
-[Device-tree declaration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L134-L144);
-[cache operations](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/cache/esp32s31_cache.c#L111-L132).
+[Device-tree declaration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi);
+[cache operations](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/cache/esp32s31_cache.c).
 
 This page is for driver development. Applications using interfaces such as SPI
 and ALSA normally let those subsystems manage their DMA buffers.
@@ -16,15 +16,15 @@ SRAM. Client drivers provide the transfer data buffers through their subsystem
 or DMA allocation and mapping APIs. A DMAengine client requests a prepared
 transfer descriptor; it does not allocate or modify the GDMA hardware descriptor
 pool directly. See [Memory map](../hw-reference/memory-map.md) for the reservations
-and the [AHB](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/dma/esp32s31-ahb-gdma.c#L1006-L1017)
-and [AXI](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/dma/esp32s31-axi-gdma.c#L1133-L1145)
+and the [AHB](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/dma/esp32s31-ahb-gdma.c)
+and [AXI](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/dma/esp32s31-axi-gdma.c)
 pool initialization.
 
 Keep the CPU pointer and the returned `dma_addr_t` separate. Give the DMA address
 to DMAengine. For a streaming DMAengine mapping, obtain the mapping device with
 `dmaengine_get_dma_device(chan)` and use that same device for mapping, checking
 errors, synchronization and unmapping.
-[DMAengine client contract](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/driver-api/dmaengine/client.rst#L122-L140).
+[DMAengine client contract](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/driver-api/dmaengine/client.rst).
 
 ## Streaming buffer ownership
 
@@ -62,8 +62,8 @@ If the buffer stays mapped between transfers, use
 DMA. Preserve the mapping device, size and direction. An error before a transfer
 starts still needs to release a successful mapping; an error after submission
 also needs the termination sequence below.
-[DMA mapping and unmapping](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/core-api/dma-api-howto.rst#L522-L551);
-[reusing a streaming mapping](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/core-api/dma-api-howto.rst#L627-L653).
+[DMA mapping and unmapping](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/core-api/dma-api-howto.rst);
+[reusing a streaming mapping](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/core-api/dma-api-howto.rst).
 
 ## Stop a transfer before releasing its resources
 
@@ -79,23 +79,23 @@ sleepable context to call `dmaengine_synchronize()`. Release resources only afte
 synchronization. Do not call `dma_async_issue_pending()` between termination and
 synchronization. These rules apply to timeout, removal and suspend paths as well
 as ordinary transfer cleanup.
-[Termination API and lifetime rules](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/include/linux/dmaengine.h#L1144-L1222).
+[Termination API and lifetime rules](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/include/linux/dmaengine.h).
 
 ## Examples in the port
 
-The [SPI driver](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/spi/spi-esp32s31.c#L864-L879)
+The [SPI driver](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/spi/spi-esp32s31.c)
 allocates private TX and RX buffers with `dma_alloc_noncoherent()`. Its target
 transfer path synchronizes those buffers explicitly, rounds RX DMA length to a
 multiple of four bytes, and terminates both channels during cleanup.
-[Transfer setup](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/spi/spi-esp32s31.c#L205-L241);
-[completion and cleanup](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/spi/spi-esp32s31.c#L350-L387).
+[Transfer setup](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/spi/spi-esp32s31.c);
+[completion and cleanup](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/spi/spi-esp32s31.c).
 
-The [I2S driver](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/soc/espressif/esp32s31-i2s.c#L109-L115)
-selects `SNDRV_DMA_TYPE_NONCOHERENT`; [ALSA's allocation layer](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/core/memalloc.c#L860-L893)
+The [I2S driver](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/soc/espressif/esp32s31-i2s.c)
+selects `SNDRV_DMA_TYPE_NONCOHERENT`; [ALSA's allocation layer](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/core/memalloc.c)
 provides the corresponding synchronization.
 
 Sv32 has no uncached page-table attribute for these buffers. This is a page-table
 limitation: the AXI GDMA driver separately maps a direct PSRAM alias for its own
 recovery copies. Client drivers should follow their DMA API's ownership rules.
-[Sv32 page-table definitions](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/include/asm/pgtable-32.h#L20-L29);
-[AXI alias use](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/dma/esp32s31-axi-gdma.c#L528-L543).
+[Sv32 page-table definitions](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/include/asm/pgtable-32.h);
+[AXI alias use](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/dma/esp32s31-axi-gdma.c).

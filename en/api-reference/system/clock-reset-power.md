@@ -25,7 +25,7 @@ clock, register `clk_disable_unprepare()` with `devm_add_action_or_reset()`,
 acquire and pulse the optional reset, then configure the controller and request
 its IRQ. Its error path preserves provider errors. This ordering belongs to
 that controller; follow the binding and hardware requirements for another
-device. See [I2C probe and cleanup](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L774-L830).
+device. See [I2C probe and cleanup](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/i2c/busses/i2c-esp32s31.c).
 
 Before releasing a clock or buffer, stop the device's transfers and interrupt
 activity. DMA cleanup has additional synchronization requirements described in
@@ -56,7 +56,7 @@ Each `clocks` line has these fields:
 `state=on` does not independently read back an electrical clock signal or prove
 that a peripheral is operational. Interpret it together with the rate, probe
 messages and device state. The precise output comes from
-[`clocks_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1392-L1415).
+[`clocks_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c).
 
 The `domains` output separates policy, software state and force-register
 settings; see its [field definitions](../../hw-reference/power-domains.md).

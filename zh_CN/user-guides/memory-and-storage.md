@@ -34,9 +34,7 @@ esp32-config storage swap disable
 
 ## 挂载 SD 或 USB 存储卷
 
-挂载功能需要当前镜像包含对应的文件系统驱动。
-FAT/VFAT 或 ext4 存储卷应使用[完整外设配置](../get-started/build-profiles.md)。
-精简配置保留用于 swap 的 USB 块设备支持，但未包含这些文件系统。
+完整[构建配置](../get-started/build-configuration.md)包含 FAT/VFAT 和内置 ext4。挂载功能仍会核对运行镜像是否提供所需文件系统驱动。
 使用 SD 卡前，先启用相应的 SDMMC 接口，并按[使用外设](peripherals.md)连接卡座。
 
 选择 **Removable storage → Select volume and mount**，依次设置：

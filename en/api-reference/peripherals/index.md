@@ -4,7 +4,7 @@ The port exposes peripherals through standard Linux interfaces, including
 TTY, I2C, SPI, ALSA, and SocketCAN. Use a device-tree overlay to enable an
 optional controller and select its pins.
 
-> Build the [full-peripheral profile](../../get-started/build-profiles.md) for
+> Build the [full board configuration](../../get-started/build-configuration.md) for
 I2C, SPI, I2S, Ethernet, SD/MMC, and the other optional drivers in this chapter.
 
 ## Enable a peripheral
@@ -213,7 +213,7 @@ Then describe the CPU/codec link, pins, framing, clocks, and any TDM settings
 in the machine card. `espressif,external-card` disables the built-in dummy
 card so the external card can use the controller. Enable the machine driver
 and the selected codec driver in the kernel configuration as well; the full
-profile alone does not select `CONFIG_SND_SIMPLE_CARD` or a real codec.
+configuration alone does not select `CONFIG_SND_SIMPLE_CARD` or a real codec.
 The machine driver's format setup selects the clock roles for both directions.
 The shipped dummy-card overlays use clock inputs for both directions.
 

@@ -20,7 +20,7 @@ Linux 时钟提供者通过公共时钟框架（CCF）导出根时钟、部分�
 | `apb` | `sys` | 系统频率除以 APB 分频值 |
 | `emac-rgmii-txc` | `mpll` | 可编程的发送时钟分频器 |
 
-参见[父时钟定义](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1382-L1390)、[时钟注册](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1485-L1632)及[频率计算](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L910-L962)。
+参见[父时钟定义](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)、[时钟注册](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)及[频率计算](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)。
 许多外设时钟以固定频率或初始总线频率单独注册，没有 CCF 父时钟关系。
 
 ## CPU 工作频点
@@ -34,7 +34,7 @@ Linux 时钟提供者通过公共时钟框架（CCF）导出根时钟、部分�
 | 240 MHz | `pll-f240` | 1 | 2 | 3 | 2 |
 | 320 MHz | `cpll` | 1 | 2 | 3 | 2 |
 
-驱动还提供用于关机交接的 40 MHz XTAL 配置；它不属于项目 CPU 表公开的 OPP。时钟源选择与分频器的更新会一起锁存。参见[分频表与更新流程](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L982-L1060)及[共享 OPP 表](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L103-L125)。
+驱动还提供用于关机交接的 40 MHz XTAL 配置；它不属于项目 CPU 表公开的 OPP。时钟源选择与分频器的更新会一起锁存。参见[分频表与更新流程](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)及[共享 OPP 表](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)。
 频率控制方法见[电源管理](../api-guides/power-management.md)。
 
 ## 定时器与外设输入时钟
@@ -46,6 +46,6 @@ Linux 时钟提供者通过公共时钟框架（CCF）导出根时钟、部分�
 | `uart0`–`uart3`、`i2c0`、`i2c1`、`ledc0`、`ledc1` | 提供者输入为 40 MHz | 外设驱动再配置波特率、总线或输出分频 |
 | `gpspi2`、`gpspi3` | 提供者输入为 80 MHz | SPI 传输时钟分频器 |
 
-外设输入时钟频率不等于最终的 UART 波特率、I2C/SPI 总线速率或 PWM 频率。参见[外设时钟注册](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1635-L1747)及[保留的中断路由](interrupt-routing.md)。
+外设输入时钟频率不等于最终的 UART 波特率、I2C/SPI 总线速率或 PWM 频率。参见[外设时钟注册](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)及[保留的中断路由](interrupt-routing.md)。
 
 驱动获取时钟的方法和 `clocks` 诊断属性统一见[时钟、复位与电源](../api-reference/system/clock-reset-power.md)。

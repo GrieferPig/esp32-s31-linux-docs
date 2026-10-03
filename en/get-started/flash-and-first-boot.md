@@ -55,21 +55,30 @@ before flashing.
 
 Download `s31_full_flash.bin` from the project's
 [releases](https://github.com/GrieferPig/esp32-s31-linux/releases), using the
-release notes to identify its source revision. Releases also provide the
-separate component images, `build-manifest.json`, and `SHA256SUMS`.
-Run the following commands from the download directory.
+release tag to identify its source revision. The current release workflow
+publishes only that combined image; it verifies the complete matched set in CI
+but does not attach the component images, manifest or `SHA256SUMS`.
+
+If a release explicitly supplies a checksum file as well, verify it before
+flashing: on Linux use `sha256sum --check --ignore-missing SHA256SUMS`; on Windows
+use `Get-FileHash .\s31_full_flash.bin -Algorithm SHA256` and compare with the
+expected value. Stop on a mismatch. A locally calculated hash alone cannot
+verify the download without a trusted expected hash. Run the following commands
+from the download directory.
 
 > **Warning:** The commands below erase the entire flash chip, including saved
-> settings. Flashing the combined image also overwrites the persist region
+> settings. Keep a verified backup on another device first. Flashing the combined image also overwrites the persist region
 > even if the explicit erase step is omitted. For an update that keeps that
-> region, use separate-component flashing as described below.
+> region, use the complete matched slot-image procedure below, only when the
+> installed layout matches. Layout changes require backup, clean installation
+> and restoration of needed files/settings.
 
 ### Flash on Linux
 
 ```sh
 PORT=/dev/ttyUSB0
-python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 erase-flash
-python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash \
+python -m python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 erase-flash
+python -m python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash \
   --flash-mode dio --flash-freq 80m --flash-size 16MB \
   0x0 s31_full_flash.bin
 ```
@@ -78,8 +87,8 @@ python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash \
 
 ```powershell
 $PORT="COM3"
-& $S31_PYTHON -m esptool --chip esp32s31 -p "$PORT" -b 2000000 erase-flash
-& $S31_PYTHON -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash `
+& $S31_PYTHON -m python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 erase-flash
+& $S31_PYTHON -m python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash `
   --flash-mode dio --flash-freq 80m --flash-size 16MB `
   0x0 s31_full_flash.bin
 ```
@@ -126,6 +135,12 @@ test -e /run/rcS.done && echo "rcS finished" || echo "rcS still running"
 cat /run/rcS.log
 ```
 
+Hardware boot/flashing acceptance of the current compact image is pending.
+Runtime boot, persistence and LP readiness have not been validated on the merged
+image. A recovery login does not establish a normal writable-root boot.
+Set a password with `passwd` before exposing login services. The standard image
+has no SSH server.
+
 The configured kernel is based on Linux 6.18; the release suffix may vary.
 The normal two-CPU result is `0-1`, and a successful writable-root setup shows
 an `overlay` mount at `/`. Early `S31 overlay:` errors can leave a recovery
@@ -154,38 +169,77 @@ For peripheral setup, continue with the
 [overlay catalog](../resources/overlay-catalog.md). For boot problems, see
 [Debugging](../api-guides/debugging.md).
 
-## 6. Update a source-built system
+## 6. Protect persistent data
 
-After [building the project](build-from-source.md), keep its ESP-IDF environment
-and selected `S31_LEAN_RADIO` profile active. From the parent repository root:
+The persistent JFFS2 area is `[0x1EE000, 0x400000)`. An erased persist area is
+a valid empty filesystem; no separate persist image is needed for a clean
+installation. Whole-flash writes overwrite this area.
+
+Keep an external, verified backup of important files and settings. Whenever
+changing the installed layout, use the clean-install commands in section 3,
+then restore the needed files/settings into the writable filesystem. Check
+the installed image's [flash layout](../hw-reference/flash-layout.md) before
+using the preservation procedure below.
+
+## 7. Update without erasing saved settings
+
+These procedures apply only to boards already using the compact layout above.
+Keep an external backup of important data even for a same-layout update.
+
+### If a complete component set is supplied
+
+The current release workflow publishes only the combined installation image,
+which cannot preserve persist. Use a [source build](#use-a-source-build) for a
+normal preserve-data update. If a release explicitly provides all six slot
+images and their `SHA256SUMS`, verify them together as above. Keep the set
+matched: the radio XIP payload is linked against that kernel's addresses.
+From the directory containing that complete set, run on Linux:
+
+```sh
+PORT=/dev/ttyUSB0
+python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash \
+  --flash-mode dio --flash-freq 80m --flash-size 16MB \
+  0x002000 spl_app.bin 0x00E000 u-boot.itb 0x05E000 esp32s31_generic.dtb \
+  0x06E000 radio.bin 0x400000 xipImage 0xA00000 rootfs.sqfs
+```
+
+For PowerShell, set `$PORT="COM3"`, replace `python -m esptool` with
+`& $S31_PYTHON -m esptool`, and replace continuation backslashes with backticks. Do not run `erase-flash` for this same-layout update. It leaves
+persist (`0x1EE000–0x400000`, 2120 KiB) untouched. Use all six images from one
+release; there is no HIL scratch partition in this layout.
+
+### Use a source build
+
+After [building the project](build-from-source.md), run this from the source
+repository, using the same build configuration as the original build:
 
 ```sh
 make PORT=/dev/ttyUSB0 BAUD=2000000 flash-all
 ```
 
-This target rebuilds its dependencies and writes SPL, U-Boot/OpenSBI, the Linux
-device tree, radio filesystem, kernel, and root filesystem. It leaves the
-persist partition in place. Retaining that partition preserves saved settings,
-although the next boot performs the migrations and package-file cleanup
-explained in [Configuration files](../resources/configuration.md) and
-[Deploy files that must survive reboot](deploy-files-that-must-survive-reboot).
+It resolves the immutable `dist/current` set, verifies it, and writes SPL, U-Boot/OpenSBI, Linux device tree, radio firmware,
+the kernel, and the root filesystem, while leaving the current persist slot in
+place only when the installed layout matches. Override `PORT` and `BAUD`
+for another connection.
 
-To write the already-built component files without rebuilding, use the
-ESP-IDF environment's `esptool` from the parent repository root:
+For an explicit manual same-build slot-wise update, verify the build manifest
+first and write the complete matching set:
 
 ```sh
 PORT=/dev/ttyUSB0
+IMAGES=out/images
+python3 tools/release/manifest.py \
+  --output-root out --verify "$IMAGES/build-manifest.json"
 . configs/esp32s31-layout.cfg
-esptool --chip "$CHIP" -p "$PORT" -b 2000000 write-flash \
+python -m esptool --chip "$CHIP" -p "$PORT" -b 2000000 write-flash \
   --flash-mode dio --flash-freq 80m --flash-size 16MB \
-  "$SLOT_SPL" "build/$SPL_APP_BIN" \
-  "$SLOT_UBOOT_ITB" "build/$UBOOT_ITB" \
-  "$SLOT_DTB" "build/$BASE_DTB" \
-  "$SLOT_RADIO" "build/$RADIO_IMAGE" \
-  "$SLOT_KERNEL" "build/$KERNEL_IMAGE" \
-  "$SLOT_ROOTFS" "build/$ROOTFS_IMAGE"
+  "$SLOT_SPL" "$IMAGES/$SPL_APP_BIN" \
+  "$SLOT_UBOOT_ITB" "$IMAGES/$UBOOT_ITB" \
+  "$SLOT_DTB" "$IMAGES/$BASE_DTB" \
+  "$SLOT_RADIO" "$IMAGES/$RADIO_IMAGE" \
+  "$SLOT_KERNEL" "$IMAGES/$KERNEL_IMAGE" \
+  "$SLOT_ROOTFS" "$IMAGES/$ROOTFS_IMAGE"
 ```
 
-Use a complete, matching set of successfully built components. The individual
-flash targets and their rebuild behavior are listed in the
-[Make reference](../resources/make-reference.md).
+Partial component targets refuse unknown installed companions. Device targets are
+listed in the [Make reference](../resources/make-reference.md).

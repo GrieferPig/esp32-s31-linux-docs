@@ -14,11 +14,11 @@ substitute for a supported `-march` value.
 | Applications and libraries | `rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs` | `ilp32`, project Linux/musl toolchain |
 | Radio payload | `rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv2p2` | `ilp32f`, ESP ELF/picolibc build |
 
-These choices come from the [parent Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L26-L33),
-[musl toolchain configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/configs/riscv32-esp-linux-musl.config#L8-L11),
-[application flags](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/configs/esp32s31_rootfs_defconfig#L20),
-[patched kernel ABI](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/Makefile#L45-L50), and
-[radio build](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/radio/Makefile#L176-L177).
+These choices come from the [native build configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/config.mk),
+[musl toolchain configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/riscv32-esp-linux-musl.config),
+[application flags](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig),
+[patched kernel ABI](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/Makefile), and
+[radio build](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/Makefile).
 
 `-march` selects instructions; `-mabi` selects argument and return-value calling
 conventions. An `ilp32` application may use F instructions internally while
@@ -32,8 +32,8 @@ radio payload's separate runtime libraries are not substitutes for musl.
 The port's FPU context path saves and restores **single-precision F** registers
 with `fsw`/`flw`; ordinary builds do not target the D extension. Linux also
 uses the platform SBI coprocessor services for Espressif extension state.
-See the [F-only context implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/kernel/fpu.S#L22-L63)
-and [Linux extra-state calls](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/kernel/esp32s31-ext.c#L79-L145).
+See the [F-only context implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/kernel/fpu.S)
+and [Linux extra-state calls](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/kernel/esp32s31-ext.c).
 Kernel or firmware code still has to respect its context and floating-point
 usage rules; a compiler ABI flag alone does not make arbitrary FPU use safe.
 
@@ -42,7 +42,7 @@ usage rules; a compiler ABI flag alone does not make arbitrary FPU use safe.
 The port treats **HP core 1 as the only valid core for XespV execution**:
 OpenSBI skips PIE state access on hart 0, and `libesp-simd` pins calling threads
 to CPU1 before entering its assembly routines. See the
-[OpenSBI restriction](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31_coproc.S#L79-L83).
+[OpenSBI restriction](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31_coproc.S).
 
 Use `libesp-simd` through `esp_simd.h` and link with `-lesp-simd`. Its constructor
 initializes the initial thread; each new calling thread initializes on first
@@ -52,14 +52,14 @@ whole calling thread. After successful initialization, do not move that thread
 to CPU0 or broaden its mask: success is cached and later affinity changes are
 not rechecked. The [application guide](../api-reference/userspace/index.md)
 contains the complete build, link and run example; the
-[library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/rootfs/esp_simd.c#L30-L75) defines this behavior.
+[library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/esp_simd.c) defines this behavior.
 
 The ordinary application flags omit XespV and Xesploop. The SIMD package
 explicitly compiles hand-written extension assembly; this project does not
 depend on automatic XespV vectorization.
-Xesploop state handling exists, but the parent Makefile explicitly says live
+Xesploop state handling exists, but live
 loop state is not safe across all S-mode return paths used by arbitrary
 libraries. Keep extension use within the reviewed library/firmware paths;
 do not enable Xesploop globally for ordinary applications. See the
-[build restriction](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L26-L33) and
-[SIMD package flags](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/esp-simd/esp-simd.mk#L12-L23).
+[build configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/config.mk) and
+[SIMD package flags](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/esp-simd/esp-simd.mk).

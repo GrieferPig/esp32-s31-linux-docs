@@ -20,7 +20,7 @@ s31-overlay status
 
 `list` 显示镜像中已安装的覆盖层。在 `status` 输出中，`active:` 条目来自运行中的内核，
 `persisted:` 列出为下次启动保存的预期选择。
-可选外设驱动需要使用[完整外设配置](../get-started/build-profiles.md)。
+可选外设驱动已包含在统一的[完整配置](../get-started/build-configuration.md)中，仍需配置覆盖层与实际硬件。
 
 | 分组 | 覆盖层名称 | 备注 |
 |---|---|---|

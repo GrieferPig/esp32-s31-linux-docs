@@ -51,13 +51,17 @@ USB 桥接芯片和开发板接线决定了设备名称，以及是否支持自�
 ## 3. 安装发布镜像
 
 从项目的[发布页面](https://github.com/GrieferPig/esp32-s31-linux/releases)
-下载 `s31_full_flash.bin`，并通过发布说明确认其源码版本。发布文件还包括
-独立组件镜像、`build-manifest.json` 和 `SHA256SUMS`。
-在下载目录中执行以下命令。
+下载 `s31_full_flash.bin`，并通过发布说明确认其源码版本。当前自动发布只上传合并镜像；完整组件集和清单位于源码构建的 `dist/current`。若此次发布另外提供可信的 `SHA256SUMS`，应在下载目录校验后再烧录：
+
+```sh
+sha256sum --check --ignore-missing SHA256SUMS
+```
+
+若已提供校验和，Windows 使用 `Get-FileHash .\s31_full_flash.bin -Algorithm SHA256`，与 `SHA256SUMS` 中同名条目比较。校验不匹配时停止；文件和校验和必须来自同一次可信发布。
 
 > **警告：** 下列命令会擦除整个 Flash 芯片，包括已保存的设置。即使省略显式
 > 擦除步骤，烧录合并镜像仍会覆盖 persist 区域。若要更新并保留该区域，请使用
-> 下文的独立组件烧录方法。
+> 下文的完整组件集烧录方法，且开发板必须已使用相同布局。更换布局时，应先备份到另一台设备，执行全新安装，再恢复需要的文件和设置。
 
 ### 在 Linux 上烧录
 
@@ -81,6 +85,8 @@ $PORT="COM3"
 
 如果不支持自动下载或复位，请按开发板说明操作按钮，进入下载模式，并在烧录
 完成后复位。如果传输失败，可尝试降低烧录波特率，例如改为 `921600`。
+
+当前合并镜像的物理开发板启动与烧录尚未验证，模拟器也未针对该合并构建重跑。下面是应检查的接口与启动标志，不是本镜像的运行成功报告。
 
 ## 4. 打开控制台并登录
 
@@ -106,7 +112,7 @@ $PORT="COM3"
 | `esp32-s31 login:` | 默认主机名对应的串口登录已可用 |
 
 默认源码配置使用 **`root` 用户，初始密码为空**。定制源码配置或已有的
-persist 分区可能会改变这些凭据。
+persist 分区可能会改变这些凭据。开放登录服务前请用 `passwd` 设置密码。默认镜像没有 SSH 服务器。
 
 登录后，检查运行中的内核、CPU、根挂载及启动状态：
 
@@ -143,36 +149,36 @@ esp32-config
 外设设置见[叠加层目录](../resources/overlay-catalog.md)。启动问题的排查方法见
 [调试](../api-guides/debugging.md)。
 
-## 6. 更新源码构建的系统
+## 6. 保护持久化数据
 
-[构建项目](build-from-source.md)后，请保持其 ESP-IDF 环境和所选
-`S31_LEAN_RADIO` 配置有效。在主仓库根目录执行：
+persist 位于 `[0x1EE000, 0x400000)`，总容量为 2120 KiB。擦除后的区域可作为空 JFFS2 文件系统使用，全新安装不要求另行烧录 persist 镜像。合并镜像及整片擦除都会覆盖该区域。
 
-```sh
-make PORT=/dev/ttyUSB0 BAUD=2000000 flash-all
-```
+重要文件与设置应保留可验证的外部备份。改变布局时，按第 3 节全新安装后再恢复数据。只有开发板已使用相同[紧凑布局](../hw-reference/flash-layout.md)时，下面的更新方法才能保留 persist。
 
-该目标会重新构建其依赖，并写入 SPL、U-Boot/OpenSBI、Linux 设备树、无线
-文件系统、内核和根文件系统，同时保留 persist 分区。保留该分区可以保留已
-保存的设置，但下次启动仍会执行迁移和软件包文件清理；具体见
-[配置文件](../resources/configuration.md)和
-[部署重启后需要保留的文件](deploy-files-that-must-survive-reboot)。
+## 7. 保留设置更新系统
 
-要直接写入已构建的组件文件而不重新构建，请在主仓库根目录使用 ESP-IDF
-环境中的 `esptool`：
+### 使用发布组件
+
+此方法要求已取得全部六个组件和对应校验和/清单，例如源码构建的已验证集合，或明确提供完整集合的发布。当前只提供合并镜像的自动发布不能单独用于保留设置的组件更新。取得完整集合并验证后，保持整套文件不混用。无线 XIP 载荷使用该内核的地址，不能任意搭配其他构建。在 Linux 下载目录运行：
 
 ```sh
 PORT=/dev/ttyUSB0
-. configs/esp32s31-layout.cfg
-esptool --chip "$CHIP" -p "$PORT" -b 2000000 write-flash \
+python -m esptool --chip esp32s31 -p "$PORT" -b 2000000 write-flash \
   --flash-mode dio --flash-freq 80m --flash-size 16MB \
-  "$SLOT_SPL" "build/$SPL_APP_BIN" \
-  "$SLOT_UBOOT_ITB" "build/$UBOOT_ITB" \
-  "$SLOT_DTB" "build/$BASE_DTB" \
-  "$SLOT_RADIO" "build/$RADIO_IMAGE" \
-  "$SLOT_KERNEL" "build/$KERNEL_IMAGE" \
-  "$SLOT_ROOTFS" "build/$ROOTFS_IMAGE"
+  0x002000 spl_app.bin 0x00E000 u-boot.itb 0x05E000 esp32s31_generic.dtb \
+  0x06E000 radio.bin 0x400000 xipImage 0xA00000 rootfs.sqfs
 ```
 
-请使用一整套成功构建且相互匹配的组件。各组件烧录目标及其重新构建行为见
-[Make 命令参考](../resources/make-reference.md)。
+PowerShell 中使用 `$PORT="COM3"`，将 `python` 替换为 `& $S31_PYTHON`，并将续行反斜杠改为反引号。同布局更新不要执行 `erase-flash`；上述六个写入范围不包含 persist。当前布局没有 HIL 临时分区。
+
+### 使用源码构建
+
+按[源码构建](build-from-source.md)完成 `make image` 后，保持 ESP-IDF 环境可用，在主仓库执行：
+
+```sh
+make PORT=/dev/ttyUSB0 BAUD=2000000 flash-existing-all
+```
+
+该目标解析 `dist/current` 中不可变的匹配集，验证后写入 SPL、U-Boot/OpenSBI、Linux 设备树、`radio.bin`、内核与 rootfs，不重新构建。`flash-all` 是它的别名；需要显式构建并烧录时使用 `build-flash`。
+
+虽然同布局更新保留 persist，下一次启动仍会执行配置迁移与软件包文件清理。参见[配置文件](../resources/configuration.md)和[重启后需要保留的文件](deploy-files-that-must-survive-reboot)。部分组件烧录目标会拒绝执行，以免混用无法确认来源的板上组件。完整目标说明见 [Make 参考](../resources/make-reference.md)。

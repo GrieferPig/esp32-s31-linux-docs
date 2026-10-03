@@ -14,7 +14,7 @@ applied by the startup scripts.
 
 | Change | Where to configure it |
 |---|---|
-| Include a driver | Kernel defconfig and build profile |
+| Include a driver | Kernel defconfig and build configuration |
 | Include an application | Buildroot defconfig or external package |
 | Enable a peripheral or change its pins | `esp32-config` Interfaces or `s31-overlay` |
 | Configure Wi-Fi, Bluetooth, GPIO, startup programs, or storage | `esp32-config` |
@@ -22,7 +22,7 @@ applied by the startup scripts.
 | Change a peripheral's runtime settings | Its Linux subsystem API |
 | Change the flash partition layout | Layout configuration, bootloader, and device tree |
 
-For build-time choices, see [Build profiles](../get-started/build-profiles.md).
+For build-time choices, see [Build configuration](../get-started/build-configuration.md).
 For runtime peripheral selection, see [Using overlays](overlay-catalog.md).
 
 ## Persistent files
@@ -41,12 +41,11 @@ The following locations are temporary:
 | `/tmp` | Temporary files |
 | `/var/log` | Runtime logs |
 
-The persistent partition is **576 KiB**, with some space used by filesystem
-metadata. The adjacent 64 KiB `hil-scratch` partition is reserved for tests.
-Use an SD card or USB storage for larger applications, media, and logs. For
-SD cards or FAT/VFAT/ext4-formatted drives, use the
-[full-peripheral profile](../get-started/build-profiles.md) and enable the
-required storage overlay.
+The persistent partition has **2120 KiB** of raw flash capacity, before JFFS2
+metadata overhead. There is no HIL scratch partition in the compact layout.
+Use an SD card or USB storage for larger applications, media, and logs, enabling
+the required storage overlay. The standard configuration includes the native
+storage drivers; external-device support still depends on the selected driver.
 
 Some firmware-owned files are refreshed from the image during boot. See
 [Deploy files that must survive reboot](deploy-files-that-must-survive-reboot)
@@ -54,10 +53,10 @@ for those exceptions and the appropriate way to install replacements.
 
 ## Keep settings during an update
 
-Use the separate-image flashing procedure or `make flash-all` to update the
-firmware while preserving the persistent partition. Flashing
-`s31_full_flash.bin`, running `make flash-persist`, or erasing the whole chip
-replaces the saved data. See
+Use complete matched slot images or `make flash-all` to preserve persist only
+when the board already uses the same compact layout. Back up data externally
+before a layout change. Writing `s31_full_flash.bin` or erasing flash destroys
+persist. The `flash-persist` and `erase` Make targets refuse destructive operations. See
 [Flash and first boot](../get-started/flash-and-first-boot.md).
 
 ## Back up and restore settings
@@ -108,9 +107,9 @@ those. Resetting configuration leaves user programs and other files intact.
 
 ## Radio settings
 
-Radio mode is selected when the module loads. The module parameters `mode`,
-`direct_hci`, and `firmware` choose the Wi-Fi/Bluetooth profile, Bluetooth
-frontend, and firmware file. Use the configuration tools for normal setup;
+Radio mode is selected when the module loads. The module parameters `mode`
+and `direct_hci` choose the Wi-Fi/Bluetooth mode and Bluetooth frontend. The
+prelinked XIP payload comes from the fixed radio flash slot, not a filename. Use the configuration tools for normal setup;
 changing these module parameters requires a reload after stopping radio
 applications.
 

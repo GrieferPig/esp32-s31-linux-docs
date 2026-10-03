@@ -1,10 +1,10 @@
 # Wi-Fi 和蓝牙
 
-ESP32-S31 无线模块提供 cfg80211 Wi-Fi 接口和蓝牙控制器。配置、配对、服务控制和连接检查见 [Wi-Fi 与蓝牙设置](../../user-guides/networking.md)。本页介绍应用接口和模块参数。
+ESP32-S31 无线模块提供 mac80211/cfg80211 Wi-Fi 接口和蓝牙控制器。配置、配对、服务控制和连接检查见 [Wi-Fi 与蓝牙设置](../../user-guides/networking.md)。本页介绍应用接口和模块参数。
 
 ## Wi-Fi
 
-网络接口通常为 `wlan0`；镜像包含 `iw`、`wpa_supplicant` 和 `wpa_cli`。应用数据通过普通网络套接字传输。[Wi-Fi 高级用法](../../api-guides/wifi-advanced.md)介绍了监听接收及 AP/企业网络集成路径。[EAP 厂商协议](wifi-protocol.md)定义了固件企业认证所用的凭据配置接口。
+当前只提供一个 STA 接口，通常为 `wlan0`；镜像包含 `iw`、`wpa_supplicant` 和 `wpa_cli`。应用数据通过普通网络套接字传输。[Wi-Fi 高级用法](../../api-guides/wifi-advanced.md)说明 AP、监听、企业认证和挂起的当前限制，[Wi-Fi 协议](wifi-protocol.md)说明桥接与前端边界。
 
 ## 蓝牙
 
@@ -34,7 +34,7 @@ H4 包类型字节。当缓冲区已满、已复制八帧或队列变空时，�
 
 控制器重启后，已打开设备的客户端可能收到 HCI Hardware Error 事件。
 此时应重新初始化主机并重新连接设备。关闭设备会释放主机端点，控制器
-仍保持启用。[HCI 前端](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/bluetooth/hci_esp32s31.c)实现了此帧格式和生命周期。
+仍保持启用。[HCI 前端](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/bluetooth/hci_esp32s31.c)实现了此帧格式和生命周期。
 
 ## 模块设置
 
@@ -45,10 +45,11 @@ H4 包类型字节。当缓冲区已满、已复制八帧或队列变空时，�
 |---|---|---|
 | `mode` | `combo` | 启用 `wifi`、`bt` 或 `combo` |
 | `direct_hci` | `1` | 提供 `/dev/s31-hci`；设为 `0` 则使用 Linux HCI |
-| `firmware` | `esp32s31-radio-fw-v1.o` | 无线固件文件名 |
+
+XIP 加载器直接读取专用 Flash 分区中的 `radio.bin`，没有 `firmware` 模块参数。该镜像必须匹配已安装内核和模块。
 
 这些设置在加载模块时选定。常规模式选择使用 `esp32-config`；底层应用
-应在更改模块配置前停止客户端。[模块实现](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-module.c)定义了模式和直接 HCI 的默认值。
+应在更改模块配置前停止客户端。[模块实现](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-module.c)定义了模式和直接 HCI 的默认值。
 
 (radio-status)=
 ## 无线状态
@@ -66,18 +67,17 @@ done
 ## 内核接口
 
 公共无线 API 声明在
-[`include/linux/esp32s31-radio.h`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/include/linux/esp32s31-radio.h)
+[`include/linux/esp32s31-radio.h`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/include/linux/esp32s31-radio.h)
 中，定义了前端使用的 Wi-Fi 和 HCI 回调。核心代码和外部载荷目前使用 ABI
 版本 1。
 
 | 项目 | 限制 |
 |---|---:|
 | HCI 帧 | 1,029 字节 |
-| Wi-Fi 以太网帧 | 1,600 字节 |
-| 扫描结果 | 32 个接入点 |
+| 无线桥接帧 | 4,144 字节 |
+| 原始 SoftMAC 帧 | 4,096 字节 |
 
-站点接收复制回调可能在硬中断上下文中运行，并使用预分配的缓冲区。
-数据包处理由另一个回调调度。监听流量使用独立的接收路径。
+`receive_aux` 使用仅在回调期间有效的借用帧。前端复制需要保留的数据，并通过 NAPI 交给 mac80211；此路径可能使用原子分配。软件监听共用经过过滤的无线接收路径，不是完整的混杂抓包。当前扫描由 mac80211 软件扫描完成，固件内部 32 项扫描数组不是当前扫描结果的上限。
 
 ```{toctree}
 :maxdepth: 1

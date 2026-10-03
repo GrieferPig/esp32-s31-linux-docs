@@ -14,10 +14,10 @@
 | OpenSBI TIMERG1 定时器 1 | 1 | 29 | 48 | M 模式专用空闲唤醒保护 |
 
 Linux 通用外设分配器使用 CLIC 槽位 **16–47**，其中 40 和 41 保留给本地 IPI 和定时器路由。OpenSBI 使用的槽位 48 不属于这个分配池。两个核上的相同槽位编号代表不同的核本地输入。
-参见[槽位常量](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp32s31-internal.h#L9-L12)、[本地中断源与配置](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp32s31-smp.c#L34-L42)、[分配器保留项](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp-intmtx.c#L298-L301)及 [OpenSBI 保护定时器定义](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L47-L85)。
+参见[槽位常量](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp32s31-internal.h)、[本地中断源与配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp32s31-smp.c)、[分配器保留项](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp-intmtx.c)及 [OpenSBI 保护定时器定义](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c)。
 
 两个 GPTimer 设备树节点都设置了 `espressif,reserved-timer-mask = <2>`。位 1 保留定时器 1，Linux counter 驱动会跳过该通道。保护定时器使用 40 MHz 晶振除以 40 的时钟，并设置 10,000 个计数周期的闹钟。
-参见 [DTS 保留配置](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L1236-L1252)及使用它的 [GPTimer 驱动](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/counter/esp32s31-gptimer.c#L199-L211)。
+参见 [DTS 保留配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)及使用它的 [GPTimer 驱动](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/counter/esp32s31-gptimer.c)。
 
 无线运行时加载后，其使用的中断源归无线运行时管理；相应 Linux IRQ 通过平台中断路径申请。它们不是上表之外的固定 CLIC 槽位保留项。
 

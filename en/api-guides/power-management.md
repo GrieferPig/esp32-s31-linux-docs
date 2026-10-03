@@ -29,7 +29,7 @@ echo performance > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
 
 Linux timekeeping uses the separate 16 MHz SYSTIMER. See the
 [clock relationships](../hw-reference/clock-tree.md) and
-[configured governors](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/configs/esp32s31_defconfig#L72-L82).
+[configured governors](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/configs/esp32s31_defconfig).
 
 ## CPU idle
 
@@ -37,7 +37,7 @@ The supplied command line selects `esp32s31_idle=wfi`. Linux enables the
 firmware-assisted WFI path only when the required SBI extension is present;
 if the option is disabled or that capability is absent, polling remains the
 fallback. This is a capability check, not a test of firmware age. See the
-[activation code](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp32s31-smp.c#L52-L92).
+[activation code](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp32s31-smp.c).
 
 OpenSBI reserves timer 1 in each timer group for a guard configured as 10,000
 ticks at 1 MHz (10 ms). The `timers` overlay leaves those channels reserved and
@@ -57,7 +57,12 @@ argument ranges and result fields. Start there before testing system sleep.
 
 ## Suspend-to-idle (`freeze`)
 
-With LP firmware ready, enable a one-second diagnostic timer and enter freeze:
+With LP firmware ready, stop Wi-Fi activity and bring the interface down before
+testing. Current SoftMAC returns `EBUSY` for a running interface; the radio
+module propagates that veto before suspending Bluetooth or stopping the payload.
+Active Wi-Fi replay/reassociation is not implemented. Unmount USB storage and
+disable USB-backed swap before a suspend experiment, since devices may reconnect.
+Enable a one-second diagnostic timer and enter freeze:
 
 ```sh
 echo 1000 > /sys/module/esp32s31_lp/parameters/s2idle_wake_ms
@@ -76,20 +81,20 @@ echo 0 > /sys/module/esp32s31_lp/parameters/s2idle_wake_ms
 
 This path exercises Linux device suspend/resume and LP transactions. The HP
 side polls for LP completion during the noirq phase; it is not evidence of an
-HP low-power state. See the [polling implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/remoteproc/esp32s31_lp.c#L238-L274).
+HP low-power state. See the [polling implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c).
 
 The S31 DWC2 suspend callback disables its IRQ, global interrupts and low-level
 hardware, and sets `phy_off_for_suspend`. There is no freeze-specific exception
 that keeps the controller/PHY active. The resume path re-enables and restores
 the controller as needed; USB devices may reconnect. See
-[DWC2 suspend/resume](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/usb/dwc2/platform.c#L721-L795).
+[DWC2 suspend/resume](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/dwc2/platform.c).
 
 ## Suspend-to-RAM (`mem` / `deep`)
 
 Treat retention suspend as **experimental**. The current Linux/LP/OpenSBI
 sources agree on ABI 1 and the 28-word control layout. The existing checks cover ABI-version agreement and the LP timer's start condition;
 they do not validate device recovery or the complete physical sleep cycle.
-See the [source contract tests](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/tests/test_s31_feature_contracts.py#L155-L174)
+See the [source contract tests](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/tests/test_s31_feature_contracts.py)
 and [LP development guide](lp-firmware-development.md).
 
 Parameters under `/sys/module/esp32s31_lp/parameters/` are:
@@ -124,13 +129,14 @@ dmesg | tail -n 100
 ```
 
 `mem_sleep` selects what `mem` means; `deep` selects the platform retention
-path. See the [Linux suspend registration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/kernel/suspend.c#L173-L199)
-and [MEM request validation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/remoteproc/esp32s31_lp.c#L816-L864).
+path. See the [Linux suspend registration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/kernel/suspend.c)
+and [MEM request validation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c).
 
 Record the complete serial log, image/source revisions, selected wake source,
 resume result and post-resume peripheral operation. Radio and USB recovery
 paths exist, but successful reconnection must be checked on the tested image.
-A board trace identifying a current failure, or a repeatable successful cycle
+The HIL `--wifi-suspend-cycles` sequence is diagnostic, not proof of active
+Wi-Fi recovery. A board trace identifying a current failure, or a repeatable successful cycle
 with measured current, is still needed to replace this experimental status.
 
 ## Shut down
@@ -144,8 +150,8 @@ shutdown. The clock provider prepares the 40 MHz XTAL handoff before the
 secondary hart is stopped; OpenSBI verifies that state before entering the
 PMU sequence. If untimed shutdown cannot complete, firmware halts instead of
 rebooting. Reset/EN or a power cycle starts Linux again. This command does not
-remove the board's external supply. See the [clock handoff](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1776-L1807)
-and [firmware fallback](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L909-L933).
+remove the board's external supply. See the [clock handoff](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)
+and [firmware fallback](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c).
 
 ## Timed deep sleep
 
@@ -164,7 +170,7 @@ done
 The public control accepts 1000–600000 ms and a timer wake source. Linux latches
 the request and starts orderly power-off; OpenSBI programs the RTC and selects
 the cold-boot path.
-See the [request handler](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/remoteproc/esp32s31_lp.c#L1265-L1307) and [RTC setup](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L976-L1015).
+See the [request handler](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c) and [RTC setup](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c).
 
 The RTC conversion uses a fixed **155386 Hz** slow-clock value, so the actual
 delay can differ between boards. `previous` and `wake_reason` are software

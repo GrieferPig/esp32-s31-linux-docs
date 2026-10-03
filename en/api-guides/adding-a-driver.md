@@ -12,12 +12,12 @@ are relative to `linux-esp32-s31`.
 
 | Integration piece | I2C0 example |
 | --- | --- |
-| Driver and device match | [`drivers/i2c/busses/i2c-esp32s31.c`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L779-L859): probe, I2C adapter registration and `espressif,esp32s31-i2c` match. |
-| Binding | [`Documentation/devicetree/bindings/i2c/espressif,esp32s31-i2c.yaml`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/devicetree/bindings/i2c/espressif,esp32s31-i2c.yaml#L15-L55): registers, IRQ, clock, optional reset and bus frequency. |
-| Base hardware node | [`arch/riscv/boot/dts/espressif/esp32s31.dtsi`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L1180-L1192): `i2c0` at `0x20385000`, matrix interrupt source 23, clock/reset references and `status = "disabled"`. |
-| Enabling overlay | [`arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso#L7-L43): resource claim, named SCL/SDA routes, bus-frequency parameter and `status = "okay"`. |
-| Kernel build | [`drivers/i2c/busses/Kconfig`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/Kconfig#L1597-L1605) defines `I2C_ESP32S31`; the [directory Makefile](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/Makefile#L164) selects the object; [`esp32s31_defconfig`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/configs/esp32s31_defconfig#L185-L188) enables it. |
-| Overlay build | [`arch/riscv/boot/dts/espressif/Makefile`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/Makefile#L24-L25) registers the `.dtbo` target. |
+| Driver and device match | [`drivers/i2c/busses/i2c-esp32s31.c`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/i2c/busses/i2c-esp32s31.c): probe, I2C adapter registration and `espressif,esp32s31-i2c` match. |
+| Binding | [`Documentation/devicetree/bindings/i2c/espressif,esp32s31-i2c.yaml`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/devicetree/bindings/i2c/espressif,esp32s31-i2c.yaml): registers, IRQ, clock, optional reset and bus frequency. |
+| Base hardware node | [`arch/riscv/boot/dts/espressif/esp32s31.dtsi`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi): `i2c0` at `0x20385000`, matrix interrupt source 23, clock/reset references and `status = "disabled"`. |
+| Enabling overlay | [`arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso): resource claim, named SCL/SDA routes, bus-frequency parameter and `status = "okay"`. |
+| Kernel build | [`drivers/i2c/busses/Kconfig`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/i2c/busses/Kconfig) defines `I2C_ESP32S31`; the [directory Makefile](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/i2c/busses/Makefile) selects the object; [`esp32s31_defconfig`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/configs/esp32s31_defconfig) enables it. |
+| Overlay build | [`arch/riscv/boot/dts/espressif/Makefile`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/Makefile) registers the `.dtbo` target. |
 
 For a new peripheral, add or reuse the corresponding binding, describe its real
 resources in the base device tree, and provide an overlay for optional hardware.
@@ -32,7 +32,7 @@ clock, registers a managed clock-disable action, gets the optional reset, and
 initializes bus timing. It then requests the IRQ and registers the I2C adapter.
 Provider errors pass through `dev_err_probe()`, preserving `-EPROBE_DEFER` when
 returned by a provider.
-[Probe and cleanup registration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L774-L839).
+[Probe and cleanup registration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/i2c/busses/i2c-esp32s31.c).
 
 Use managed helpers where they fit the lifetime of the resource, and propagate
 the actual resource-acquisition error. Shared hardware and execution-context
@@ -49,27 +49,27 @@ the termination and synchronization rules in the DMA guide.
 ## 3. Build the driver and overlay
 
 Add the driver's Kconfig dependencies and object rule, enable it in
-`arch/riscv/configs/esp32s31_defconfig` or your selected `DEFCONFIG`, and register
-new overlay targets in the DTS directory Makefile. The parent `linux` target
-reapplies the selected defconfig, so keep intended configuration changes there.
-[Parent Linux target](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L287-L289).
+`arch/riscv/configs/esp32s31_defconfig` and the parent `configs/kernel/` fragments,
+and register new overlay targets in the DTS directory Makefile. Keep lasting
+changes in these inputs rather than generated `out/linux/.config`.
 
-From the parent project, build and flash the full-peripheral configuration.
-Use the [flash guide](../get-started/flash-and-first-boot.md) to select the port
-and prepare the serial connection:
+The build enables `CONFIG_TRIM_UNUSED_KSYMS=y`: build new modules together with
+the kernel to retain required exports. Out-of-tree modules may need an explicit
+export whitelist. A driver selected as `m` also needs an explicit package/install
+step; the parent does not install every `.ko` automatically.
+
+From the parent project, build and verify the matching kernel, rootfs/module,
+and radio XIP payload, then flash the complete set:
 
 ```sh
-export S31_LEAN_RADIO=0
+make image
 make flash-all PORT=/dev/ttyUSB0
 ```
 
-`rootfs` already depends on `linux`, which builds the kernel, modules and device
-trees. `S31_LEAN_RADIO=0` keeps the optional peripheral configuration available.
 The rootfs post-build step installs built overlays into `/usr/lib/s31-overlays`.
-[Build profile](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L226-L232);
-[Linux artifacts](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L399-L406);
-[rootfs dependency](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L438-L445);
-[overlay installation](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/post-build.sh#L237-L249).
+See [Build configuration](../get-started/build-configuration.md) and
+[Flash and first boot](../get-started/flash-and-first-boot.md) for prerequisites
+and persistence safeguards.
 
 After the board restarts, enable the overlay with the procedure in
 [Adding an overlay](adding-an-overlay.md).
@@ -83,7 +83,7 @@ and long-transfer logic plus SPI target-buffer copying:
 python -m unittest tools.tests.test_s31_feature_contracts.DriverContracts.test_driver_wire_contracts -v
 ```
 
-The [test harness](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/tests/test_s31_feature_contracts.py#L243-L257)
+The [test harness](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/tests/test_s31_feature_contracts.py)
 compiles selected source functions with simulated inputs. For a new driver,
 add focused checks for its own parsing, transfer construction or error handling
 where these can run independently of hardware.

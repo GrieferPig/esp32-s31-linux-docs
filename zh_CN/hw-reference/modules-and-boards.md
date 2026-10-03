@@ -1,6 +1,6 @@
 # 模组和开发板
 
-本移植面向 ESP32-S31 平台。[维护者的开发板测试说明](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/README.md#L1-L5)
+本移植面向 ESP32-S31 平台。[维护者的开发板测试说明](https://github.com/GrieferPig/esp32-s31-linux/blob/main/README.md)
 列出了以下开发板和模组：
 
 - 乐鑫 ESP32-S31 Coreboard
@@ -25,15 +25,15 @@
 | 58 | UART0 TX，控制台输出 |
 | 59 | UART0 RX，控制台输入 |
 
-这些保留项来自[基础 GPIO 配置](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L375-L403)
-和[覆盖层引脚检查](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/rootfs/s31_overlay.c#L63-L69)。
+这些保留项来自[基础 GPIO 配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
+和[覆盖层引脚检查](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/s31_overlay.c)。
 GPIO 驱动的有效引脚掩码还排除了 GPIO29；它已包含在保留的 26–32 引脚组中。
 
 ## 连接外设
 
-以下默认值适用于启用相应的[预置覆盖层](https://github.com/GrieferPig/linux-esp32-s31/tree/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif)
+以下默认值适用于启用相应的[预置覆盖层](https://github.com/GrieferPig/linux-esp32-s31/tree/v6.18-esp32-s31/arch/riscv/boot/dts/espressif)
 且未覆盖引脚分配的情况。可选控制器还需要
-[完整外设配置](../get-started/build-profiles.md)中的相应驱动。
+[完整外设配置](../get-started/build-configuration.md)中的相应驱动。
 
 ### 通过矩阵路由的信号
 
@@ -71,7 +71,7 @@ GPIO，同时启用前需要选择互不冲突的引脚。覆盖层管理器会�
 | `gmac` | 管理接口 5–6；PHY 复位 7；RGMII 发送引脚组 8–13；接收引脚组 14–19 | 见[以太网信号表](ethernet-default-pins)；需要 PHY 和相匹配的开发板接线 |
 | `analog` | DAC 4–5；触摸 6–19；比较器 37–40；ADC 42–57 | 即使应用只使用一个功能，覆盖层也会占用整组引脚 |
 
-SDMMC 和以太网信号组定义在[基础 pinctrl 配置](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L620-L793)中。
+SDMMC 和以太网信号组定义在[基础 pinctrl 配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)中。
 各条 SDMMC 信号与固定版本的
 [ESP-IDF 插槽定义](https://github.com/espressif/esp-idf/blob/a602e67b0bf9ee0806dc4e1df7afc9affedf5c33/components/esp_hal_sd/esp32s31/include/soc/sdmmc_pins.h#L9-L23)一致。
 预置 `analog` 覆盖层与多个总线的默认引脚冲突；只需要其中一部分功能时，
@@ -99,7 +99,7 @@ SDMMC 和以太网信号组定义在[基础 pinctrl 配置](https://github.com/G
 RXD0–RXD3 对应的 GPIO 编号按降序排列。信号名称和时钟方向依据固定版本的
 [ESP-IDF RGMII 映射](https://github.com/espressif/esp-idf/blob/a602e67b0bf9ee0806dc4e1df7afc9affedf5c33/components/esp_hal_emac/esp32s31/emac_periph.c#L190-L401)；
 Linux 设备树提供上述路由和
-[PHY 复位配置](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L866-L875)。
+[PHY 复位配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)。
 
 ### PWM 和计数器默认引脚
 
@@ -113,7 +113,7 @@ Linux 设备树提供上述路由和
 | `sdm.out`、`pcnt0.in`、`pcnt1.in` | 35、36、37 |
 
 引脚分配和 GPIO 占用声明见
-[`pwm-counter` 覆盖层](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-pwm-counter.dtso#L7-L135)。
+[`pwm-counter` 覆盖层](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-pwm-counter.dtso)。
 
 应用覆盖层前，连接公共地，并检查外设的电压要求、上拉电阻、收发器、codec
 或 PHY。配置示例见[使用外设](../user-guides/peripherals.md)。

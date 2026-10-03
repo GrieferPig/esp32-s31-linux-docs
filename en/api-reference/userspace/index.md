@@ -7,10 +7,9 @@ shell. Hardware is accessed through Linux device files, sockets, and sysfs.
 
 Complete [Build from source](../../get-started/build-from-source.md) first,
 including the ESP-IDF environment. Run the host commands below from the project
-root. The rootfs-only updates below require a board already running the selected
-kernel configuration and build profile. To change either, follow
-[Build profiles](../../get-started/build-profiles.md) first. Keep the same profile
-in the environment while building these applications.
+root. Deploy application updates with the complete verified image set, because
+rootfs carries the kernel's matching radio module. See
+[Build configuration](../../get-started/build-configuration.md).
 
 Create `hello.c` on your development computer:
 
@@ -29,16 +28,19 @@ the updated rootfs. Replace `/dev/ttyUSB0` with the board's port and close the
 serial monitor before flashing:
 
 ```sh
-toolchain/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
-  -Os -mabi=ilp32 hello.c -o hello
+cache/toolchains/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
+  -Os -march=rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs \
+  -mabi=ilp32 -mtune=esp-base hello.c -o hello
 install -D -m 0755 hello \
   buildroot-external/board/esp32-s31/overlay/usr/bin/hello
-make rootfs
-make flash-existing-rootfs PORT=/dev/ttyUSB0
+make image
+make flash-all PORT=/dev/ttyUSB0
 ```
 
-The [flash-existing-rootfs target](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L532-L536) writes the image produced by `make rootfs` without another
-build. Reopen the serial console after flashing, log in, and run on the board:
+`make image` publishes the verified set to `dist/current`; `flash-all` verifies
+and writes that set without rebuilding. It preserves persist only on boards
+already using the same flash layout. Reopen the serial console after flashing,
+log in, and run on the board:
 
 ```sh
 hello
@@ -53,8 +55,8 @@ precompiled binary in the overlay.
 ## Use libesp-simd
 
 `libesp-simd` exposes the port's XespV 2.2 memory and string operations through
-`esp_simd.h`. The [library package](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/esp-simd/esp-simd.mk#L26-L42) installs its header and libraries into
-`build/buildroot/staging`, and the shared library into the image.
+`esp_simd.h`. The [library package](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/esp-simd/esp-simd.mk) installs its header and libraries into
+`out/buildroot/staging`, and the shared library into the image.
 
 Create `simd-demo.c` on the host:
 
@@ -82,13 +84,14 @@ int main(void)
 After a successful `make rootfs`, compile and install it with:
 
 ```sh
-toolchain/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
-  -Os -mabi=ilp32 -Ibuild/buildroot/staging/usr/include \
-  simd-demo.c -Lbuild/buildroot/staging/usr/lib -lesp-simd -o simd-demo
+cache/toolchains/riscv32-esp-linux-musl/bin/riscv32-esp-linux-musl-gcc \
+  -Os -march=rv32imafbc_zicsr_zifencei_zaamo_zalrsc_zba_zbb_zbc_zbs \
+  -mabi=ilp32 -mtune=esp-base -Iout/buildroot/staging/usr/include \
+  simd-demo.c -Lout/buildroot/staging/usr/lib -lesp-simd -o simd-demo
 install -D -m 0755 simd-demo \
   buildroot-external/board/esp32-s31/overlay/usr/bin/simd-demo
-make rootfs
-make flash-existing-rootfs PORT=/dev/ttyUSB0
+make image
+make flash-all PORT=/dev/ttyUSB0
 ```
 
 Run `simd-demo` from the board console. With initialization successful, it prints
@@ -104,7 +107,7 @@ library caches successful initialization and does not recheck later affinity
 changes. For raw instructions and compiler ABI choices, see
 [ISA and ABI](../../hw-reference/isa.md).
 
-The [library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/rootfs/esp_simd.c)
+The [library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/esp_simd.c)
 and `rootfs/s31_string_bench.c` provide more examples. A Buildroot package using
 the library should select `BR2_PACKAGE_ESP_SIMD`, add `esp-simd` to its package
 dependencies, and link with `-lesp-simd`.
@@ -112,7 +115,7 @@ dependencies, and link with `-lesp-simd`.
 ## Access hardware
 
 These interfaces are available when the corresponding kernel driver and hardware
-are enabled. The lean profile omits several optional peripheral drivers.
+are enabled. The standard image selects the full board configuration.
 
 | Hardware | Application interface |
 |---|---|

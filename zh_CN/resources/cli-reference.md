@@ -107,17 +107,16 @@ python3 tools/hil/s31_hil.py --help
 运行器协调 S31 上的 `s31-hil-agent` 和可选的对端固件。
 完整命令和测试装置配置见[硬件在环测试](../contribute/testing-hil.md)。
 
-## Wi-Fi 企业认证辅助工具
+## Wi-Fi 诊断
 
-在主机上运行：
-
-```text
-python3 tools/s31_wifi_eap.py [--interface wlan0] [--ssh USER@HOST] profile.json
-python3 tools/s31_wifi_eap.py [--interface wlan0] [--ssh USER@HOST] --clear
+```sh
+iw dev
+iw phy
+wpa_cli -i wlan0 status
+ip addr show wlan0
 ```
 
-此工具在本地使用 Python，在目标设备上使用 `iw`。远程使用时，开发板还需要运行 SSH 服务器。
-配置文件格式见[进阶 Wi-Fi](../api-guides/wifi-advanced.md)。
+当前 mac80211 SoftMAC 前端只提供一个 STA，不公开固件 EAP 凭据厂商命令。AP、监听及企业认证限制见[Wi-Fi 高级用法](../api-guides/wifi-advanced.md)。
 
 ## 开发工具
 

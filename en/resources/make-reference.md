@@ -1,117 +1,121 @@
 # Make reference
 
-Run these targets from the `esp32-s31-linux` repository root. For a first
-build, follow [Build from source](../get-started/build-from-source.md).
+Run GNU Make from the parent repository. Component-native systems own compilation;
+the parent selects configuration inputs, output paths, ordering, validation and publication.
+For installation, see [Build from source](../get-started/build-from-source.md).
 
 ## Common commands
 
 ```sh
-make all             # Build the complete image
-make linux           # Rebuild Linux and device trees
-make rootfs          # Rebuild the root filesystem
-make flash-all       # Build and flash the component images
+make help                         # Default; no build or hardware access
+make doctor                       # Diagnose host tools and configured paths
+make fetch                        # Explicitly prepare pinned dependencies
+make build                        # Build the matched component set
+make image                        # Merge, verify and publish the image set
+make check                        # Host, documentation and devicetree checks
 ```
 
-Set `JOBS` to choose the number of parallel build jobs, for example
-`make JOBS=4 all`. Use `S31_LEAN_RADIO=0` for a full-peripheral build.
+Every build uses the full board configuration. `DEBUG=1` adds the debug fragment.
+Use `JOBS=4` to bound native parallelism. Machine paths and job limits may be set
+in ignored `local.mk`. See [Build configuration](../get-started/build-configuration.md).
 
 ## Build targets
 
 | Target | Description |
 |---|---|
-| `all` | Build the toolchain dependencies, boot firmware, Linux, rootfs, and combined image |
-| `download` | Initialize the source submodules |
-| `toolchain` | Download the Linux toolchain, or reuse the installed copy |
-| `toolchain-source` | Build a toolchain from the configured crosstool-NG source |
-| `opensbi` | Build `fw_dynamic.bin` for the U-Boot FIT |
-| `uboot`, `bootloader` | Build SPL, `spl_app.bin`, and `u-boot.itb` |
-| `linux` | Build the XIP kernel, device trees, overlays, and radio module |
-| `rootfs`, `initramfs` | Build `rootfs.sqfs`; both names select the SquashFS target |
-| `radio-idf-deps` | Build the ESP-IDF radio dependencies |
-| `radio-linux-payload` | Build the external radio firmware and generate import stubs |
-| `radio-module` | Build and check the integrated radio module and firmware outputs |
-| `radio-fs` | Create `build/radio.sqfs` |
-| `radio-package` | Create the engineering radio archive under `build/radio-package/` |
-| `lp-firmware` | Build and stage the LP remoteproc firmware |
-| `persist` | Create an empty `build/persist.jffs2` |
-| `flash-image` | Create the combined `build/s31_full_flash.bin` file |
-| `coremark` | Build and copy the benchmark to `build/coremark/coremark.exe` |
+| `build` | Build boot firmware, Linux, rootfs and the paired radio image |
+| `image`, `all`, `flash-image` | Build, merge, verify and atomically publish the image set |
+| `fetch` | Explicitly prepare pinned sources, toolchain, BTstack and Buildroot downloads |
+| `fetch-rootfs` | Fetch the selected Buildroot package sources without building target packages |
+| `download` | Initialize pinned source submodules |
+| `toolchain` | Validate an installed toolchain |
+| `toolchain-fetch` | Fetch the pinned prebuilt Linux toolchain |
+| `toolchain-source` | Build a toolchain from configured crosstool-NG source |
+| `opensbi` | Build native OpenSBI output |
+| `uboot`, `bootloader` | Build SPL, ROM wrapper and FIT |
+| `linux` | Build XIP kernel, device trees, overlays and radio module |
+| `rootfs`, `initramfs` | Build the SquashFS root filesystem |
+| `radio-idf-deps` | Build the ESP-IDF radio dependency closure |
+| `radio-linux-payload` | Build relocatable payload and generated import stubs |
+| `radio-module` | Build and check the radio module and payload outputs |
+| `radio-image`, `radio-fs` | Build the radio XIP image bound to this kernel/module |
+| `radio-package` | Create an engineering archive from the verified image set |
+| `lp-firmware` | Build LP firmware and stage it in the build staging overlay |
+| `persist` | Create an empty JFFS2 image; does not flash it |
+| `coremark` | Build and copy the benchmark into build staging |
 | `buildroot-menuconfig` | Open Buildroot configuration |
-| `buildroot-clean` | Clean the Buildroot build |
-| `clean` | Remove `build/`, radio build output, and the radio ESP-IDF dependency build |
-| `fullclean` | Run `clean` and remove the installed project toolchain |
-| `check-layout` | Check the shared flash and memory layout |
-| `check-host` | Run layout checks and host regressions; fetch BTstack source as a dependency |
+| `buildroot-clean`, `buildroot-reconfigure` | Remove only the selected Buildroot output |
+| `idf-check` | Check ESP-IDF against the dependency lock |
+| `check-layout` | Validate flash, SRAM, linker and devicetree contracts |
+| `check-host` | Run host regression tests without downloads or hardware |
 | `check-docs` | Build documentation with strict Sphinx warnings |
-| `check-dt` | Check device trees and bindings with the project cross compiler |
-| `check-fast` | Run `check-host`, `check-docs`, and `check-dt` |
-| `build-manifest` | Write `build/build-manifest.json` |
+| `check-dt` | Validate device trees, schemas and overlays |
+| `check`, `check-fast` | Combine host, documentation and devicetree validation |
+| `build-manifest` | Verify existing artifacts and record build provenance |
+| `check-artifacts` | Verify existing images against `out/images/build-manifest.json` |
+| `clean`, `fullclean` | Remove the build output; retain shared caches |
 
-`clean` does not invoke the LP firmware clean target or remove the LP files
-staged in the source rootfs overlay. Those outputs are under
-`firmware/lp/build/` and
-`buildroot-external/board/esp32-s31/overlay/lib/firmware/esp32s31/`.
+Final build artifacts live in `out/images/`; verified published sets live in
+`dist/`, with `dist/current` selecting the current set. Native component
+objects, generated files, staging and reports stay under `out/`. Downloads
+and toolchains are shared in `cache/`.
 
-The parent build reapplies the kernel and rootfs defconfigs, then enforces its
-Linux selections and profile overrides. Save lasting changes in the relevant
-source configuration and parent Makefile; see
-[Build profiles](../get-started/build-profiles.md). Validation prerequisites
-and CI commands are in [Development setup](../contribute/development-setup.md).
+For lasting selections, edit tracked defconfigs and `configs/kernel/*.config`.
+Changed Linux, U-Boot, or radio configuration inputs trigger native
+reconfiguration; unchanged inputs retain native incremental builds. Buildroot
+package-selection or toolchain changes require `make buildroot-reconfigure`
+before rebuilding, so stale target contents cannot survive a configuration
+change. Save intended Buildroot menu changes in its tracked defconfig before
+that command, which removes the selected Buildroot output tree.
 
-## Flash targets
+`ROOTFS_BASELINE=/absolute/path/to/rootfs.sqfs` is an explicit incremental
+repack option with recorded provenance, not a clean Buildroot rebuild. It
+checks the full userspace runtime inventory and the exact module list; an
+incomplete baseline is rejected. Inherited target binaries are
+not claimed to have been rebuilt with size optimization.
+If only stock logging/cron startup scripts are missing, set
+`ROOTFS_BUSYBOX_BUILD=/path/to/busybox-build` to explicitly allow their restoration
+from the pinned Buildroot checkout. The repacker checks actual inherited applet/help
+bytes, records exact additions, and preserves existing filesystem metadata.
 
-These targets default to `/dev/ttyUSB0` at 2000000 baud. Override `PORT` and
-`BAUD` for your connection, while retaining the same build profile:
+## Device targets
 
 ```sh
-make PORT=/dev/ttyUSB1 BAUD=921600 flash-all
+make PORT=/dev/ttyUSB0 BAUD=2000000 flash-existing-all
 ```
 
-See [Flash and first boot](../get-started/flash-and-first-boot.md) for installing
-`esptool`, preparing the connection, and opening the console.
+`flash-existing-all` and its alias `flash-all` resolve `dist/current` once, verify that immutable set, and write SPL,
+FIT, DTB, radio, kernel and rootfs slot-wise. They never build. `build-flash`
+explicitly builds first. Persist is preserved only when the board already uses
+the same layout. The combined image overwrites persist; see
+[Flash and first boot](../get-started/flash-and-first-boot.md).
 
-| Target | What it writes |
-|---|---|
-| `flash-all` | SPL, FIT, DTB, radio, kernel, and rootfs; keeps persist |
-| `flash-bootloader` | SPL and FIT |
-| `flash-opensbi` | FIT containing OpenSBI and U-Boot |
-| `flash-linux` | Linux DTB and kernel |
-| `flash-dtb` | Linux DTB |
-| `flash-radio` | Radio filesystem |
-| `flash-rootfs` | Root filesystem |
-| `flash-existing-radio` | Existing `build/radio.sqfs`, without rebuilding |
-| `flash-existing-rootfs` | Existing `build/rootfs.sqfs`, without rebuilding |
-| `flash-persist` | Empty persistent filesystem; erases saved files and settings |
-| `erase` | Entire flash chip |
+Partial targets (`flash-radio`, `flash-linux`, `flash-rootfs`, `flash-dtb`,
+`flash-bootloader`, `flash-opensbi`, and the partial `flash-existing-*` aliases)
+fail closed because the installed companions cannot be proven. There is no
+unsafe override. `flash-persist` and `erase` also refuse; destructive maintenance
+requires an explicit separate procedure.
 
-The regular flash targets build their dependencies first. The `existing`
-variants use the files already on disk, so use them only after a completed
-build. `flash-image` belongs to the build table above: it produces a file on
-the host.
+The manifest checks component and combined-image hashes, radio's build-time
+kernel/module/payload/import bindings, and configuration identity. These
+are host checks; they do not establish a successful hardware boot.
 
 ## Build variables
 
 | Variable | Use |
 |---|---|
-| `PORT` | Flash serial device; defaults to `/dev/ttyUSB0` |
-| `BAUD` | Flash baud rate; defaults to `2000000` |
-| `JOBS` | Parallel jobs; defaults to the host CPU count |
-| `S31_LEAN_RADIO` | `1` for the compact radio profile (default), `0` for full peripherals |
-| `DEFCONFIG` | Kernel configuration; defaults to `esp32s31_defconfig` |
-| `LINUX_TARGET` | Kernel image target; defaults to `xipImage` |
-| `IDF_EXPORT` | Path to the ESP-IDF `export.sh` to use |
-| `IDF_PATH`, `IDF_ROOT` | ESP-IDF installation and discovery paths |
-| `TOOLCHAIN_RELEASE_TAG` | Release selected in `configs/build-versions.mk`; currently `esp32s31-linux-gcc-15.2.0-5` |
-| `TOOLCHAIN_RELEASE_REPOSITORY` | Repository supplying toolchain releases |
+| `DEBUG` | `1` adds debug kernel configuration |
+| `JOBS` | Parallel native build jobs |
+| `OUT_ROOT`, `CACHE_DIR` | Output and shared-cache roots |
+| `PORT`, `BAUD` | Device port and baud rate |
+| `IDF_EXPORT`, `IDF_PATH`, `IDF_ROOT` | Local ESP-IDF paths |
+| `TOOLCHAIN_PREFIX` | Installed cross-toolchain directory |
+| `TOOLCHAIN_RELEASE_TAG` | Dependency-lock release, or explicit local experiment |
 | `CROSSTOOL_NG_DIR` | Source tree for `toolchain-source` |
+| `S31_ALLOW_UNPINNED` | Explicit experimental ESP-IDF override |
+| `ROOTFS_BASELINE` | Explicit verified rootfs for incremental module repack |
+| `ROOTFS_BUSYBOX_BUILD` | Optional existing BusyBox build evidence to restore missing full-service init scripts from pinned Buildroot sources |
 
-The integrated radio firmware build selects the combined Wi-Fi/Bluetooth
-payload. Choose the active radio mode at runtime with `esp32-config`.
-
-OpenSBI uses the parent variables `FW_TEXT_START` (default `0x40000400`) and
-`FW_RW_START` (default `0x2F00F000`). Linux uses the Kconfig option
-`CONFIG_XIP_PHYS_ADDR`, set to `0x40400000` in the S31 defconfig; this is its
-CPU-visible XIP address, not the raw flash offset. Coordinate layout changes with the
-linker scripts, flash mapping, and device tree; see
-[Memory map](../hw-reference/memory-map.md) and
+Low-level boot-address changes must be coordinated with linker scripts, the
+layout file and devicetree. See [Memory map](../hw-reference/memory-map.md) and
 [Flash layout](../hw-reference/flash-layout.md).

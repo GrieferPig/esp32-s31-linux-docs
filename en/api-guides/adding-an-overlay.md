@@ -9,7 +9,7 @@ save the selection for the next boot.
 Create `esp32s31-overlay-NAME.dtso` under
 `linux-esp32-s31/arch/riscv/boot/dts/espressif/`. Start with an existing overlay
 for a similar device. The
-[complete I2C0 overlay](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso)
+[complete I2C0 overlay](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso)
 includes the header, resource declaration, pinctrl nodes, and controller settings.
 
 An overlay needs the device-tree plugin header and an `espressif,overlay-name`.
@@ -77,11 +77,11 @@ Use the [flash guide](../get-started/flash-and-first-boot.md) to select the port
 and prepare the serial connection:
 
 ```sh
-export S31_LEAN_RADIO=0
+make image
 make flash-all PORT=/dev/ttyUSB0
 ```
 
-The DTBO is built in `build/linux-6.18/arch/riscv/boot/dts/espressif/` and
+The DTBO is built in `out/linux/arch/riscv/boot/dts/espressif/` and
 installed into `/usr/lib/s31-overlays` in the rootfs.
 For files copied to the running board during development, follow the
 [deployment rules](deploy-files-that-must-survive-reboot)

@@ -9,7 +9,7 @@
 随仓库提供的 `i2s0` 和 `i2s1` 覆盖层使用虚拟 codec，在播放和录音**两个方向**
 都接收外部 BCLK 和帧时钟。I2S0 的时钟输入为 GPIO42/BCLK 和 GPIO43/WS，
 播放数据使用 GPIO44，录音数据使用 GPIO45。产生时钟的 codec 或测试对端
-必须在传输前启动匹配的时钟。仓库的[I2S HIL 流程](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/s31_hil.py#L968-L1104)
+必须在传输前启动匹配的时钟。仓库的[I2S HIL 流程](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/s31_hil.py)
 使用 P4 对端提供时钟。只应用默认覆盖层，无法让常见的时钟输入型 DAC 工作。
 
 下面是一个通过 PCM5102A 播放立体声音频的完整**新开发板集成示例**，依据
@@ -39,9 +39,9 @@ XSMT 为高以解除静音；DEMP 为低可禁用去加重。供电和其他配�
 ## 添加声卡并构建
 
 在构建主机上，将以下选项加入
-`linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig`，并使用完整外设配置。
+`linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig`；统一完整配置仍需额外选择此 codec 与声卡驱动。
 父仓库的构建流程会根据该源 defconfig 重新生成 `.config`，仅修改
-`build/linux-6.18/.config` 不会持久生效：
+`out/linux/.config` 不会持久生效：
 
 ```text
 CONFIG_SND_SIMPLE_CARD=y
@@ -124,16 +124,16 @@ CPU 端点的 `system-clock-direction-out` 不能省略：S31 DAI 的 `set_syscl
 只接受 ID 0 和 `SND_SOC_CLOCK_OUT`。声卡中的 master 引用使 CPU 同时产生
 BCLK 和 WS，`default` pinctrl 状态将两个时钟路由为输出。
 `espressif,external-card` 防止内置虚拟声卡占用 DAI。来源：
-[S31 格式和时钟接口](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/soc/espressif/esp32s31-i2s.c#L134-L204)、
-[simple-card 时钟方向](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/soc/generic/simple-card-utils.c#L260-L291)、
-[PCM5102A 驱动](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/soc/codecs/pcm5102a.c#L15-L40)。
+[S31 格式和时钟接口](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/soc/espressif/esp32s31-i2s.c)、
+[simple-card 时钟方向](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/soc/generic/simple-card-utils.c)、
+[PCM5102A 驱动](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/soc/codecs/pcm5102a.c)。
 
 在构建主机上重新构建并烧录匹配的内核、无线组件和根文件系统。
 按[烧录指南](../get-started/flash-and-first-boot.md)选择端口并准备串口连接：
 
 ```sh
-export S31_LEAN_RADIO=0
-make flash-all PORT=/dev/ttyUSB0
+make image
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 rootfs 打包步骤会将 `esp32s31-overlay-*.dtbo` 复制到覆盖层目录。在 S31 上

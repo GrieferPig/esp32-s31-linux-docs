@@ -15,7 +15,7 @@
 | `devm_reset_control_get_optional_exclusive()` | 获取可选复位控制；未提供可选控制时可能返回 `NULL` |
 | `reset_control_reset()` | 通过该控制请求一次复位脉冲 |
 
-S31 I2C 的探测流程可作为具体示例：映射寄存器，获取并启用时钟，通过 `devm_add_action_or_reset()` 注册 `clk_disable_unprepare()` 清理操作，获取并触发可选复位，然后配置控制器并申请 IRQ。错误路径保留提供者的错误码。这是该控制器的顺序；其他设备应遵循自身绑定与硬件要求。参见 [I2C 探测与清理](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/i2c/busses/i2c-esp32s31.c#L774-L830)。
+S31 I2C 的探测流程可作为具体示例：映射寄存器，获取并启用时钟，通过 `devm_add_action_or_reset()` 注册 `clk_disable_unprepare()` 清理操作，获取并触发可选复位，然后配置控制器并申请 IRQ。错误路径保留提供者的错误码。这是该控制器的顺序；其他设备应遵循自身绑定与硬件要求。参见 [I2C 探测与清理](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/i2c/busses/i2c-esp32s31.c)。
 
 释放时钟或缓冲区前，应停止设备传输与中断活动。DMA 清理还要求同步完成，见 [DMA 与缓存一致性](../../api-guides/dma-and-cache.md)。客户端驱动不应绕过提供者，直接写入时钟或 PMU 寄存器。
 
@@ -40,6 +40,6 @@ done
 | `critical=0` / `critical=1` | CCF 是否将该时钟标记为关键时钟 |
 | `rate=` | 提供者报告的频率，单位为 Hz |
 
-`state=on` 不是对实际电气时钟信号的独立回读，也不能证明外设已正常工作。应结合频率、探测日志和设备状态解释该字段。具体输出格式见 [`clocks_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/clk/clk-esp32s31.c#L1392-L1415)。
+`state=on` 不是对实际电气时钟信号的独立回读，也不能证明外设已正常工作。应结合频率、探测日志和设备状态解释该字段。具体输出格式见 [`clocks_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/clk/clk-esp32s31.c)。
 
 `domains` 输出分别列出策略、软件状态和强制控制寄存器设置；见[字段定义](../../hw-reference/power-domains.md)。CPU 频率与系统睡眠控制见[电源管理](../../api-guides/power-management.md)。

@@ -14,7 +14,7 @@ Linux PMU 提供者公开七个通用电源域。Linux 显式控制 HP 连接域
 | `modem` | `ESP32S31_PD_MODEM` | `modem-power` | 始终开启 |
 | `lp-peripheral` | `ESP32S31_PD_LP_PERI` | 未注册父域 | 始终开启 |
 
-项目提供的设备树包含 HPCNNT 自动管理的启用属性。载荷会在普通设备归属机制之外访问该域，因此无线模块活动时会额外持有一项投票。无线投票有效时禁止关闭 HPCNNT。载荷完成 PMU 初始化后，reclaim 钩子会重新应用 Linux 的 HPCNNT 强制状态。参见[域策略与拓扑](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/pmdomain/esp32s31-pmu.c#L305-L355)、[DTS 启用属性](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L233-L241)及[投票与 reclaim 实现](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/pmdomain/esp32s31-pmu.c#L152-L212)。
+项目提供的设备树包含 HPCNNT 自动管理的启用属性。载荷会在普通设备归属机制之外访问该域，因此无线模块活动时会额外持有一项投票。无线投票有效时禁止关闭 HPCNNT。载荷完成 PMU 初始化后，reclaim 钩子会重新应用 Linux 的 HPCNNT 强制状态。参见[域策略与拓扑](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/pmdomain/esp32s31-pmu.c)、[DTS 启用属性](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)及[投票与 reclaim 实现](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/pmdomain/esp32s31-pmu.c)。
 
 ## 读取电源域诊断信息
 
@@ -36,11 +36,11 @@ done
 | `errors=` | 状态切换期间强制控制寄存器回读失败的次数 |
 | `radio-vote=` | 当前无线否决投票；仅对 `hp-connectivity` 报告 |
 
-尽管字段名为 `hardware=`，它解释的是强制控制寄存器，并非独立的电源就绪信号、电流读数或保持状态的证明。输出格式定义于 [`domains_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/pmdomain/esp32s31-pmu.c#L234-L270)。
+尽管字段名为 `hardware=`，它解释的是强制控制寄存器，并非独立的电源就绪信号、电流读数或保持状态的证明。输出格式定义于 [`domains_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/pmdomain/esp32s31-pmu.c)。
 
 ## 系统保持配置
 
-OpenSBI 的 APPWR 配置写入电源值 `0x0000aa00` 和时钟值 `0x00000000`。源码将它们定义为：四个 HP 内存块进入保持模式、HP 逻辑组进入下电模式，并关闭 HP 各类时钟。LP 固件提供唤醒请求。参见[配置常量](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L209-L219)和[进入流程](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L830-L848)。
+OpenSBI 的 APPWR 配置写入电源值 `0x0000aa00` 和时钟值 `0x00000000`。源码将它们定义为：四个 HP 内存块进入保持模式、HP 逻辑组进入下电模式，并关闭 HP 各类时钟。LP 固件提供唤醒请求。参见[配置常量](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c)和[进入流程](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c)。
 
 当前挂起状态、CPU 空闲、关机与定时深度睡眠见[电源管理](../api-guides/power-management.md)。
 

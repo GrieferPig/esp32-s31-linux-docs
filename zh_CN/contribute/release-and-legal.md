@@ -1,46 +1,42 @@
 # 发布与许可
 
-每次推送到 `main` 都会启动发布工作流中的快速检查。检查通过后，只有最新
-提交的信息以 `release:` 开头时，才会运行镜像构建和发布任务。该任务使用
-`S31_LEAN_RADIO=0`，并检查预期的完整外设驱动选项。
+推送到主仓库 `main` 时运行发布工作流的快速检查。检查通过且最新提交信息以 `release:` 开头时，才运行镜像构建和发布任务。构建使用同一套完整开发板配置，并验证驱动、布局、工具链与匹配镜像来源。
 
-发布列表由 `tools/release_assets.py` 生成，包括六个组件镜像（`spl_app.bin`、
-`u-boot.itb`、`esp32s31_generic.dtb`、`radio.sqfs`、`xipImage` 和 `rootfs.sqfs`）、
-合并镜像 `s31_full_flash.bin`、`build-manifest.json` 及 `SHA256SUMS`。
-工作流在发布前核对这些校验和。这是文档对应源码版本的工作流行为；
-各次发布的实际输入应以其清单为准。
+## 镜像集与发布文件
+
+`make image` 生成并验证六个组件：`spl_app.bin`、`u-boot.itb`、`esp32s31_generic.dtb`、`radio.bin`、`xipImage` 和 `rootfs.sqfs`，以及合并镜像、`radio.json`、`build-manifest.json`、校验和及发布清单。通过验证后，完整匹配集位于 `dist/<build-id>/`，`dist/current` 指向该集合。
+
+本地镜像清单由 `tools/release/assets.py` 管理。当前 GitHub Release 工作流验证完整集合后，只上传 `s31_full_flash.bin`，并使用仓库的 `configs/release-notes.md` 作为安装说明。不能假设 GitHub Release 提供全部本地组件或校验文件；以该次发布的实际附件为准。
 
 ## 准备发布
 
-构建并测试改动，更新功能状态和安装说明，并确认镜像符合 Flash 布局的容量限制。在发布说明中列出构建版本和迁移说明。
+构建并测试改动，更新当前功能状态和安装说明，确认镜像符合 Flash 容量及匹配关系。清单应记录来源、工具链、配置、哈希及继承产物的来源；无法验证的优化或硬件能力应明确标注。
 
-合并安装镜像会覆盖已保存的设置。为现有用户提供更新时，也应说明如何通过分镜像烧录保留数据。
+合并镜像会覆盖 persist。向现有用户提供保留数据的更新时，应提供并验证完整匹配组件集，而且用户已安装的布局必须相同。更换布局必须先备份并全新安装；参见[Flash 布局](../hw-reference/flash-layout.md)。
 
 ## 打包无线文件
 
-要生成单独的工程用无线归档，运行：
+完成 `make image` 后，可以单独打包工程用无线归档：
 
 ```sh
 make radio-package
 ```
 
-产物位于 `build/radio-package/` 下。打包工具还提供发布模式，将再分发授权和对应源码归档一起打包：
+输出为 `out/images/esp32s31-radio-engineering-only.tar.xz`。该命令只打包已有、通过验证的输出，不重新构建或重新链接模块。包内的模块、无线镜像、元数据和覆盖层必须与对应内核配套。
+
+发布模式需要再分发授权及对应源码归档：
 
 ```sh
-tools/build_radio_bundle.sh --release \
+tools/release/radio_bundle.sh --release \
   --grant GRANT_FILE --source-archive SOURCE_ARCHIVE
 ```
 
-将两个路径替换为此次发布已审核的文件。工具会检查文件是否存在，并将其复制到包中，但不会验证授权范围，也不会确认
-源码归档是否对应每个二进制输入。选择发布模式前，请根据实际载荷审核这些
-文件。合并镜像工作流单独发布镜像，不会调用此工具的发布模式。
+请使用本次发布审核后的文件。工具验证文件存在并复制入包，但不会判断授权范围，也不能证明源码归档涵盖每个二进制输入。输出为 `out/images/esp32s31-radio-release.tar.xz`。合并镜像发布工作流不会调用该发布模式。
 
-## 附带声明和源码
+## 声明与源码
 
-检查镜像所含组件的条款，包括乐鑫无线库和 BTstack。按要求随发布包附带相关声明、许可证文本和源码材料。
+检查镜像内每个组件的条款，包括乐鑫无线库和 BTstack，按要求提供声明、许可证及源码材料。参考主仓库的[第三方声明](https://github.com/GrieferPig/esp32-s31-linux/blob/main/THIRD_PARTY_NOTICES.md)和[无线软件包许可](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/RADIO_BUNDLE_LICENSES.md)。打包命令不会改变许可条款。
 
-可先查看主仓库的[第三方声明](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/THIRD_PARTY_NOTICES.md)和无线目录的[软件包许可](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/radio/RADIO_BUNDLE_LICENSES.md)。打包命令不会改变这些条款。
+## 测试记录
 
-## 记录测试结果
-
-随发布附上相关构建和开发板测试结果，或在发布说明中提供链接。列出开发板型号、构建配置、测试命令和未解决的问题。分享日志前，请移除凭据和私钥。
+提供相关主机、构建、模拟器或物理开发板结果，并明确各自证据范围。记录开发板型号、构建标识、命令和未解决问题。没有当前物理运行记录时，不应把源码检查写成硬件通过。分享日志前移除凭据及私钥。

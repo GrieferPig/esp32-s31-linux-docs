@@ -10,7 +10,7 @@ The shipped `i2s0` and `i2s1` overlays use a dummy codec and consume external
 BCLK and frame clock for **both** playback and capture. For I2S0 these inputs
 are GPIO42/BCLK and GPIO43/WS, with playback data on GPIO44 and capture data
 on GPIO45. A clock-producing codec or test peer must start the matching clocks
-before the transfer. The repository's [I2S HIL flow](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/s31_hil.py#L968-L1104)
+before the transfer. The repository's [I2S HIL flow](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/s31_hil.py)
 uses a P4 peer for this purpose. Applying the stock overlay does not make an
 ordinary clock-consuming DAC work.
 
@@ -44,9 +44,9 @@ MCLK. These are configured/derived values, not measured frequencies.
 ## Add the card and build it
 
 On the build host, add these options to
-`linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig` and use the full profile.
+`linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig` and use the full board configuration.
 The parent build recreates its generated `.config` from this source defconfig,
-so editing only `build/linux-6.18/.config` is insufficient:
+so editing only `out/linux/.config` is insufficient:
 
 ```text
 CONFIG_SND_SIMPLE_CARD=y
@@ -130,16 +130,16 @@ The CPU endpoint's `system-clock-direction-out` matters: the S31 DAI accepts
 references make the CPU produce both BCLK and WS. The `default` pinctrl state
 routes both clocks as outputs. `espressif,external-card` prevents the built-in
 dummy card from claiming the DAI. Sources:
-[S31 format and clock interface](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/soc/espressif/esp32s31-i2s.c#L134-L204),
-[simple-card clock direction](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/soc/generic/simple-card-utils.c#L260-L291),
-[PCM5102A driver](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/sound/soc/codecs/pcm5102a.c#L15-L40).
+[S31 format and clock interface](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/soc/espressif/esp32s31-i2s.c),
+[simple-card clock direction](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/soc/generic/simple-card-utils.c),
+[PCM5102A driver](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/sound/soc/codecs/pcm5102a.c).
 
 On the build host, rebuild and flash the matching kernel, radio bundle and
 rootfs. Follow the [flash guide](../get-started/flash-and-first-boot.md) to
 select the port and prepare the serial connection:
 
 ```sh
-export S31_LEAN_RADIO=0
+make image
 make flash-all PORT=/dev/ttyUSB0
 ```
 

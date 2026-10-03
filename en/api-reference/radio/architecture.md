@@ -1,67 +1,74 @@
 # Radio architecture
 
-Wi-Fi and Bluetooth share the `esp32s31-radio` Linux module. It contains their
-Linux frontends, the external-firmware loader, and the runtime used by
-Espressif's radio code.
+Wi-Fi and Bluetooth share the `esp32s31-radio` Linux module. It contains the
+Linux frontends, firmware loader, and runtime used by Espressif's radio code.
 
-| Application path | Frontend in the common module |
-|---|---|
-| Wi-Fi applications using sockets | cfg80211 and netdev |
-| Bundled BTstack application | `/dev/s31-hci` direct H4 device |
-| Alternative Linux Bluetooth host | Linux HCI controller with `direct_hci=0` |
+```text
+Wi-Fi applications                 Bluetooth applications
+       |                                   |
+  mac80211/cfg80211                BTstack or Linux HCI
+       |                                   |
+       +---------- Linux radio module -----+
+                            |
+                  Radio runtime and loader
+                            |
+                  Prelinked flash-XIP payload
+```
 
-All three paths reach the same radio runtime and external firmware. See the
-[radio interface reference](index.md) for framing, ownership, and module settings.
+## Linux frontends
+
+The current Wi-Fi frontend is a mac80211 implementation, with cfg80211 for
+userspace control and one station interface. AP and AP+station operation are
+not exposed. mac80211 can provide a software monitor interface, but the radio
+receive path still applies station-oriented filtering; see
+[Advanced Wi-Fi](../../api-guides/wifi-advanced.md).
+
+The Bluetooth frontend offers either the direct `/dev/s31-hci` device or a
+Linux HCI controller. Both frontends use the common radio API and are built
+into the same module.
 
 ## Firmware loading
 
-ESP-IDF libraries and the port's compatibility code are linked into
-`esp32s31-radio-fw-v1.o`, a relocatable RISC-V ELF object. The build packages it
-with the matching module in `radio.sqfs`.
+The radio firmware combines ESP-IDF libraries and the port's compatibility
+code. The host prelinker resolves code/constant relocations against the built
+kernel and produces `out/images/radio.bin`. Most radio code executes in place from
+its dedicated flash slot; selected Wi-Fi code is copied to internal SRAM.
+The compressed Linux module lives in the rootfs under `/usr/lib/s31-radio`.
+The relocatable `esp32s31-radio-fw-v1.o` is an intermediate build artifact.
 
-During startup, the [loader](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-loader.c)
-allocates firmware memory, resolves imports, applies relocations, and finds
-exported entry points. It checks the payload format and ABI before starting the
-runtime. Use the firmware and module from the same build: a matching ABI number
-alone does not establish compatibility of every private import.
+At startup, the loader validates the mapped image's ABI, memory layout, and
+header/body CRCs. It copies the internal-SRAM code and initial writable data,
+clears BSS, binds module imports, and reads the fixed exports. These checks
+reject incompatible layouts and corruption; they do not prove common build
+provenance. Build and deploy the kernel, rootfs/module, and radio image as a
+matched set.
 
-Loaded firmware memory, including mutable sections, is separate from the fixed
-internal-SRAM pools used by the runtime. The [allocation helper](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-loader-core.c)
-and [Memory map](../../hw-reference/memory-map.md) describe these two allocations.
+See [Memory map](../../hw-reference/memory-map.md) for the fixed SRAM
+reservations and [Flash layout](../../hw-reference/flash-layout.md) for slots.
 
-## Runtime and CPU placement
+## Runtime
 
-The main radio worker and hardware interrupt handling run on HP core 0.
-Wi-Fi's frontend schedules receive NAPI and buffer-refill work on HP core 1.
-The [Wi-Fi receive path](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/net/wireless/espressif/esp32s31_wifi.c)
-uses that split to process received packets alongside the radio runtime.
+Radio device interrupts and the common worker use HP core 0. Compatibility
+tasks retain their requested affinity; no-affinity tasks can migrate. SoftMAC
+processing also uses HP core 1 when it is available. Wi-Fi-only SoftMAC uses
+native task servicing without the common radio worker.
 
-The compatibility layer provides the tasks, queues, timers, and synchronization
-functions expected by the radio libraries. Its [task creation
-adapter](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-rtos.c)
-honors a valid requested core when binding a task's Linux kthread; the main
-worker's CPU0 placement is not a rule that every payload-created task is bound
-to CPU0.
-
-Callbacks running in interrupt context copy data into preallocated storage and
-schedule further work. Applications use their networking or Bluetooth interface
-without calling the firmware directly.
+The compatibility layer supplies tasks, queues, timers, and synchronization
+for the radio libraries. The current Wi-Fi frontend receives borrowed auxiliary
+frames, copies data that must survive the callback before returning, and delivers packets through
+NAPI to mac80211. This path can allocate with atomic allocation flags; it is
+not an exclusively preallocated receive path.
 
 ## Suspend and recovery
 
-On suspend, the module detaches its frontends, stops the runtime, and releases
-its power request. On resume, it restores the firmware's initial mutable data,
-restarts the runtime, and restores the frontends. If restart fails, it leaves
-the interfaces detached and logs the error. This sequence is implemented in the
-[module's power-management callbacks](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-module.c).
+The common runtime contains stop/reset/restart support, including restoring
+initial mutable firmware data. This does not establish working recovery for
+every frontend. Current SoftMAC rejects suspend while its interface is running;
+the radio module returns that error before stopping Bluetooth or the shared
+payload. SoftMAC has no active-connection replay implementation. Do not rely on
+automatic Wi-Fi, Bluetooth, or combo reconnection after system sleep. The Wi-Fi suspend
+HIL sequence is a diagnostic rather than a support guarantee.
 
-The Wi-Fi frontend restores its cached EAP fields, active AP configuration, and
-running monitor interface. Station connections need userspace reconnection. The
-Bluetooth frontend reports the controller reset to an open direct-HCI client,
-and the bundled BTstack reset handler restarts its HCI state machine. Existing
-wireless connections still need to be established again with the peer.
-
-For connection checks and service controls, see
-[Wi-Fi and Bluetooth setup](../../user-guides/networking.md). System sleep
-availability is described in [Power management](../../api-guides/power-management.md).
-For code changes, see [Radio firmware development](../../api-guides/radio-payload-development.md).
+See [Power management](../../api-guides/power-management.md) for sleep limits
+and [Radio firmware development](../../api-guides/radio-payload-development.md)
+for the matched build/deployment workflow.

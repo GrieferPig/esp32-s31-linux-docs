@@ -21,7 +21,7 @@ esp32-config
 | 更改外设的运行时设置 | 对应的 Linux 子系统 API |
 | 更改 flash 分区布局 | 布局配置、引导加载程序和设备树 |
 
-构建时的配置选项见[构建配置](../get-started/build-profiles.md)。
+构建时的配置选项见[构建配置](../get-started/build-configuration.md)。
 运行时的外设选择见[使用覆盖层](overlay-catalog.md)。
 
 ## 持久化文件
@@ -38,11 +38,9 @@ esp32-config
 | `/tmp` | 临时文件 |
 | `/var/log` | 运行日志 |
 
-持久化分区的容量为 **576 KiB**，其中一部分空间由文件系统元数据占用。
-相邻的 64 KiB `hil-scratch` 分区专供测试使用。
+持久化分区容量为 **2120 KiB**，其中一部分由文件系统元数据占用。当前布局没有专用 HIL 临时分区。
 较大的应用程序、媒体文件和日志应存放在 SD 卡或 USB 存储设备上。
-使用 SD 卡或 FAT/VFAT/ext4 格式的存储设备时，应采用
-[完整外设配置](../get-started/build-profiles.md)，并启用所需的存储覆盖层。
+完整配置包含 FAT/VFAT 和内置 ext4；使用 SD 卡前，还需启用相应存储覆盖层。
 
 部分由固件管理的文件会在启动时恢复为镜像中的版本。
 这些例外及替换文件的安装方式见
@@ -50,8 +48,7 @@ esp32-config
 
 ## 更新时保留设置
 
-使用分镜像烧录步骤或 `make flash-all` 更新固件，可以保留持久化分区。
-烧录 `s31_full_flash.bin`、运行 `make flash-persist` 或擦除整个芯片都会替换已保存的数据。
+仅当开发板已使用相同紧凑布局时，完整匹配组件烧录或 `make flash-existing-all` 才能保留 persist。该目标不会构建，应先运行 `make image`。更换布局必须先备份并全新安装。烧录 `s31_full_flash.bin` 或擦除整个芯片都会替换已保存的数据。
 见[烧录与首次启动](../get-started/flash-and-first-boot.md)。
 
 ## 备份与恢复设置
@@ -99,8 +96,7 @@ esp32-config maintenance reset network
 
 ## 无线设置
 
-无线模式在模块加载时选择。模块参数 `mode`、`direct_hci` 和 `firmware` 分别选择
-Wi-Fi/蓝牙组合、蓝牙前端和固件文件。日常设置应使用配置工具；如需更改这些模块参数，
+无线模式在模块加载时选择。模块参数 `mode` 和 `direct_hci` 分别选择 Wi-Fi/蓝牙组合与蓝牙前端。XIP 加载器读取专用 Flash 分区中的 `radio.bin`，没有 `firmware` 参数。日常设置应使用配置工具；如需更改这些模块参数，
 应先停止无线应用程序，再重新加载模块。
 
 参数值和 Linux 接口见[无线参考](../api-reference/radio/index.md)。

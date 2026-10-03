@@ -5,9 +5,9 @@
 
 ## 1. ROM 与 SPL
 
-项目提供的镜像按 ROM 的常规 Flash 启动路径准备。父项目构建通过 `esptool --chip esp32s31 elf2image` 将 SPL 打包为 `build/spl_app.bin`，烧录规则通过下载连接写入它。参见[镜像打包](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L193-L199)及[烧录规则](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L494-L499)。
+项目构建将 SPL 打包为 `out/images/spl_app.bin`，其原始 Flash 偏移为 `0x002000`，容量限制为 48 KiB。SPL 初始化内存和时钟，将完整 Flash 从原始偏移零映射到物理 `0x40000000`，再加载位于 `0x00E000` 的 U-Boot FIT。
 
-SPL 初始化启动所需的内存和时钟，并加载 U-Boot FIT 镜像 `build/u-boot.itb`。其[板级初始化](https://github.com/GrieferPig/u-boot-esp32-s31/blob/06fe89c93ed52349f60120c77efe3018c1e6b29f/board/espressif/esp32s31/spl.c#L59-L90)选择 NOR 作为启动设备。
+构建入口见 `mk/boot.mk`，运行时板级初始化见 `u-boot-esp32-s31/board/espressif/esp32s31/spl.c`。
 
 ## 2. OpenSBI 和 U-Boot
 
@@ -18,13 +18,10 @@ Linux 的 SBI 调用。
 U-Boot 使用 Linux 设备树启动内核。默认启动命令使用以下映射地址：
 
 ```text
-booti 0x40400000 - 0x40200000
+booti 0x40400000 - 0x4005e000
 ```
 
-第一个地址是内核地址，第二个地址是设备树地址。SPL 将 flash 原始偏移
-`0x100000` 映射到 CPU 地址 `0x40000000`，因此这两个地址分别对应原始偏移
-`0x500000` 和 `0x300000`。地址换算和分区表见
-[Flash 布局](../../hw-reference/flash-layout.md)。
+第一个地址是内核，第二个是设备树，对应原始 Flash 偏移 `0x400000` 和 `0x05E000`。OpenSBI 位于 FIT 固定外部数据偏移 `0x400`，从 `0x4000E400` XIP 执行；可写数据位于内部 SRAM。地址与分区约定见[Flash 布局](../../hw-reference/flash-layout.md)。
 
 ## 3. Linux 和根文件系统
 
@@ -57,6 +54,6 @@ test -e /run/rcS.done && cat /run/rcS.status
 | `esp32s31_generic.dtb` | Linux 硬件描述 |
 | `xipImage` | Linux 内核 |
 | `rootfs.sqfs` | 早期初始化、BusyBox 和应用 |
-| `radio.sqfs` | 无线模块和外部固件 |
+| `radio.bin` | 预链接无线 XIP 载荷；匹配模块位于 rootfs |
 
 烧录命令见[烧录和首次启动](../../get-started/flash-and-first-boot.md)。

@@ -16,7 +16,7 @@ into the image during the rootfs build.
 ## Add a Buildroot package
 
 This example adds a small `s31-hello` program using the same local-source package
-mechanism as [s31-tools](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/s31-tools/s31-tools.mk).
+mechanism as [s31-tools](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/s31-tools/s31-tools.mk).
 
 ### 1. Add the source
 
@@ -88,32 +88,31 @@ Find `s31-hello` under the external ESP32-S31 packages menu and enable it. Exit
 with the configuration saved, then use [Buildroot’s savedefconfig target](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) to save the choices to the source defconfig:
 
 ```sh
-make -C buildroot O="$PWD/build/buildroot" \
+make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
   savedefconfig \
   DEFCONFIG="$PWD/buildroot-external/configs/esp32s31_rootfs_defconfig"
 ```
 
-Do this before another `make rootfs`: the parent build reloads
-`esp32s31_rootfs_defconfig` and replaces output-only configuration changes.
+Save before reconfiguring: the tracked defconfig is the durable input.
+A populated Buildroot output rejects changed package/toolchain configuration;
+run `make buildroot-reconfigure` after saving and `make fetch` for new sources.
 The source defconfig should now contain `BR2_PACKAGE_S31_HELLO=y`.
 
 ### 4. Build, flash, and run
 
-The following commands update only the root filesystem. The board should
-already run the selected kernel configuration and
-[build profile](../get-started/build-profiles.md); follow that guide first if
-you need to change either. Keep the same profile selected throughout these
-commands. With the ESP-IDF environment active, run on the host:
+The application is deployed as part of a verified matched image set. With the
+ESP-IDF environment active, run on the host:
 
 ```sh
-make rootfs
-ls -l build/buildroot/target/usr/bin/s31-hello
-make flash-existing-rootfs PORT=/dev/ttyUSB0
+make image
+ls -l out/buildroot/target/usr/bin/s31-hello
+make flash-all PORT=/dev/ttyUSB0
 ```
 
-Replace `/dev/ttyUSB0` with the board's port and close its serial monitor before
-flashing. After restart, log in through the serial console and run on the board:
+Replace the port and close its serial monitor before flashing. This updates
+kernel, rootfs/module and radio together; partial flash targets are disabled.
+After restart, log in through the serial console and run on the board:
 
 ```sh
 s31-hello
@@ -129,10 +128,10 @@ package is not in that list. After editing `rootfs/s31-hello/hello.c`, remove th
 package's build directory before rebuilding the image:
 
 ```sh
-make -C buildroot O="$PWD/build/buildroot" \
+make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" s31-hello-dirclean
-make rootfs
-make flash-existing-rootfs PORT=/dev/ttyUSB0
+make image
+make flash-all PORT=/dev/ttyUSB0
 ```
 
 This makes Buildroot copy and compile the updated local source. Repeat the board
@@ -141,8 +140,8 @@ run command after flashing.
 (runtime-pruning)=
 ## Keep the application and its dependencies in the image
 
-The [post-build script](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/post-build.sh) prunes selected programs and
-shared libraries after package installation. Check `build/buildroot/target`
+The [post-build script](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/post-build.sh) prunes selected programs and
+shared libraries after package installation. Check `out/buildroot/target`
 after `make rootfs`, including the libraries your executable needs. A successful
 package build alone does not show that its runtime files remain in the image.
 
@@ -159,7 +158,7 @@ flash partition.
 
 Ordinary persistence is covered by [Configuration](../resources/configuration.md).
 Two startup cleanup rules matter when uploading replacements for packaged files.
-Before mounting the writable root layer, [the init script](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/overlay/init#L84-L107) removes writable copies of:
+Before mounting the writable root layer, [the init script](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/overlay/init) removes writable copies of:
 
 ```text
 /usr/sbin/s31-btstack-a2dp

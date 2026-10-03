@@ -8,7 +8,7 @@
 
 ## 添加 Buildroot 软件包
 
-本示例添加一个小型 `s31-hello` 程序，使用与 [s31-tools](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/s31-tools/s31-tools.mk) 相同的本地源码软件包机制。
+本示例添加一个小型 `s31-hello` 程序，使用与 [s31-tools](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/s31-tools/s31-tools.mk) 相同的本地源码软件包机制。
 
 ### 1. 添加源码
 
@@ -74,22 +74,23 @@ make buildroot-menuconfig
 在外部 ESP32-S31 软件包菜单中找到并启用 `s31-hello`。保存配置并退出，然后使用 [Buildroot 的 savedefconfig 目标](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) 将选择写回源码中的 defconfig：
 
 ```sh
-make -C buildroot O="$PWD/build/buildroot" \
+make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
   savedefconfig \
   DEFCONFIG="$PWD/buildroot-external/configs/esp32s31_rootfs_defconfig"
 ```
 
-请在再次运行 `make rootfs` 前完成这一步：主项目构建会重新加载 `esp32s31_rootfs_defconfig`，覆盖仅存在于输出目录中的配置改动。源码 defconfig 中此时应包含 `BR2_PACKAGE_S31_HELLO=y`。
+请在再次运行 `make rootfs` 前完成这一步：主项目以源码 `esp32s31_rootfs_defconfig` 为配置输入，输入变化时会重新生成输出配置。源码 defconfig 中此时应包含 `BR2_PACKAGE_S31_HELLO=y`。
 
 ### 4. 构建、烧录并运行
 
-以下命令只更新根文件系统。开发板应已运行所选内核配置和[构建配置](../get-started/build-profiles.md)；如需修改其中任何一项，请先按该指南更新镜像。执行以下命令时保持相同的配置。激活 ESP-IDF 环境后，在主机上运行：
+应用通过 rootfs 打包，但部署必须包含匹配的内核、模块和无线载荷。保存新的软件包配置后，重新配置 Buildroot，再构建完整镜像集。激活 ESP-IDF 后，在主机运行：
 
 ```sh
-make rootfs
-ls -l build/buildroot/target/usr/bin/s31-hello
-make flash-existing-rootfs PORT=/dev/ttyUSB0
+make buildroot-reconfigure
+make image
+ls -l out/buildroot/target/usr/bin/s31-hello
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 将 `/dev/ttyUSB0` 替换为开发板端口，并在烧录前关闭串口监视程序。重启后，通过串口控制台登录，在开发板上运行：
@@ -102,13 +103,13 @@ s31-hello
 
 ### 5. 修改本地源码后重新构建
 
-主项目 Makefile 会显式重新构建已有的本地工具软件包，但新软件包不在该列表中。修改 `rootfs/s31-hello/hello.c` 后，先移除该软件包的构建目录，再重新生成镜像：
+主项目通过输入标识跟踪已有本地工具软件包；新增软件包不在该列表中。修改 `rootfs/s31-hello/hello.c` 后，先移除该软件包的构建目录，再重新生成镜像：
 
 ```sh
-make -C buildroot O="$PWD/build/buildroot" \
+make -C buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" s31-hello-dirclean
-make rootfs
-make flash-existing-rootfs PORT=/dev/ttyUSB0
+make image
+make flash-existing-all PORT=/dev/ttyUSB0
 ```
 
 这样 Buildroot 会重新复制并编译更新后的本地源码。烧录后，再次在开发板上运行程序。
@@ -116,14 +117,14 @@ make flash-existing-rootfs PORT=/dev/ttyUSB0
 (runtime-pruning)=
 ## 在镜像中保留应用及其依赖
 
-[构建后处理脚本](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/post-build.sh)会在软件包安装后精简部分程序和共享库。运行 `make rootfs` 后，检查 `build/buildroot/target`，包括程序依赖的库。软件包构建成功，并不代表运行所需文件仍保留在镜像中。
+[构建后处理脚本](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/post-build.sh)会在软件包安装后精简部分程序和共享库。运行 `make rootfs` 后，检查 `out/buildroot/target`，包括程序依赖的库。软件包构建成功，并不代表运行所需文件仍保留在镜像中。
 
 例如，脚本会移除 `libstdc++`、`libatomic`、BlueZ 工具和守护进程，以及 D-Bus/GLib/BlueALSA 文件。因此，添加 C++ 应用或基于 BlueZ 的系统时，也需检查相关移除规则。当前脚本还要求 `s31-btstack-a2dp` 和 `s31-ext-test` 保持可执行；替换 BTstack 时，需同时修改该检查和服务启动流程。主项目构建会检查最终根文件系统是否超出 Flash 分区。
 
 (deploy-files-that-must-survive-reboot)=
 ## 部署重启后需要保留的文件
 
-一般的持久化行为见[配置](../resources/configuration.md)。上传文件以替换软件包自带文件时，需要注意两条启动清理规则。挂载可写根文件系统层之前，[init 脚本](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/overlay/init#L84-L107)会删除以下路径的可写副本：
+一般的持久化行为见[配置](../resources/configuration.md)。上传文件以替换软件包自带文件时，需要注意两条启动清理规则。挂载可写根文件系统层之前，[init 脚本](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/overlay/init)会删除以下路径的可写副本：
 
 ```text
 /usr/sbin/s31-btstack-a2dp

@@ -14,9 +14,9 @@ make rootfs
 ```
 
 The LP build creates
-`firmware/lp/build/esp-idf/main/s31_lp_main/s31_lp_main.elf` and stages it as
-`buildroot-external/board/esp32-s31/overlay/lib/firmware/esp32s31/s31-lp-core.elf`.
-The rootfs build packages that file. See the [LP Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/lp/Makefile#L3-L17).
+`out/lp/esp-idf/main/s31_lp_main/s31_lp_main.elf` and stages it as
+`out/staging/overlay/lib/firmware/esp32s31/s31-lp-core.elf`.
+The rootfs build packages that file. See the [LP Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/Makefile).
 
 For an on-board replacement, first transfer the new ELF to
 `/tmp/s31-lp-core.elf`, then stop LP before replacing the installed firmware:
@@ -32,7 +32,7 @@ s31-lpctl ping
 The service locates remoteproc by the name `esp32s31-lp`, starts it and waits
 for READY. `status` should include `ready=1`; `ping` reports a round-trip value
 in microseconds. If startup fails, read `dmesg` and the service error before
-attempting sleep. See [S02s31-lp](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/overlay/etc/init.d/S02s31-lp#L5-L43).
+attempting sleep. See [S02s31-lp](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/overlay/etc/init.d/S02s31-lp).
 
 ## Keep firmware within its memory budget
 
@@ -48,8 +48,8 @@ available to code, data and stacks:
 
 Inspect ELF load segments and the linker map when increasing code, data or
 stack sizes. Do not expand into either shared reservation. See the
-[build allocation](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/lp/sdkconfig.defaults#L1-L4),
-[OpenSBI snapshot](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L218-L219) and [memory map](../hw-reference/memory-map.md).
+[build allocation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/sdkconfig.defaults),
+[OpenSBI snapshot](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c) and [memory map](../hw-reference/memory-map.md).
 
 ## Change the protocol coherently
 
@@ -76,11 +76,11 @@ experimental retention path and the remaining validation needs.
 Before using a new register window, add its required LP peripheral-PMS access
 in the remoteproc driver. The existing grant helper checks locked permissions
 and verifies the written access bits; failure returns `-EACCES`. See
-[permission setup](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/remoteproc/esp32s31_lp.c#L523-L588).
+[permission setup](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c).
 
 GPIO wake uses RTCIO ownership, level sampling and a configured LP GPIO
 wakeup interrupt/ISR. The poll path covers the transition window; the ISR
 records a GPIO reason and requests APPWR wake after `HP_ASLEEP`. Preserve the
 inactive-at-ARM check and the cleanup that disables pulls, wakeup and input
-before returning ownership. See [GPIO handling](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/lp/main/lp_core/main.c#L75-L192) and
-[ARM setup](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/lp/main/lp_core/main.c#L343-L393).
+before returning ownership. See [GPIO handling](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c) and
+[ARM setup](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c).

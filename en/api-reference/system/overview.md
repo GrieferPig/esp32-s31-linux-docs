@@ -36,7 +36,7 @@ see [Configuration](../../resources/configuration.md).
 Applications use Linux interfaces such as GPIO character devices, I2C, SPI,
 ALSA and sockets. `s31-overlay` enables optional peripherals and selects their
 pins. Most peripheral examples need the full-peripheral
-[build profile](../../get-started/build-profiles.md).
+[build configuration](../../get-started/build-configuration.md).
 
 ## Radio and low-power core
 

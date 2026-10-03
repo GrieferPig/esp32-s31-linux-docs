@@ -2,7 +2,7 @@
 
 这些示例适用于完整外设镜像。目标端命令在 S31 上以 root 身份运行；明确标注
 为构建命令的步骤在 Linux 构建主机上执行。按[从源码构建](../get-started/build-from-source.md)
-准备镜像，并设置 `S31_LEAN_RADIO=0`。rootfs 包含 libgpiod v2 工具、I2C 工具、
+准备完整匹配镜像集。rootfs 包含 libgpiod v2 工具、I2C 工具、
 `spidev_test`、`aplay`/`arecord`、`candump` 和 `cansend`。下文 CAN 示例还需要
 完整的 iproute2，外部 codec 示例则需要额外的内核选项。
 
@@ -98,7 +98,7 @@ gpioget --unquoted -c gpiochip0 43
 无效/低电平。Ctrl-C 会释放线路，应用不能依赖释放后的输出电平。将这些引脚
 分配给外设之前，先拆除回环线。
 
-这些命令使用[GPIO HIL 执行器](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/s31_hil.py#L278-L398)
+这些命令使用[GPIO HIL 执行器](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/s31_hil.py)
 采用的 libgpiod v2 语法。
 
 ## UART1 接线回环
@@ -117,8 +117,8 @@ s31-overlay remove uart1 --volatile
 失败。这里使用物理回传路径；`uart-loopback` 是辅助程序中另一种内部回环操作。
 连接外部 UART 设备时，将设备 TX 接到 S31 RX、设备 RX 接到 S31 TX，并匹配
 帧格式和波特率。保留 UART0 用作控制台。
-参见[UART 辅助程序实现](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/rootfs/s31_hil_io.c#L74-L164)
-和[UART1 路由](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-uart1.dtso#L10-L33)。
+参见[UART 辅助程序实现](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/s31_hil_io.c)
+和[UART1 路由](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-uart1.dtso)。
 
 (spi-host-loopback)=
 
@@ -140,9 +140,9 @@ s31-overlay remove gpspi2 --volatile
 spidev 子节点还将传输速率限制为最高 20 MHz。
 
 现有 `s31-hil-io spi` 辅助程序要求外部响应器返回特定的变换后模式，不能用它
-检查 MOSI/MISO 原样回传。来源：[主机字长掩码](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/spi/spi-esp32s31.c#L896-L925)、
-[覆盖层默认配置](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-gpspi2.dtso#L14-L42)、
-[spidev_test 选项](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/tools/spi/spidev_test.c#L241-L313)。
+检查 MOSI/MISO 原样回传。来源：[主机字长掩码](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/spi/spi-esp32s31.c)、
+[覆盖层默认配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-gpspi2.dtso)、
+[spidev_test 选项](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/tools/spi/spidev_test.c)。
 
 ## SD 卡和 USB 存储
 
@@ -159,7 +159,7 @@ spidev 子节点还将传输速率限制为最高 20 MHz。
 初始化时 DAT3 必须保持高电平，卡才能进入原生 SD 模式；未接到卡的 S31 焊盘
 上的上拉无法作用于卡引脚。参见固定版本的
 [S31 SD 卡接线及 1 位模式说明](https://github.com/espressif/esp-idf/blob/a602e67b0bf9ee0806dc4e1df7afc9affedf5c33/examples/storage/sd_card/sdmmc/README.md#L92-L108)
-和 Linux 的 [SD 初始化要求](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/mmc/core/mmc_ops.c#L162-L180)。
+和 Linux 的 [SD 初始化要求](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/mmc/core/mmc_ops.c)。
 完成卡座接线和供电后，执行：
 
 ```sh
@@ -188,7 +188,7 @@ umount /mnt/usb
 成功列出目录表示已经能访问该文件系统。若未枚举出设备，应检查供电、接线、
 驱动探测消息和当前 USB 角色。若磁盘已出现但挂载失败，应检查分区和文件系统
 类型。完整内核包含 VFAT 和 EXT4；本示例以只读方式挂载 VFAT。
-仓库还提供了[SD 读取和 USB 挂载 HIL 用例](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent#L309-L399)。
+仓库还提供了[SD 读取和 USB 挂载 HIL 用例](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent)。
 
 (audio-with-an-external-codec)=
 
@@ -212,7 +212,7 @@ umount /mnt/usb
 rootfs 选择了 `candump` 和 `cansend`，但当前源 defconfig **没有选择 iproute2**。
 使用下方 `ip ... type can` 命令之前，应在主机上的
 `buildroot-external/configs/esp32s31_rootfs_defconfig` 中，用以下设置替换现有的
-禁用项，然后重新构建并烧录 rootfs：
+禁用项，运行 `make buildroot-reconfigure`，再用 `make image` 构建完整匹配集并通过 `make flash-existing-all` 烧录：
 
 ```text
 BR2_PACKAGE_IPROUTE2=y
@@ -243,8 +243,8 @@ s31-overlay remove twai0 --volatile
 ```
 
 若发送失败，应检查错误计数器及对端接收情况。支持矩阵仍将 CAN 列为开发中。来源：
-[rootfs 软件包选择](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/configs/esp32s31_rootfs_defconfig#L63-L66)、
-[SocketCAN 位速率设置](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/networking/can.rst#L1340-L1375)。
+[rootfs 软件包选择](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig)、
+[SocketCAN 位速率设置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/networking/can.rst)。
 
 ## 使用仓库提供的 PHY 配置连接以太网
 
@@ -272,8 +272,8 @@ ip link set eth0 down
 s31-overlay remove gmac --volatile
 ```
 
-此示例依据[具体 PHY 描述](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L830-L876)
-和[现有以太网探测/链路检查](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent#L253-L307)。
+此示例依据[具体 PHY 描述](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
+和[现有以太网探测/链路检查](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/board/esp32-s31/overlay/usr/bin/s31-hil-agent)。
 报告硬件结果时，请记录开发板版本、PHY、内核/构建配置、链路对端和观察结果。
 
 ```{toctree}

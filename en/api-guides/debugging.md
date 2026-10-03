@@ -67,6 +67,11 @@ check. These messages provide useful landmarks:
 | `S31 early overlay restore failed` | Restoring saved device-tree overlays returned an error | Inspect active overlays and saved selections using [Using overlays](../resources/overlay-catalog.md). |
 | A serial login prompt | Linux started the console login service | Check `/run/rcS.log` and `/run/rcS.done` for services still starting. |
 
+If persist erase or mounting fails, the system can reach recovery login.
+In recovery `/run`, `/tmp`, and `/var/log` are volatile and settings cannot
+persist. Runtime validation of the merged image and hardware acceptance are
+pending; a console prompt alone does not establish normal boot.
+
 ### Settings disappear after reboot
 
 Check `df -h`, `/proc/mounts`, and the boot log for storage errors. Follow
@@ -79,7 +84,7 @@ the `active:` and `persisted:` entries in `s31-overlay status`.
 Run `s31-overlay status` and check that the peripheral's overlay is active.
 Then inspect `dmesg` for a failed probe or a missing clock, DMA channel, or
 other dependency. Optional peripherals need the
-[full-peripheral build](../get-started/build-profiles.md).
+[full-peripheral build](../get-started/build-configuration.md).
 
 ### An overlay command fails
 
@@ -120,6 +125,6 @@ loading and mailbox errors. For suspend problems, see
 ## Report a problem
 
 Include the command that failed, what you expected, and the relevant console
-output. Add your board model, build or release version, and build profile.
+output. Add your board model, build or release version, and build configuration.
 For a peripheral problem, include the wiring and the connected device. Remove
 sensitive information from logs before sharing them.

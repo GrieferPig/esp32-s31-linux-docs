@@ -1,7 +1,7 @@
 # USB 功能
 
 在 `esp32-config` 中选择 **Interfaces → USB**，可设置主机模式、串口连接或 USB 网络。
-设备功能需要[完整外设镜像](../get-started/build-profiles.md)及对应的内核支持；
+统一的[完整镜像](../get-started/build-configuration.md)包含相应控制器和 gadget 支持；
 菜单只提供当前镜像中可用的功能。以下开发板命令以 root 身份运行。
 
 这些设置控制 DWC2。固定的 USB Serial/JTAG 端口属于另一个外设。
@@ -73,7 +73,7 @@ esp32-config usb configure host
 ## 配置自定义 ACM 功能
 
 需要自己的 USB 标识时，可以使用下面的 configfs 配置示例。
-它依据源码编写；USB gadget 模式仍[不属于标准 HIL 测试套件](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/tools/hil/README.md#L146-L150)。
+它依据源码编写；USB gadget 模式仍[不属于标准 HIL 测试套件](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/hil/README.md)。
 先完成[通用引脚与 overlay 检查](peripheral-setup)，并释放配置工具创建的 gadget：
 
 ```sh
@@ -151,6 +151,6 @@ s31-overlay remove usb-device --volatile
 ```
 
 清理步骤会释放功能并恢复基础配置的主机角色。重新连接主机外设前，应先断开
-设备模式线缆。来源：[内核 configfs 生命周期](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/Documentation/usb/gadget_configfs.rst#L55-L300)、
-[S31 串口编号分配](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/usb/gadget/function/u_serial.c#L1299-L1325)、
-[ACM 端口编号](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/usb/gadget/function/f_acm.c#L818-L823)。
+设备模式线缆。来源：[内核 configfs 生命周期](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/Documentation/usb/gadget_configfs.rst)、
+[S31 串口编号分配](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/gadget/function/u_serial.c)、
+[ACM 端口编号](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/usb/gadget/function/f_acm.c)。

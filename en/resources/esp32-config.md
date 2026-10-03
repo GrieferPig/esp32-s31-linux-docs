@@ -19,7 +19,7 @@ remain saved when you exit.
 Pages use the drivers and tools installed in the running image. For example,
 USB device functions require gadget support, and mounting a volume requires its
 filesystem driver. A driver omitted from the image cannot be enabled by a
-menu selection. See [Build profiles](../get-started/build-profiles.md).
+menu selection. See [Build configuration](../get-started/build-configuration.md).
 
 Routine settings take effect when submitted. Startup-program selections take
 effect at the next start of that program. Imported or reset settings are

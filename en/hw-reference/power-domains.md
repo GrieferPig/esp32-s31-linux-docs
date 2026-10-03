@@ -21,9 +21,9 @@ The supplied device tree includes the HPCNNT opt-in. The radio module holds a
 separate vote while active because the payload accesses this domain outside a
 normal device attachment. An active radio vote prevents HPCNNT power-off.
 After payload PMU initialization, the reclaim hook reapplies Linux's HPCNNT
-force state. See the [domain policy and topology](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/pmdomain/esp32s31-pmu.c#L305-L355),
-[DTS opt-in](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L233-L241), and
-[vote/reclaim implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/pmdomain/esp32s31-pmu.c#L152-L212).
+force state. See the [domain policy and topology](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/pmdomain/esp32s31-pmu.c),
+[DTS opt-in](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi), and
+[vote/reclaim implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/pmdomain/esp32s31-pmu.c).
 
 ## Read domain diagnostics
 
@@ -47,14 +47,14 @@ done
 
 Despite the field name, `hardware=` decodes a force-control register. It is not
 an independent power-good signal, current reading or proof of retention.
-The output format is defined by [`domains_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/pmdomain/esp32s31-pmu.c#L234-L270).
+The output format is defined by [`domains_show()`](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/pmdomain/esp32s31-pmu.c).
 
 ## System retention configuration
 
 The OpenSBI APPWR profile writes power value `0x0000aa00` and clock value
 `0x00000000`. The source defines these as memory-retention mode for the four HP
 memory banks, power-down mode for HP logic groups and gating of HP clock
-classes. LP firmware supplies the wake request. See the [profile constants](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L209-L219) and [entry sequence](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L830-L848).
+classes. LP firmware supplies the wake request. See the [profile constants](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c) and [entry sequence](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c).
 
 For current suspend status, CPU idle, shutdown and timed deep sleep, see
 [Power management](../api-guides/power-management.md).

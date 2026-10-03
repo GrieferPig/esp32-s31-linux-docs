@@ -39,9 +39,8 @@ before removing the drive. The configuration tool does not format storage.
 ## Mount an SD or USB volume
 
 Filesystem mounting is available when the running image includes the matching
-filesystem driver. Use the [full-peripheral profile](../get-started/build-profiles.md)
-for FAT/VFAT or ext4 volumes. The lean profile retains USB block devices for
-swap, but omits those filesystems. For SD cards, enable the appropriate SDMMC
+filesystem driver. The standard [full board configuration](../get-started/build-configuration.md)
+includes FAT/VFAT and ext4 support. For SD cards, enable the appropriate SDMMC
 interface and connect the card as described in [Use peripherals](peripherals.md).
 
 Choose **Removable storage → Select volume and mount**, then select:

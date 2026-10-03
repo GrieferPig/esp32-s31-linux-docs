@@ -9,5 +9,5 @@ introduction
 ../resources/support-matrix
 flash-and-first-boot
 build-from-source
-build-profiles
+build-configuration
 ```

@@ -1,112 +1,92 @@
 # Make 参考
 
-在 `esp32-s31-linux` 仓库根目录运行这些目标。
-首次构建请参照[从源码构建](../get-started/build-from-source.md)。
+以下命令在主仓库根目录执行。首次构建参见[从源码构建](../get-started/build-from-source.md)。
 
 ## 常用命令
 
 ```sh
-make all             # Build the complete image
-make linux           # Rebuild Linux and device trees
-make rootfs          # Rebuild the root filesystem
-make flash-all       # Build and flash the component images
+make doctor               # 检查环境
+make fetch                # 获取固定版本依赖
+make build                # 构建组件
+make image                # 打包、验证并发布匹配镜像集
+make check                # 主机、文档和设备树检查
+make flash-existing-all   # 烧录已有匹配集，不构建
 ```
 
-设置 `JOBS` 可指定并行构建任务数，例如 `make JOBS=4 all`。
-使用 `S31_LEAN_RADIO=0` 构建完整外设版本。
+所有构建采用[完整开发板配置](../get-started/build-configuration.md)。主机路径和并行任务数可写入 `local.mk`，例如 `JOBS := 4`。`DEBUG=1` 增加诊断配置。
 
 ## 构建目标
 
 | 目标 | 说明 |
 |---|---|
-| `all` | 构建工具链依赖、启动固件、Linux、rootfs 和合并镜像 |
-| `download` | 初始化源码子模块 |
-| `toolchain` | 下载 Linux 工具链，或复用已安装的副本 |
-| `toolchain-source` | 使用配置的 crosstool-NG 源码构建工具链 |
-| `opensbi` | 为 U-Boot FIT 构建 `fw_dynamic.bin` |
-| `uboot`, `bootloader` | 构建 SPL、`spl_app.bin` 和 `u-boot.itb` |
-| `linux` | 构建 XIP 内核、设备树、覆盖层和无线模块 |
-| `rootfs`, `initramfs` | 构建 `rootfs.sqfs`；两个名称均选择 SquashFS 目标 |
+| `doctor` | 检查主机、工具链和 ESP-IDF 环境 |
+| `fetch` | 初始化子模块，获取工具链、BTstack 和 rootfs 源码缓存 |
+| `download` | 单独初始化源码子模块，不与构建目标混用 |
+| `toolchain-fetch` | 下载并验证固定版本 Linux 工具链 |
+| `toolchain` | 检查已安装工具链，不进行下载 |
+| `toolchain-source` | 使用指定 crosstool-NG 源码构建工具链 |
+| `build` | 构建启动固件、Linux、rootfs 和无线镜像 |
+| `image`、`all`、`flash-image` | 构建、生成合并镜像和清单，验证后发布至 `dist/` |
+| `opensbi` | 为 FIT 构建并验证 `fw_dynamic.bin` |
+| `uboot`、`bootloader` | 构建 SPL、`spl_app.bin` 和 `u-boot.itb` |
+| `linux` | 构建 XIP 内核、DTB、DTBO 和无线模块 |
+| `rootfs`、`initramfs` | 构建 SquashFS 根文件系统 `out/images/rootfs.sqfs` |
 | `radio-idf-deps` | 构建 ESP-IDF 无线依赖 |
-| `radio-linux-payload` | 构建外部无线固件并生成导入桩 |
-| `radio-module` | 构建并检查集成无线模块和固件输出 |
-| `radio-fs` | 创建 `build/radio.sqfs` |
-| `radio-package` | 在 `build/radio-package/` 下创建工程用无线归档包 |
-| `lp-firmware` | 构建并暂存 LP remoteproc 固件 |
-| `persist` | 创建空的 `build/persist.jffs2` |
-| `flash-image` | 创建合并后的 `build/s31_full_flash.bin` 文件 |
-| `coremark` | 构建基准测试，并复制到 `build/coremark/coremark.exe` |
-| `buildroot-menuconfig` | 打开 Buildroot 配置 |
-| `buildroot-clean` | 清理 Buildroot 构建 |
-| `clean` | 删除 `build/`、无线构建产物及无线 ESP-IDF 依赖的构建目录 |
-| `fullclean` | 执行 `clean`，并删除已安装的项目工具链 |
-| `check-layout` | 检查共享的 Flash 和内存布局 |
-| `check-host` | 检查布局并运行主机回归测试；依赖步骤会获取 BTstack 源码 |
-| `check-docs` | 以严格 Sphinx 警告设置构建文档 |
-| `check-dt` | 使用项目交叉编译器检查设备树和绑定 |
-| `check-fast` | 运行 `check-host`、`check-docs` 和 `check-dt` |
-| `build-manifest` | 写入 `build/build-manifest.json` |
+| `radio-linux-payload` | 生成无线中间载荷、导入桩及内核导出白名单 |
+| `radio-module` | 检查集成无线模块和载荷输出 |
+| `radio-image`、`radio-fs` | 创建预链接 `out/images/radio.bin` |
+| `radio-package` | 从已验证输出打包 `out/images/esp32s31-radio-engineering-only.tar.xz`，不构建 |
+| `lp-firmware` | 构建 `out/lp/` 并暂存到 `out/staging/overlay/` |
+| `persist` | 创建空的 `out/images/persist.jffs2`，不烧录 |
+| `coremark` | 构建基准测试，并复制到 `out/staging/coremark/coremark.exe` |
+| `buildroot-menuconfig` | 打开 Buildroot 配置菜单 |
+| `buildroot-clean`、`buildroot-reconfigure` | 删除 Buildroot 输出以便按新输入重建 |
+| `clean` | 删除构建树、生成文件、暂存、镜像及报告；保留缓存 |
+| `fullclean` | 执行 `clean`；同样保留下载和工具链缓存 |
+| `check-layout` | 检查共享 Flash 和内存布局 |
+| `check-host` | 检查布局并运行主机回归测试，不获取依赖 |
+| `check-docs` | 使用严格 Sphinx 警告设置构建文档 |
+| `check-dt` | 使用项目交叉编译器验证设备树和绑定 |
+| `check`、`check-fast` | 运行主机、文档和设备树检查 |
+| `check-artifacts` | 验证 `out/images/build-manifest.json` 及匹配产物 |
+| `build-manifest` | 生成 `out/images/build-manifest.json` |
 
-`clean` 不会调用 LP 固件的清理目标，也不会删除暂存到源码根文件系统覆盖目录
-中的 LP 文件。这些产物位于 `firmware/lp/build/` 和
-`buildroot-external/board/esp32-s31/overlay/lib/firmware/esp32s31/`。
-
-顶层构建会重新应用内核和 rootfs 的 defconfig，再强制应用其 Linux 选项及
-构建配置覆盖项。需要长期保留的更改应保存到相关源码配置及主 Makefile 中；
-见[构建配置](../get-started/build-profiles.md)。验证所需的依赖和 CI 命令见
-[开发环境](../contribute/development-setup.md)。
+组件输出在 `out/`，共享缓存位于 `cache/`。源配置变化会使原生配置重新生成；需要长期保留的选项应写回 defconfig 或 `configs/kernel/`，不要只修改生成的 `.config`。
 
 ## 烧录目标
 
-这些目标默认使用 `/dev/ttyUSB0`，波特率为 2000000。请根据连接情况覆盖
-`PORT` 和 `BAUD`，同时保持相同的构建配置：
+默认串口为 `/dev/ttyUSB0`，波特率 2000000：
 
 ```sh
-make PORT=/dev/ttyUSB1 BAUD=921600 flash-all
+make PORT=/dev/ttyUSB1 BAUD=921600 flash-existing-all
 ```
 
-`esptool` 安装、连接准备和打开控制台的步骤见
-[烧录与首次启动](../get-started/flash-and-first-boot.md)。
-
-| 目标 | 写入内容 |
+| 目标 | 行为 |
 |---|---|
-| `flash-all` | SPL、FIT、DTB、无线、内核和 rootfs；保留 persist |
-| `flash-bootloader` | SPL 和 FIT |
-| `flash-opensbi` | 包含 OpenSBI 和 U-Boot 的 FIT |
-| `flash-linux` | Linux DTB 和内核 |
-| `flash-dtb` | Linux DTB |
-| `flash-radio` | 无线文件系统 |
-| `flash-rootfs` | 根文件系统 |
-| `flash-existing-radio` | 已有的 `build/radio.sqfs`，不重新构建 |
-| `flash-existing-rootfs` | 已有的 `build/rootfs.sqfs`，不重新构建 |
-| `flash-persist` | 空的持久化文件系统；擦除已保存的文件和设置 |
-| `erase` | 整个 flash 芯片 |
+| `flash-existing-all`、`flash-all` | 验证并烧录 `dist/current` 中的六个匹配组件，不重新构建 |
+| `build-flash` | 先执行 `image`，再烧录已验证匹配集 |
+| `flash-bootloader`、`flash-opensbi`、`flash-linux`、`flash-dtb` | 拒绝部分更新，因为无法确认已安装的配套组件 |
+| `flash-radio`、`flash-existing-radio`、`flash-rootfs`、`flash-existing-rootfs` | 同样拒绝部分更新 |
+| `flash-persist`、`erase` | 拒绝执行；破坏性维护需要独立、明确的流程 |
 
-常规烧录目标会先构建依赖。`existing` 变体使用磁盘上已有的文件，因此应在构建完成后使用。
-`flash-image` 属于上方构建表中的目标：它在主机上生成文件。
+同布局的匹配组件更新保留 persist；合并镜像烧录会覆盖 persist。改变布局前应备份并全新安装。环境安装、连接与控制台步骤见[烧录与首次启动](../get-started/flash-and-first-boot.md)。
 
 ## 构建变量
 
 | 变量 | 用途 |
 |---|---|
-| `PORT` | 烧录串口设备；默认为 `/dev/ttyUSB0` |
-| `BAUD` | 烧录波特率；默认为 `2000000` |
-| `JOBS` | 并行任务数；默认为主机 CPU 数量 |
-| `S31_LEAN_RADIO` | `1` 为精简无线配置（默认值），`0` 为完整外设配置 |
-| `DEFCONFIG` | 内核配置；默认为 `esp32s31_defconfig` |
-| `LINUX_TARGET` | 内核镜像目标；默认为 `xipImage` |
-| `IDF_EXPORT` | 要使用的 ESP-IDF `export.sh` 路径 |
-| `IDF_PATH`, `IDF_ROOT` | ESP-IDF 的安装和查找路径 |
-| `TOOLCHAIN_RELEASE_TAG` | `configs/build-versions.mk` 选定的版本；当前为 `esp32s31-linux-gcc-15.2.0-5` |
-| `TOOLCHAIN_RELEASE_REPOSITORY` | 提供工具链发行版的仓库 |
+| `PORT`、`BAUD` | 烧录连接 |
+| `JOBS` | 并行编译数，默认主机 CPU 数量 |
+| `DEBUG` | `1` 启用额外诊断配置 |
+| `OUT_ROOT` | 构建输出根目录，默认 `out/` |
+| `CACHE_DIR` | 共享缓存根目录，默认 `cache/` |
+| `DEFCONFIG` | 原生内核 defconfig，默认 `esp32s31_defconfig` |
+| `LINUX_TARGET` | 内核镜像目标，默认 `xipImage` |
+| `IDF_EXPORT` | ESP-IDF `export.sh` 路径 |
+| `IDF_PATH`、`IDF_ROOT` | ESP-IDF 安装及查找路径 |
+| `TOOLCHAIN_PREFIX` | 已安装 Linux 工具链目录 |
+| `TOOLCHAIN_RELEASE_TAG` | `configs/build-versions.mk` 选择的版本 |
 | `CROSSTOOL_NG_DIR` | `toolchain-source` 使用的源码目录 |
+| `ROOTFS_BASELINE` | 显式请求从已有 rootfs 重新打包；来源与限制见构建指南 |
 
-集成无线固件构建选择 Wi-Fi/蓝牙组合 payload。
-运行时使用 `esp32-config` 选择生效的无线模式。
-
-OpenSBI 使用主仓库变量 `FW_TEXT_START`（默认 `0x40000400`）和
-`FW_RW_START`（默认 `0x2F00F000`）。Linux 使用 Kconfig 选项
-`CONFIG_XIP_PHYS_ADDR`，S31 defconfig 将其设为 `0x40400000`；这是 CPU 可见的
-XIP 地址，并非 Flash 原始偏移。
-修改布局时需要同步调整链接脚本、Flash 映射和设备树；见[内存映射](../hw-reference/memory-map.md)和
-[flash 布局](../hw-reference/flash-layout.md)。
+集成构建始终包含 Wi-Fi/蓝牙组合载荷；运行模式由板端 `esp32-config` 选择。OpenSBI 的 `FW_TEXT_START` 为 `0x4000E400`，`FW_RW_START` 为 `0x2F00F000`。Linux `CONFIG_XIP_PHYS_ADDR` 为 `0x40400000`，是 CPU 物理地址；对应原始 Flash 偏移 `0x400000`。更改布局必须同步验证链接、映射及设备树，见[Flash 布局](../hw-reference/flash-layout.md)。

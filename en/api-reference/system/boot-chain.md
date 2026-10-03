@@ -5,15 +5,14 @@ what each stage does and which files to inspect when boot stops early.
 
 ## 1. ROM and SPL
 
-The supplied image is prepared for the ROM's normal flash-boot path. The
-parent build uses `esptool --chip esp32s31 elf2image` to package SPL as
-`build/spl_app.bin`, and the flashing recipe writes it through the download
-connection. See [image packaging](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L193-L199)
-and the [flash recipe](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/Makefile#L494-L499).
+The on-chip ROM starts after reset. It can accept firmware through the download
+connection or load SPL from flash.
 
-SPL initializes the memory and clocks needed for boot and loads the U-Boot
-FIT image, `build/u-boot.itb`. Its [board initialization](https://github.com/GrieferPig/u-boot-esp32-s31/blob/06fe89c93ed52349f60120c77efe3018c1e6b29f/board/espressif/esp32s31/spl.c#L59-L90)
-selects NOR as the boot device.
+`out/images/spl_app.bin` contains SPL in the image format expected by ROM. SPL
+initializes the hardware needed for boot and loads the U-Boot FIT image,
+`out/images/u-boot.itb`. The 48 KiB SPL slot starts at raw `0x002000`, after the
+mandatory 8 KiB FlashEncryption reservation. The FIT starts immediately after
+SPL at raw `0x00E000`.
 
 ## 2. OpenSBI and U-Boot
 
@@ -21,32 +20,36 @@ SPL enters OpenSBI in machine mode and supplies the address of U-Boot proper.
 OpenSBI initializes its platform services and starts U-Boot in supervisor mode.
 It remains available to handle Linux SBI calls after boot.
 
+Boot maps all 16 MiB of raw flash linearly at physical `0x40000000`.
+The mapped FIT address is `0x4000E000`, with the OpenSBI XIP payload at
+`0x4000E400`.
+
 U-Boot starts the kernel with the Linux device tree. The default boot command
 uses these mapped addresses:
 
 ```text
-booti 0x40400000 - 0x40200000
+booti 0x40400000 - 0x4005E000
 ```
 
-The first address is the kernel and the second is the device tree. SPL maps
-raw flash offset `0x100000` to CPU address `0x40000000`, so these correspond to
-raw offsets `0x500000` and `0x300000`. See
-[Flash layout](../../hw-reference/flash-layout.md#raw-offsets-and-mapped-addresses)
-for the address conversion and partition table.
+The first address is the kernel and the second is the device tree. The kernel
+start is aligned to a 4 MiB Sv32 megapage boundary. Preserve that alignment
+when modifying the XIP layout. Flashing uses the raw offsets listed in
+[Flash layout](../../hw-reference/flash-layout.md).
 
 ## 3. Linux and the root filesystem
 
 Linux initializes memory, interrupts, timers, and device drivers, then starts
 `/init` from the root filesystem.
 
-The early init script assembles the writable root filesystem, restores saved
-device-tree overlays, loads the selected radio mode, and starts BusyBox init.
-The filesystem layout and saved settings are described in
-[Configuration](../../resources/configuration.md).
+The early init script mounts the persistent JFFS2 partition and combines it
+with the SquashFS base using OverlayFS. It then restores saved device-tree
+overlays, loads the selected radio mode, and starts BusyBox init.
 
 If the persistent filesystem fails to mount, the script prints an error and
-starts BusyBox init from the read-only base. This bypasses the early overlay
-restore and radio-load steps, so those devices may be unavailable. See
+continues in recovery with the read-only base system. Recovery prepares
+volatile `/run`, `/tmp`, and `/var/log`; persistent settings are unavailable.
+Runtime boot and persistence of the merged image remain unverified.
+A recovery login does not establish working persistence or a normal boot. See
 [Debugging](../../api-guides/debugging.md) for the checks to run in that case.
 
 ## 4. Services and serial login
@@ -68,7 +71,7 @@ test -e /run/rcS.done && cat /run/rcS.status
 | `u-boot.itb` | OpenSBI and U-Boot |
 | `esp32s31_generic.dtb` | Linux hardware description |
 | `xipImage` | Linux kernel |
-| `rootfs.sqfs` | Early init, BusyBox, and applications |
-| `radio.sqfs` | Radio module and external firmware |
+| `rootfs.sqfs` | Early init, BusyBox, applications, and the Linux radio module |
+| `radio.bin` | Prelinked flash-XIP radio payload matched to the kernel/module |
 
 For flashing commands, see [Flash and first boot](../../get-started/flash-and-first-boot.md).

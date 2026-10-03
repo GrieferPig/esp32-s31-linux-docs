@@ -2,8 +2,8 @@
 
 Kernel options select the drivers and system features built into Linux. The
 S31 defconfig is under `linux-esp32-s31/arch/riscv/configs/`. The parent
-Makefile applies the selected [build profile](../get-started/build-profiles.md)
-when building the kernel.
+build applies `configs/kernel/common.config` and `board.config`, plus
+`debug.config` for `DEBUG=1`. See [Build configuration](../get-started/build-configuration.md).
 
 ## S31 options
 
@@ -26,9 +26,9 @@ Names below omit the `CONFIG_` prefix used in `.config` files.
 | `ESP32S31_COMPARATOR`, `ESP32S31_TOUCH` | Comparator and touch sensing |
 | `ESP32S31_WATCHDOG` | Watchdog support |
 | `ESP32S31_LP_REMOTEPROC` | LP-core firmware and mailbox |
-| `ESP32S31_RADIO_BLOBS` | External radio firmware support |
+| `ESP32S31_RADIO_BLOBS` | Radio firmware integration |
 | `ESP32S31_RADIO_SMODE`, `ESP32S31_RADIO_SMODE_DRIVER` | Linux S-mode radio runtime |
-| `ESP32S31_WIFI` | Wi-Fi frontend |
+| `ESP32S31_WIFI` | mac80211 single-station frontend |
 | `BT_ESP32S31` | Bluetooth frontend |
 | `CRYPTO_DEV_ESP32S31` | Hardware crypto driver |
 
@@ -43,18 +43,18 @@ SYSTIMER event helper; `ESP32S31_SYSTEM_TIMERS` is a separate Counter interface.
 ## Check a build
 
 After `make linux`, the resulting configuration is in
-`build/linux-6.18/.config`. For example:
+`out/linux/.config`. For example:
 
 ```sh
-grep -E '^(CONFIG_I2C_ESP32S31=|# CONFIG_I2C_ESP32S31 is not set)' build/linux-6.18/.config
-grep -E '^(CONFIG_ESP32S31_RADIO_SMODE_DRIVER=|# CONFIG_ESP32S31_RADIO_SMODE_DRIVER is not set)' build/linux-6.18/.config
+grep -E '^(CONFIG_I2C_ESP32S31=|# CONFIG_I2C_ESP32S31 is not set)' out/linux/.config
+grep -E '^(CONFIG_ESP32S31_RADIO_SMODE_DRIVER=|# CONFIG_ESP32S31_RADIO_SMODE_DRIVER is not set)' out/linux/.config
 ```
 
 `y` builds a feature into the kernel; `m` builds a loadable module where the
 option supports it. Disabled options are shown as `# CONFIG_NAME is not set`.
 
 `.config` is generated. For lasting changes, update the source defconfig and
-any parent Makefile selections or profile overrides affecting the option.
+the parent `configs/kernel/*.config` fragments affecting the option.
 The next parent build reapplies all of these inputs and resolves dependencies
 with `olddefconfig`. Enable the corresponding overlay on the board to use an
 optional peripheral; an overlay cannot supply a driver omitted from the build.

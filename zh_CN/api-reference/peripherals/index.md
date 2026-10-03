@@ -3,8 +3,7 @@
 本移植通过 TTY、I2C、SPI、ALSA 和 SocketCAN 等标准 Linux 接口提供外设功能。
 使用设备树覆盖层启用可选控制器并选择引脚。
 
-> 本章中的 I2C、SPI、I2S、以太网、SD/MMC 及其他可选驱动需要构建
-[完整外设配置](../../get-started/build-profiles.md)。
+本章中的原生 I2C、SPI、I2S、以太网和 SD/MMC 驱动均包含在统一的[完整配置](../../get-started/build-configuration.md)中；实际外接设备可能需要额外驱动。
 
 ## 启用外设
 

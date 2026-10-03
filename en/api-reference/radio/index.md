@@ -1,6 +1,6 @@
 # Wi-Fi and Bluetooth
 
-The ESP32-S31 radio module provides a cfg80211 Wi-Fi interface and a Bluetooth
+The ESP32-S31 radio module provides a mac80211/cfg80211 station interface and a Bluetooth
 controller. For configuration, pairing, service controls, and connection checks,
 use [Wi-Fi and Bluetooth setup](../../user-guides/networking.md). This page
 covers application interfaces and module parameters.
@@ -9,9 +9,10 @@ covers application interfaces and module parameters.
 
 The network interface is normally `wlan0`; the image includes `iw`,
 `wpa_supplicant`, and `wpa_cli`. Application data uses normal network sockets.
-[Advanced Wi-Fi](../../api-guides/wifi-advanced.md) covers monitor reception and
-the AP/enterprise integration paths. The [EAP vendor protocol](wifi-protocol.md)
-defines credential provisioning for firmware-owned enterprise authentication.
+The current SoftMAC frontend exposes one 2.4 GHz station interface. AP and
+AP+station operation are unavailable. Software monitor reception is incomplete;
+see [Advanced Wi-Fi](../../api-guides/wifi-advanced.md) for filtering and
+enterprise-validation limits.
 
 ## Bluetooth
 
@@ -49,7 +50,7 @@ copied yet. A nonblocking read from an empty queue returns `EAGAIN`. Use
 After a controller restart, an open client can receive an HCI Hardware Error
 event. Reinitialize the host and reconnect devices when that happens. Closing
 the device releases the host endpoint while leaving the controller enabled.
-The [HCI frontend](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/bluetooth/hci_esp32s31.c) implements this framing and lifecycle.
+The [HCI frontend](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/bluetooth/hci_esp32s31.c) implements this framing and lifecycle.
 
 ## Module settings
 
@@ -60,11 +61,13 @@ The module file is `esp32s31-radio.ko`. Linux shows its name as
 |---|---|---|
 | `mode` | `combo` | Enable `wifi`, `bt`, or `combo` |
 | `direct_hci` | `1` | Expose `/dev/s31-hci`; use `0` for Linux HCI |
-| `firmware` | `esp32s31-radio-fw-v1.o` | Radio firmware filename |
+
+The payload comes from the fixed `radio.bin` XIP flash slot and must match the
+kernel/module; no firmware-filename parameter selects it.
 
 These settings are selected when loading the module. Use `esp32-config` for
 routine mode selection; low-level applications should stop clients before
-changing the module configuration. The [module implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-module.c) defines the mode and direct-HCI defaults.
+changing the module configuration. The [module implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/platform/esp32s31-radio-module.c) defines the mode and direct-HCI defaults.
 
 (radio-status)=
 ## Radio status
@@ -83,20 +86,26 @@ making progress.
 
 ## Kernel interface
 
-The common radio API is declared in
-[`include/linux/esp32s31-radio.h`](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/include/linux/esp32s31-radio.h).
+The common radio API is declared in the current checkout at
+`linux-esp32-s31/include/linux/esp32s31-radio.h`.
 It defines the Wi-Fi and HCI callbacks used by the frontends. The core and
 external payload currently use ABI version 1.
 
 | Item | Limit |
 |---|---:|
 | HCI frame | 1,029 bytes |
-| Wi-Fi Ethernet frame | 1,600 bytes |
-| Scan results | 32 access points |
+| Radio bridge frame | 4,144 bytes |
+| Raw SoftMAC frame | 4,096 bytes |
 
-The station receive-copy callback can run in hard-IRQ context and uses
-preallocated buffers. A separate callback schedules packet processing.
-Monitor traffic uses its own receive path.
+The raw SoftMAC limit is defined in `include/linux/esp32s31-radio-control.h`.
+The retained firmware scan API has a 32-entry array, but current station scans
+use mac80211 software scanning; that array is not the current scan-result limit.
+
+The frontend uses `receive_aux` borrowed frames whose storage remains valid
+only during the callback. It copies data that must survive callback return and
+uses NAPI to deliver frames to mac80211. Atomic allocations can occur in this
+path. Generic software monitor reception shares the filtered radio receive
+path and is not a complete promiscuous channel capture.
 
 ```{toctree}
 :maxdepth: 1

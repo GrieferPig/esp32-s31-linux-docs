@@ -3,10 +3,22 @@
 The parent repository includes Linux, OpenSBI, U-Boot, Buildroot, and the
 documentation as submodules. Each has its own commits and branches.
 
+The maintained default branches are:
+
+| Repository | Default branch |
+|---|---|
+| Parent and documentation | `main` |
+| Linux | `v6.18-esp32-s31` |
+| OpenSBI | `v1.9-esp32-s31` |
+| U-Boot | `v2024.07-esp32s31` |
+
+These are development destinations. Reproducible builds use the exact submodule
+commits recorded by the parent, rather than independently advancing each branch.
+
 ## Get the source
 
 For a new checkout, follow [Build from source](../get-started/build-from-source.md)
-to select the documented parent commit, its submodule revisions, and the
+to initialize the parent checkout, its pinned submodule revisions, and the
 matching ESP-IDF/toolchain versions. A submodule update uses the commits
 recorded by the selected parent revision; it does not update each component
 to the tip of its branch.

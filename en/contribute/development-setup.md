@@ -1,8 +1,7 @@
 # Development setup
 
 Start with [Build from source](../get-started/build-from-source.md) to install
-the tools and build an image. For peripheral development, select
-`S31_LEAN_RADIO=0`.
+the tools and build the standard full-board image.
 
 ## Find the source
 
@@ -36,12 +35,11 @@ startup script, or packaged overlay update also needs `make rootfs`. Boot
 firmware changes use `make uboot`, and radio firmware changes use the
 [radio build workflow](../api-guides/radio-payload-development.md).
 
-Most integrated outputs are under `build/`, but the LP build uses
-`firmware/lp/build/` and stages firmware into the source rootfs overlay. The
-build also regenerates `rootfs/s31_pie_cases.inc`. Check the relevant
-repository status before committing generated files. For lasting kernel or
-package selections, edit the source inputs described in
-[Build profiles](../get-started/build-profiles.md).
+Integrated native outputs are under `out/`; LP firmware and generated rootfs
+files are staged in `out/staging/` rather than the source overlay. Shared
+downloads/toolchains remain in `cache/`, and verified matched images are published
+under `dist/`. For lasting kernel or package selections, edit the source inputs
+in [Build configuration](../get-started/build-configuration.md).
 
 ## Test a change
 
@@ -51,9 +49,10 @@ Run host regressions from the parent repository root before flashing:
 make check-host
 ```
 
-This target checks the layout, fetches the pinned BTstack source, and runs the
+This target checks the layout and runs the
 `tools/tests` suite. It needs Python, the source submodules, a host C compiler,
-and the build tools installed by the source-build guide.
+and the build tools installed by the source-build guide. Prepare pinned
+BTstack sources with `make fetch` first; checks and build targets do not download.
 
 After activating the documentation environment described below, install the
 DT schema dependency used by CI. With the project toolchain installed, run the
@@ -66,7 +65,7 @@ make check-fast
 
 `check-dt` uses the project cross compiler. The fast-checks workflow instead
 installs `gcc-riscv64-linux-gnu` and invokes
-`python3 tools/check_s31_dt.py --cross-compile riscv64-linux-gnu-`. Both paths
+`python3 tools/checks/devicetree.py --cross-compile riscv64-linux-gnu-`. Both paths
 check schemas, compiled device trees, and merged overlays.
 
 Then check the feature on the board, including an error case and cleanup

@@ -1,6 +1,6 @@
 # 开发环境
 
-先按照[从源码构建](../get-started/build-from-source.md)安装工具并构建镜像。开发外设时，选择 `S31_LEAN_RADIO=0`。
+先按照[从源码构建](../get-started/build-from-source.md)安装工具并构建镜像。所有构建使用完整开发板配置。
 
 ## 查找源码
 
@@ -29,11 +29,7 @@ make rootfs
 
 修改驱动或设备树后，通常需要运行 `make linux`。更新目标程序、启动脚本或打包的覆盖层后，还需要运行 `make rootfs`。启动固件的改动使用 `make uboot`，无线固件的改动则使用[无线构建流程](../api-guides/radio-payload-development.md)。
 
-集成构建的大多数产物位于 `build/`，但 LP 构建使用 `firmware/lp/build/`，
-并将固件暂存到源码根文件系统覆盖目录。构建还会重新生成
-`rootfs/s31_pie_cases.inc`。提交生成文件前，请检查相关仓库的状态。
-要长期保留内核或软件包选择，请编辑[构建配置](../get-started/build-profiles.md)
-中介绍的源码输入。
+组件构建树位于 `out/`，LP 固件在 `out/lp/` 构建并暂存到 `out/staging/overlay/`。生成的 PIE 测试数据位于 `out/generated/`，不会写入源码覆盖目录。持久配置输入见[构建配置](../get-started/build-configuration.md)。完成修改后运行 `make image`，再用 `make flash-existing-all` 部署完整匹配集。
 
 ## 测试改动
 
@@ -43,7 +39,7 @@ make rootfs
 make check-host
 ```
 
-该目标检查布局、获取固定版本的 BTstack 源码，并运行 `tools/tests` 测试集。
+该目标检查布局并运行 `tools/tests`、`tests` 和 GPIO shell 回归测试，不获取依赖。先运行 `make fetch` 准备固定源码和工具链。
 它需要 Python、源码子模块、主机 C 编译器，以及源码构建指南中安装的构建工具。
 
 激活下文的文档虚拟环境后，安装 CI 使用的设备树 schema 依赖。项目工具链
@@ -56,7 +52,7 @@ make check-fast
 
 `check-dt` 使用项目交叉编译器。快速检查工作流则安装
 `gcc-riscv64-linux-gnu`，并调用
-`python3 tools/check_s31_dt.py --cross-compile riscv64-linux-gnu-`。两种方式
+`python3 tools/checks/devicetree.py --cross-compile riscv64-linux-gnu-`。两种方式
 都会检查 schema、编译后的设备树和合并后的覆盖层。
 
 随后在开发板上检查该功能，包括错误情况和使用后的清理。主机检查无法证明

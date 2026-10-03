@@ -121,7 +121,7 @@ When Bluetooth is enabled, the image starts `/usr/sbin/s31-btstack-a2dp` through
 This is a BTstack host using `/dev/s31-hci`, with a Classic A2DP sink, AVRCP
 support, and a small BLE GATT peripheral in the same process.
 
-**The [bundled A2DP application](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/btstack-s31/btstack-s31.mk#L30-L35) receives compressed SBC media for transport
+**The [bundled A2DP application](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/btstack-s31/btstack-s31.mk) receives compressed SBC media for transport
 testing. SBC decoding is compiled out and it has no PCM playback backend.**
 Connecting a phone and starting a stream therefore produces status and packet
 counts in the log; adding audible playback requires application work.
@@ -156,7 +156,7 @@ also records sequence gaps and duplicate packets.
 Use a BLE central or GATT inspection application on the other device. Scan for
 the configured Bluetooth name (initially `S31 Radio`), connect, discover service
 `0xff10`, and read characteristic
-`0xff11`. Its value is the text `ready`; this [test characteristic](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/buildroot-external/package/btstack-s31/0013-a2dp-add-minimal-ble-gatt.patch#L22-L56) requires no
+`0xff11`. Its value is the text `ready`; this [test characteristic](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/package/btstack-s31/0013-a2dp-add-minimal-ble-gatt.patch) requires no
 pairing. The normal phone Bluetooth device list may not show a GATT peripheral,
 so use the BLE application's scan function.
 

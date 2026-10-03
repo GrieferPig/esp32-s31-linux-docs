@@ -17,7 +17,7 @@
 
 页面根据运行镜像中安装的驱动和工具提供功能。例如，USB 设备功能需要 gadget 支持，
 挂载存储卷需要对应的文件系统驱动。菜单开关无法启用镜像中未编译的驱动。
-见[构建配置](../get-started/build-profiles.md)。
+见[构建配置](../get-started/build-configuration.md)。
 
 常规设置提交后生效。开机程序配置在下次启动该程序时使用。
 导入或重置的设置在重启 Linux 后一起应用；这些操作会说明需要重启。
@@ -86,7 +86,7 @@ esp32-config bluetooth clear-pairings
 
 启用蓝牙会提供 Classic A2DP 传输和 BLE 外设功能。
 内置应用没有用于 PCM 播放的音频解码器。
-旧的 `bluetooth scan` 命令仍会报告不支持扫描，菜单中没有扫描入口。
+`bluetooth scan` 命令报告不支持扫描，菜单中没有扫描入口。
 
 改变 Wi-Fi/蓝牙启用组合会重新加载共享无线模块。重复设置相同的启用状态不会执行重启；
 需要恢复连接时，使用 `apply wifi` 或 `bluetooth restart`。

@@ -18,7 +18,7 @@ counters. `ping` reports `ready` and `rtt_us`; the round-trip value varies.
 `sleep-test` accepts **10–5000 ms** and sets `DRY_RUN`, so Linux stays awake.
 A successful timer test reports `result=0` and the timer bit (`0x1`) in
 `wake_reason`.
-See the [test handler and result formatting](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/remoteproc/esp32s31_lp.c#L1079-L1133).
+See the [test handler and result formatting](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c).
 
 ## Test a GPIO transition
 
@@ -43,7 +43,7 @@ The firmware configures the pull, waits 100 microseconds for the input to
 settle, and rejects an already-active input with `S31_LP_SLEEP_ERR_WAKE_MASK`.
 This check applies to `DRY_RUN` too. Matching the internal pull to the active
 level is therefore not a valid standalone test; an external circuit or strap
-can also change the initial level. See the [ARM validation](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/lp/main/lp_core/main.c#L343-L393).
+can also change the initial level. See the [ARM validation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c).
 
 A successful GPIO3 test reports `result=0`, the GPIO bit (`0x2`) in
 `wake_reason` and bit 3 (`0x8`) in `raw`. A timeout means no accepted transition
@@ -67,7 +67,7 @@ establish system-suspend or deep-sleep wake reliability.
 The attributes belong to the bound LP platform device. Firmware selection and
 start/stop use remoteproc's `firmware` and `state` attributes. Binary reads can
 block waiting for a word; a nonblocking empty read returns `-EAGAIN`. See the
-[character-device implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/remoteproc/esp32s31_lp.c#L936-L977).
+[character-device implementation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c).
 
 ## Mailbox and shared control block
 
@@ -98,15 +98,15 @@ validation agrees with this version and layout.
 
 For retention (`MEM`), firmware starts the timer after OpenSBI publishes
 `HP_ASLEEP`; it does not consume the interval during Linux's earlier device
-suspend work. See the [timer conversion](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/lp/main/lp_core/main.c#L120-L138) and
-[retention start condition](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/firmware/lp/main/lp_core/main.c#L474-L478).
+suspend work. See the [timer conversion](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c) and
+[retention start condition](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c).
 
 The request CRC covers bytes before `request_crc`; the response CRC covers
 bytes before `response_crc`, including request and result fields. Linux uses
 `crc32_le(~0U, data, length) ^ ~0U` and retries a response snapshot while LP is
-publishing it. The [protocol header](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/include/linux/soc/espressif/esp32s31-lp-protocol.h#L15-L117)
+publishing it. The [protocol header](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/include/linux/soc/espressif/esp32s31-lp-protocol.h)
 is the authoritative list of message codes, flags, states and fields; the
-[CRC reader](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/remoteproc/esp32s31_lp.c#L681-L713) defines validation behavior.
+[CRC reader](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c) defines validation behavior.
 
 System sleep commands and validation limits are in
 [Power management](../../api-guides/power-management.md).

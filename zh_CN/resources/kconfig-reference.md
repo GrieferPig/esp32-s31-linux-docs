@@ -2,7 +2,7 @@
 
 内核选项用于选择 Linux 中包含的驱动和系统功能。
 S31 defconfig 位于 `linux-esp32-s31/arch/riscv/configs/` 下。
-顶层 Makefile 在构建内核时应用所选的[构建配置](../get-started/build-profiles.md)。
+顶层构建应用 `configs/kernel/common.config` 和 `configs/kernel/board.config`，可用 `DEBUG=1` 追加诊断片段。所有构建使用[完整配置](../get-started/build-configuration.md)。
 
 ## S31 选项
 
@@ -27,7 +27,11 @@ S31 defconfig 位于 `linux-esp32-s31/arch/riscv/configs/` 下。
 | `ESP32S31_LP_REMOTEPROC` | LP 核固件和邮箱 |
 | `ESP32S31_RADIO_BLOBS` | 外部无线固件支持 |
 | `ESP32S31_RADIO_SMODE`, `ESP32S31_RADIO_SMODE_DRIVER` | Linux S-mode 无线运行时 |
-| `ESP32S31_WIFI` | Wi-Fi 前端 |
+| `ESP32S31_WIFI`、`ESP32S31_WIFI_SOFTMAC` | mac80211 单 STA 前端 |
+| `ESP32S31_RADIO_XIP` | 专用 Flash 分区中的预链接无线载荷 |
+| `CC_OPTIMIZE_FOR_SIZE` | 内核体积优化 |
+| `TRIM_UNUSED_KSYMS` | 结合动态无线白名单裁剪未使用的导出 |
+| `EXT4_FS`、`JBD2` | 完整配置中的内置 ext4 与日志支持 |
 | `BT_ESP32S31` | 蓝牙前端 |
 | `CRYPTO_DEV_ESP32S31` | 硬件加密驱动 |
 
@@ -39,17 +43,17 @@ S31 defconfig 位于 `linux-esp32-s31/arch/riscv/configs/` 下。
 
 ## 检查构建
 
-运行 `make linux` 后，生成的配置位于 `build/linux-6.18/.config`。例如：
+运行 `make linux` 后，生成的配置位于 `out/linux/.config`。例如：
 
 ```sh
-grep -E '^(CONFIG_I2C_ESP32S31=|# CONFIG_I2C_ESP32S31 is not set)' build/linux-6.18/.config
-grep -E '^(CONFIG_ESP32S31_RADIO_SMODE_DRIVER=|# CONFIG_ESP32S31_RADIO_SMODE_DRIVER is not set)' build/linux-6.18/.config
+grep -E '^(CONFIG_I2C_ESP32S31=|# CONFIG_I2C_ESP32S31 is not set)' out/linux/.config
+grep -E '^(CONFIG_ESP32S31_RADIO_SMODE_DRIVER=|# CONFIG_ESP32S31_RADIO_SMODE_DRIVER is not set)' out/linux/.config
 ```
 
 `y` 将功能编入内核；对于支持模块化的选项，`m` 将其构建为可加载模块。
 禁用的选项显示为 `# CONFIG_NAME is not set`。
 
 `.config` 是生成的文件。如需长期保留更改，应更新源码 defconfig，以及影响
-该选项的主 Makefile 选择或构建配置覆盖项。下次顶层构建会重新应用这些输入，
+该选项的 `configs/kernel/` 片段。下次顶层构建会重新应用这些输入，
 并通过 `olddefconfig` 解析依赖。要使用可选外设，还需在开发板上启用对应的
 覆盖层；覆盖层无法提供构建时被省略的驱动。

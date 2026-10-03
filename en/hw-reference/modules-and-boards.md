@@ -1,6 +1,6 @@
 # Modules and boards
 
-The port targets ESP32-S31 platforms. The [maintainer's board report](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/README.md#L1-L5)
+The port targets ESP32-S31 platforms. The [maintainer's board report](https://github.com/GrieferPig/esp32-s31-linux/blob/main/README.md)
 lists these boards and module:
 
 - Espressif ESP32-S31 Coreboard
@@ -26,17 +26,17 @@ The base configuration reserves these pins:
 | 58 | UART0 TX, console output |
 | 59 | UART0 RX, console input |
 
-These reservations come from the [base GPIO configuration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L375-L403)
-and [overlay pin checks](https://github.com/GrieferPig/esp32-s31-linux/blob/a6b62c6426f06f00ff3be7ee8e6ab1c67a1ff104/rootfs/s31_overlay.c#L63-L69).
+These reservations come from the [base GPIO configuration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
+and [overlay pin checks](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/s31_overlay.c).
 GPIO29 is also excluded by the GPIO driver's valid-pin mask; it is already
 inside the reserved 26–32 group.
 
 ## Connect a peripheral
 
 The following defaults apply when you enable the named
-[shipped overlay](https://github.com/GrieferPig/linux-esp32-s31/tree/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif)
+[shipped overlay](https://github.com/GrieferPig/linux-esp32-s31/tree/v6.18-esp32-s31/arch/riscv/boot/dts/espressif)
 without pin overrides. Optional controllers also need their drivers in the
-[full-peripheral profile](../get-started/build-profiles.md).
+[full board configuration](../get-started/build-configuration.md).
 
 ### Matrix-routed signals
 
@@ -77,7 +77,7 @@ for route names and command syntax.
 | `analog` | DAC 4–5; touch 6–19; comparator 37–40; ADC 42–57 | The overlay claims the whole group, even if the application uses one function |
 
 The SDMMC and Ethernet signal groups are defined in the
-[base pinctrl configuration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L620-L793).
+[base pinctrl configuration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi).
 The individual SDMMC signals match the pinned
 [ESP-IDF slot definitions](https://github.com/espressif/esp-idf/blob/a602e67b0bf9ee0806dc4e1df7afc9affedf5c33/components/esp_hal_sd/esp32s31/include/soc/sdmmc_pins.h#L9-L23).
 The stock `analog` overlay conflicts with several bus defaults;
@@ -105,7 +105,7 @@ connection on your carrier schematic.
 RXD0–RXD3 run in descending GPIO order. The signal names and clock directions
 follow the pinned [ESP-IDF RGMII mapping](https://github.com/espressif/esp-idf/blob/a602e67b0bf9ee0806dc4e1df7afc9affedf5c33/components/esp_hal_emac/esp32s31/emac_periph.c#L190-L401);
 the Linux tree supplies the route above and
-[PHY reset configuration](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L866-L875).
+[PHY reset configuration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi).
 
 ### PWM and counter defaults
 
@@ -119,7 +119,7 @@ The `pwm-counter` overlay enables these routes together:
 | `sdm.out`, `pcnt0.in`, `pcnt1.in` | 35, 36, 37 |
 
 The assignments and GPIO claims are in the
-[`pwm-counter` overlay](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31-overlay-pwm-counter.dtso#L7-L135).
+[`pwm-counter` overlay](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-pwm-counter.dtso).
 
 Connect a common ground and check the peripheral's voltage requirements,
 pull-ups, transceiver, codec, or PHY before applying an overlay. For setup

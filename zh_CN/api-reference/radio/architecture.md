@@ -1,35 +1,31 @@
 # 无线架构
 
-Wi-Fi 和蓝牙共享 `esp32s31-radio` Linux 模块。模块包含 Linux 前端、外部固件加载器，以及供乐鑫无线代码使用的运行时。
+Wi-Fi 和蓝牙共享 `esp32s31-radio` Linux 模块，其中包含 Linux 前端、XIP 固件加载器和乐鑫无线代码所需的运行时。
 
 | 应用路径 | 公共模块中的前端 |
 |---|---|
-| 使用套接字的 Wi-Fi 应用 | cfg80211 和 netdev |
+| Wi-Fi 套接字应用 | mac80211/cfg80211，单 STA 接口 |
 | 内置 BTstack 应用 | `/dev/s31-hci` 直接 H4 设备 |
-| 替代的 Linux 蓝牙主机 | 使用 `direct_hci=0` 的 Linux HCI 控制器 |
+| 替代的 Linux 蓝牙主机 | `direct_hci=0` 选择 Linux HCI 控制器 |
 
-三条路径都连接到同一个无线运行时和外部固件。帧格式、设备归属和模块设置见[无线接口参考](index.md)。
+三条路径连接同一无线运行时和预链接 Flash XIP 载荷。AP 和 AP+STA 不由当前前端公开。mac80211 软件监听仍受 STA 接收过滤限制，参见[Wi-Fi 高级用法](../../api-guides/wifi-advanced.md)。帧格式与模块设置见[无线接口参考](index.md)。
 
 ## 固件加载
 
-ESP-IDF 库和本移植项目的兼容代码被链接成 `esp32s31-radio-fw-v1.o`，这是一个可重定位的 RISC-V ELF 目标文件。构建过程将它与匹配的模块一起打包到 `radio.sqfs`。
+无线固件组合 ESP-IDF 库与本项目的兼容代码。主机预链接工具根据已构建的内核解析代码和常量重定位，生成 `out/images/radio.bin`。多数无线代码从专用 Flash 分区就地执行，选定的 Wi-Fi 热点代码复制到内部 SRAM。压缩后的 Linux 模块位于 rootfs 的 `/usr/lib/s31-radio`；可重定位文件 `esp32s31-radio-fw-v1.o` 仅为中间构建产物。
 
-启动时，[加载器](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-loader.c)分配固件内存、解析导入符号、应用重定位，并查找导出入口。它在启动运行时之前检查载荷格式和 ABI。请使用同一次构建生成的固件和模块：ABI 编号相同，并不能保证每个私有导入项都兼容。
+启动时，加载器验证映射镜像的 ABI、内存布局及头部/内容 CRC，复制 SRAM 代码和初始可写数据，清零 BSS，绑定模块导入并读取固定导出。检查能发现不兼容布局与损坏，但不能证明组件来自同次构建。内核、rootfs/模块和无线镜像必须作为匹配集一起构建和部署。
 
-已加载固件的内存，包括可变数据段，与运行时使用的固定内部 SRAM 池相互独立。[分配辅助函数](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-loader-core.c)和[内存映射](../../hw-reference/memory-map.md)介绍了这两类分配。
+固定 SRAM 保留区见[内存映射](../../hw-reference/memory-map.md)，原始 Flash 分区见[Flash 布局](../../hw-reference/flash-layout.md)。
 
 ## 运行时与 CPU 分配
 
-主无线工作线程和硬件中断处理运行在 HP 核心 0。Wi-Fi 前端将接收 NAPI 和缓冲区补充工作调度到 HP 核心 1。[Wi-Fi 接收路径](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/net/wireless/espressif/esp32s31_wifi.c)通过这种分工，与无线运行时并行处理接收数据包。
+无线设备中断和公共工作线程使用 HP 核 0。兼容任务保留其请求的亲和性，无亲和性任务可以迁移。SoftMAC 在可用时也使用 HP 核 1。仅 Wi-Fi 的 SoftMAC 模式使用原生任务服务，不启动公共无线工作线程。
 
-兼容层提供无线库所需的任务、队列、定时器和同步功能。[任务创建适配层](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-rtos.c)在绑定任务的 Linux kthread 时，会遵循有效的核心请求；主工作线程位于 CPU0，并不表示所有载荷创建的任务都被绑定到 CPU0。
+兼容层为无线库提供任务、队列、定时器与同步。Wi-Fi 前端接收借用的辅助帧，在回调返回前复制需要保留的数据，再通过 NAPI 交给 mac80211。此路径可能使用原子分配，并非完全依靠预分配缓冲区。
 
-运行在中断上下文中的回调将数据复制到预分配的存储中，并调度后续工作。应用通过网络或蓝牙接口访问功能，无需直接调用固件。
+## 挂起与恢复
 
-## 挂起和恢复
+公共运行时具备停止、复位和重启支持，包括还原固件初始可变数据，但不代表每个前端已实现恢复。当前 SoftMAC 在接口运行时拒绝挂起；无线模块会先返回该错误，而不是继续停止蓝牙或共享载荷。SoftMAC 没有活动连接重放逻辑，不应依赖系统睡眠后自动恢复 Wi-Fi、蓝牙或组合连接。Wi-Fi 挂起 HIL 是诊断序列。
 
-挂起时，模块解除前端连接，停止运行时，并释放电源请求。恢复时，它还原固件初始可变数据，重启运行时，再恢复前端。如果重启失败，接口会保持断开，并记录错误。此流程由[模块的电源管理回调](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/platform/esp32s31-radio-module.c)实现。
-
-Wi-Fi 前端恢复缓存的 EAP 字段、活动 AP 配置和运行中的监听接口。STA 连接需要用户空间重新建立。蓝牙前端会将控制器复位报告给已打开的直接 HCI 客户端，内置 BTstack 的复位处理程序会重新启动 HCI 状态机。原有无线连接仍需与对端重新建立。
-
-连接检查和服务控制见 [Wi-Fi 与蓝牙设置](../../user-guides/networking.md)。系统休眠的可用情况见[电源管理](../../api-guides/power-management.md)。代码修改见[无线固件开发](../../api-guides/radio-payload-development.md)。
+服务控制见[Wi-Fi 与蓝牙设置](../../user-guides/networking.md)，系统睡眠限制见[电源管理](../../api-guides/power-management.md)，代码修改和匹配集部署见[无线固件开发](../../api-guides/radio-payload-development.md)。

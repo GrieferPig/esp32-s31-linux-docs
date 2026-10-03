@@ -19,16 +19,16 @@ They are different namespaces; do not use a matrix source as a Linux IRQ.
 The generic Linux peripheral allocator uses CLIC slots **16–47**, reserving
 40 and 41 for local IPI/timer routes. OpenSBI's slot 48 is outside that pool.
 The same slot number on two cores refers to two different core-local inputs.
-See [slot constants](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp32s31-internal.h#L9-L12),
-[local sources and setup](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp32s31-smp.c#L34-L42),
-[allocator reservations](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/irqchip/irq-esp-intmtx.c#L298-L301) and
-[OpenSBI guard definitions](https://github.com/GrieferPig/opensbi-esp32-s31/blob/af2ff7c9c263bf474b0add45f614893e36d89814/platform/generic/espressif/esp32s31/services.c#L47-L85).
+See [slot constants](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp32s31-internal.h),
+[local sources and setup](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp32s31-smp.c),
+[allocator reservations](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/irqchip/irq-esp-intmtx.c) and
+[OpenSBI guard definitions](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c).
 
 Both GPTimer device-tree nodes set `espressif,reserved-timer-mask = <2>`.
 Bit 1 reserves timer 1; the Linux counter driver skips that channel.
 The guard uses the 40 MHz crystal divided by 40 and an alarm of 10,000 ticks.
-See the [DTS reservation](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/arch/riscv/boot/dts/espressif/esp32s31.dtsi#L1236-L1252)
-and its [GPTimer consumer](https://github.com/GrieferPig/linux-esp32-s31/blob/bd15992071dc9496b9f14b5a765dfa23a71d289b/drivers/counter/esp32s31-gptimer.c#L199-L211).
+See the [DTS reservation](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
+and its [GPTimer consumer](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/counter/esp32s31-gptimer.c).
 
 Radio interrupt sources remain owned by the radio runtime while loaded; their
 Linux IRQs are requested through the platform interrupt path. They are not
