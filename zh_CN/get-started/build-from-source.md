@@ -14,7 +14,7 @@ sudo apt-get update
 sudo apt-get install -y \
   git curl wget file python3 python3-pip python3-venv cmake \
   bison bc build-essential ccache cpio device-tree-compiler flex gperf \
-  libffi-dev libssl-dev libncurses-dev ninja-build \
+  libffi-dev libssl-dev libusb-1.0-0 libncurses-dev ninja-build \
   python3-pkg-resources python3-pyelftools python3-dev swig rsync unzip xz-utils mtd-utils squashfs-tools
 ```
 
