@@ -12,7 +12,7 @@
 
 ### 1. 添加源码
 
-创建 `rootfs/s31-hello/hello.c`：
+创建 `src/userspace/s31-hello/hello.c`：
 
 ```c
 #include <stdio.h>
@@ -39,7 +39,7 @@ config BR2_PACKAGE_S31_HELLO
 
 ```make
 S31_HELLO_VERSION = 1.0
-S31_HELLO_SITE = $(BR2_EXTERNAL_ESP32_S31_PATH)/../rootfs/s31-hello
+S31_HELLO_SITE = $(BR2_EXTERNAL_ESP32_S31_PATH)/../src/userspace/s31-hello
 S31_HELLO_SITE_METHOD = local
 
 define S31_HELLO_BUILD_CMDS
@@ -105,7 +105,7 @@ s31-hello
 
 ### 5. 修改本地源码后重新构建
 
-主项目通过输入标识跟踪已有本地工具软件包；新增软件包不在该列表中。修改 `rootfs/s31-hello/hello.c` 后，先移除该软件包的构建目录，再重新生成镜像：
+主项目通过输入标识跟踪已有本地工具软件包；新增软件包不在该列表中。修改 `src/userspace/s31-hello/hello.c` 后，先移除该软件包的构建目录，再重新生成镜像：
 
 ```sh
 make -C external/buildroot O="$PWD/out/buildroot" \

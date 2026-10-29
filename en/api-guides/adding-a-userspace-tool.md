@@ -20,7 +20,7 @@ mechanism as [s31-tools](https://github.com/GrieferPig/esp32-s31-linux/blob/main
 
 ### 1. Add the source
 
-Create `rootfs/s31-hello/hello.c`:
+Create `src/userspace/s31-hello/hello.c`:
 
 ```c
 #include <stdio.h>
@@ -48,7 +48,7 @@ inside the `define` blocks start with a tab:
 
 ```make
 S31_HELLO_VERSION = 1.0
-S31_HELLO_SITE = $(BR2_EXTERNAL_ESP32_S31_PATH)/../rootfs/s31-hello
+S31_HELLO_SITE = $(BR2_EXTERNAL_ESP32_S31_PATH)/../src/userspace/s31-hello
 S31_HELLO_SITE_METHOD = local
 
 define S31_HELLO_BUILD_CMDS
@@ -131,7 +131,7 @@ SSH server on the board.
 ### 5. Rebuild after changing local source
 
 The parent tracks changed inputs for its existing local utility packages; your
-new package is not in that list. After editing `rootfs/s31-hello/hello.c`, remove this
+new package is not in that list. After editing `src/userspace/s31-hello/hello.c`, remove this
 package's build directory before rebuilding the image:
 
 ```sh
