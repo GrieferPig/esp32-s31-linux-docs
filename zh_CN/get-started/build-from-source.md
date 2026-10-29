@@ -46,7 +46,7 @@ git submodule update --init --recursive
 ```
 
 后续构建命令均在此目录执行。如果要基于其他版本开发，应同时使用该版本的
-`configs/build-versions.mk` 和所记录的子模块提交；参见
+`configs/versions.mk` 和所记录的子模块提交；参见
 [子模块工作流程](../contribute/submodule-workflow.md)。
 
 ## 3. 安装 ESP-IDF 和 Linux 工具链
@@ -54,7 +54,7 @@ git submodule update --init --recursive
 ### ESP-IDF
 
 LP 和无线固件构建会使用 ESP-IDF 的组件、库和 ESP 工具链。主构建流程会检查
-`configs/build-versions.mk` 中指定的 ESP-IDF 精确版本；随意检出默认分支无法
+`configs/versions.mk` 中指定的 ESP-IDF 精确版本；随意检出默认分支无法
 满足这项检查。
 
 新安装时，请将 `IDF_PATH` 指向尚未使用的目录：
@@ -62,7 +62,7 @@ LP 和无线固件构建会使用 ESP-IDF 的组件、库和 ESP 工具链。主
 ```sh
 export IDF_PATH="$HOME/esp-idf"
 git clone https://github.com/espressif/esp-idf.git "$IDF_PATH"
-ESP_IDF_REF=$(sed -n 's/^ESP_IDF_REF := //p' configs/build-versions.mk)
+ESP_IDF_REF=$(sed -n 's/^ESP_IDF_REF := //p' configs/versions.mk)
 git -C "$IDF_PATH" checkout "$ESP_IDF_REF"
 git -C "$IDF_PATH" submodule update --init --recursive
 "$IDF_PATH/install.sh" esp32s31
@@ -78,7 +78,7 @@ ESP-IDF 环境中的 `esptool`。仅烧录发布镜像时所需的独立安装�
 
 项目使用 [crosstool-NG-s31](https://github.com/GrieferPig/crosstool-NG-s31)
 提供的定制工具链，其中包含本移植所需的编译器修改。下载
-`configs/build-versions.mk` 选定的版本：
+`configs/versions.mk` 选定的版本：
 
 ```sh
 make toolchain-fetch

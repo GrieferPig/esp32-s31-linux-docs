@@ -43,7 +43,7 @@ The firmware configures the pull, waits 100 microseconds for the input to
 settle, and rejects an already-active input with `S31_LP_SLEEP_ERR_WAKE_MASK`.
 This check applies to `DRY_RUN` too. Matching the internal pull to the active
 level is therefore not a valid standalone test; an external circuit or strap
-can also change the initial level. See the [ARM validation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c).
+can also change the initial level. See the [ARM validation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c).
 
 A successful GPIO3 test reports `result=0`, the GPIO bit (`0x2`) in
 `wake_reason` and bit 3 (`0x8`) in `raw`. A timeout means no accepted transition
@@ -98,8 +98,8 @@ validation agrees with this version and layout.
 
 For retention (`MEM`), firmware starts the timer after OpenSBI publishes
 `HP_ASLEEP`; it does not consume the interval during Linux's earlier device
-suspend work. See the [timer conversion](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c) and
-[retention start condition](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c).
+suspend work. See the [timer conversion](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c) and
+[retention start condition](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c).
 
 The request CRC covers bytes before `request_crc`; the response CRC covers
 bytes before `response_crc`, including request and result fields. Linux uses

@@ -35,13 +35,13 @@ The artifact size and manifest describe the exact source/configuration.
 
 | File | Settings |
 |---|---|
-| `linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig` | Native board defaults |
+| `external/linux/arch/riscv/configs/esp32s31_defconfig` | Native board defaults |
 | `configs/kernel/common.config`, `configs/kernel/board.config` | Canonical full kernel choices |
 | `configs/kernel/debug.config` | Optional `DEBUG=1` diagnostic additions |
 | `mk/config.mk` | Paths, toolchain, kernel command line and fragment selection |
 | `buildroot-external/configs/esp32s31_rootfs_defconfig` | Rootfs packages and system options |
 | `buildroot-external/board/esp32-s31/busybox.fragment` | BusyBox tools, including network time |
-| `configs/esp32-config-timezones.list` | Retained time zones |
+| `configs/board/timezones.list` | Retained time zones |
 | `buildroot-external/board/esp32-s31/post-build.sh` | Rootfs installation policy |
 
 Edit source configuration for lasting changes. Linux regenerates
@@ -55,7 +55,7 @@ menu and export a review copy:
 
 ```sh
 make buildroot-menuconfig
-make -C buildroot O="$PWD/out/buildroot" \
+make -C external/buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
   savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
 ```
@@ -78,7 +78,7 @@ saved; automatic time and the startup program are initially disabled.
 The rootfs post-build step generates `/usr/share/esp32-config/kernel-features`
 from the completed kernel configuration. Keep the kernel and rootfs matched so
 the menu describes the running image. Retained IANA zones come from
-`configs/esp32-config-timezones.list`; adding a new source region also requires
+`configs/board/timezones.list`; adding a new source region also requires
 updating `BR2_TARGET_TZ_ZONELIST` in the Buildroot defconfig.
 
 ## Radio modes

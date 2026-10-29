@@ -15,10 +15,10 @@ substitute for a supported `-march` value.
 | Radio payload | `rv32imafc_zicsr_zifencei_zaamo_zalrsc_xesploop_xespv2p2` | `ilp32f`, ESP ELF/picolibc build |
 
 These choices come from the [native build configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/mk/config.mk),
-[musl toolchain configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/riscv32-esp-linux-musl.config),
+[musl toolchain configuration](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/toolchain/riscv32-esp-linux-musl.config),
 [application flags](https://github.com/GrieferPig/esp32-s31-linux/blob/main/buildroot-external/configs/esp32s31_rootfs_defconfig),
 [patched kernel ABI](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/Makefile), and
-[radio build](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/Makefile).
+[radio build](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/radio/Makefile).
 
 `-march` selects instructions; `-mabi` selects argument and return-value calling
 conventions. An `ilp32` application may use F instructions internally while
@@ -52,7 +52,7 @@ whole calling thread. After successful initialization, do not move that thread
 to CPU0 or broaden its mask: success is cached and later affinity changes are
 not rechecked. The [application guide](../api-reference/userspace/index.md)
 contains the complete build, link and run example; the
-[library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/esp_simd.c) defines this behavior.
+[library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/userspace/simd/esp_simd.c) defines this behavior.
 
 The ordinary application flags omit XespV and Xesploop. The SIMD package
 explicitly compiles hand-written extension assembly; this project does not

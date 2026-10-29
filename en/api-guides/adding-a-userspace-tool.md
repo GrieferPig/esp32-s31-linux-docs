@@ -88,7 +88,7 @@ Find `s31-hello` under the external ESP32-S31 packages menu and enable it. Exit
 with the configuration saved, then use [Buildroot’s savedefconfig target](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) to export a review copy:
 
 ```sh
-make -C buildroot O="$PWD/out/buildroot" \
+make -C external/buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
   savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
 ```
@@ -135,7 +135,7 @@ new package is not in that list. After editing `rootfs/s31-hello/hello.c`, remov
 package's build directory before rebuilding the image:
 
 ```sh
-make -C buildroot O="$PWD/out/buildroot" \
+make -C external/buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" s31-hello-dirclean
 make image
 make flash-existing-all PORT=/dev/ttyUSB0

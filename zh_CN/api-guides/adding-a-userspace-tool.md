@@ -74,7 +74,7 @@ make buildroot-menuconfig
 在外部 ESP32-S31 软件包菜单中找到并启用 `s31-hello`。保存配置并退出，然后使用 [Buildroot 的 savedefconfig 目标](https://github.com/buildroot/buildroot/blob/cb857ba4c87a93e5265a9e4a3f32071abf39e14a/Makefile#L1064-L1068) 导出供审查的配置副本：
 
 ```sh
-make -C buildroot O="$PWD/out/buildroot" \
+make -C external/buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
   savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
 ```
@@ -108,7 +108,7 @@ s31-hello
 主项目通过输入标识跟踪已有本地工具软件包；新增软件包不在该列表中。修改 `rootfs/s31-hello/hello.c` 后，先移除该软件包的构建目录，再重新生成镜像：
 
 ```sh
-make -C buildroot O="$PWD/out/buildroot" \
+make -C external/buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" s31-hello-dirclean
 make image
 make flash-existing-all PORT=/dev/ttyUSB0

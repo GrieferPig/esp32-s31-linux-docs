@@ -11,7 +11,7 @@
 | OpenSBI | `v1.9-esp32-s31` |
 | U-Boot | `v2024.07-esp32s31` |
 
-默认分支用于浏览与开发，不是可重复构建的版本选择。集成构建以主仓库记录的子模块 gitlink 提交为准，并配合 `configs/build-versions.mk` 中的 ESP-IDF、工具链和 BTstack 固定版本。
+默认分支用于浏览与开发，不是可重复构建的版本选择。集成构建以主仓库记录的子模块 gitlink 提交为准，并配合 `configs/versions.mk` 中的 ESP-IDF、工具链和 BTstack 固定版本。
 
 ## 获取源码
 
@@ -32,7 +32,7 @@ git submodule update --init --recursive
 进入子模块并创建分支。例如，修改内核时：
 
 ```sh
-cd linux-esp32-s31
+cd external/linux
 git switch -c my-driver-change
 ```
 
@@ -44,7 +44,7 @@ git switch -c my-driver-change
 
 ```sh
 cd ..
-git add linux-esp32-s31
+git add external/linux
 git diff --cached --submodule=log
 git commit -m "Update Linux for driver change"
 ```

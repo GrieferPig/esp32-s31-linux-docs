@@ -4,7 +4,7 @@ The radio firmware combines Espressif's Wi-Fi and Bluetooth libraries with the
 port's OS adapters. Most code executes directly from the prelinked `radio.bin`
 flash image, managed by the common Linux radio module in the rootfs.
 
-Use this guide for changes inside `firmware/radio/`. Changes to Linux network
+Use this guide for changes inside `src/radio/`. Changes to Linux network
 or Bluetooth interfaces usually belong in the kernel frontend instead; see
 [Radio architecture](../api-reference/radio/architecture.md).
 
@@ -58,9 +58,9 @@ consumer.
 
 | Source | Role |
 |---|---|
-| `firmware/radio/radio_stack.c` | ESP-IDF operations and raw Wi-Fi frame transport |
-| `firmware/radio/s31_rtos/` | Task and synchronization adapters |
-| `firmware/radio/Makefile` | Link inputs and generated import stubs |
+| `src/radio/radio_stack.c` | ESP-IDF operations and raw Wi-Fi frame transport |
+| `src/radio/s31_rtos/` | Task and synchronization adapters |
+| `src/radio/Makefile` | Link inputs and generated import stubs |
 | `drivers/platform/esp32s31-radio-smode.c` in Linux | Command queue, workers, and SRAM allocation |
 | `drivers/platform/esp32s31-radio-loader.c` in Linux | XIP image validation and entry-point wrappers |
 | `drivers/net/wireless/espressif/esp32s31_softmac.c` in Linux | mac80211 station frontend |

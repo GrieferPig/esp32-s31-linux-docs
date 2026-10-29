@@ -15,13 +15,13 @@ make image
 
 | 文件 | 设置 |
 |---|---|
-| `linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig` | 原生开发板默认选项 |
+| `external/linux/arch/riscv/configs/esp32s31_defconfig` | 原生开发板默认选项 |
 | `configs/kernel/common.config`、`configs/kernel/board.config` | 完整内核配置 |
 | `configs/kernel/debug.config` | `DEBUG=1` 时增加的诊断选项 |
 | `mk/config.mk` | 构建路径、工具链、内核命令行和配置片段选择 |
 | `buildroot-external/configs/esp32s31_rootfs_defconfig` | 根文件系统软件包和系统选项 |
 | `buildroot-external/board/esp32-s31/busybox.fragment` | BusyBox 工具，包括网络校时 |
-| `configs/esp32-config-timezones.list` | 镜像中保留的时区 |
+| `configs/board/timezones.list` | 镜像中保留的时区 |
 | `buildroot-external/board/esp32-s31/post-build.sh` | 最终根文件系统的安装与精简策略 |
 
 需要长期保留的更改应写入源码配置。内核配置输入变化时，会重新生成 `out/linux/.config`；输入标识未变化时，保留原生增量构建行为。已有 Buildroot 输出中的软件包或工具链配置输入变化时，构建会要求运行 `make buildroot-reconfigure` 后重建，下载缓存仍保留。
@@ -30,7 +30,7 @@ make image
 
 ```sh
 make buildroot-menuconfig
-make -C buildroot O="$PWD/out/buildroot" \
+make -C external/buildroot O="$PWD/out/buildroot" \
   BR2_EXTERNAL="$PWD/buildroot-external" \
   savedefconfig DEFCONFIG="$PWD/out/generated/buildroot-menu.defconfig"
 ```
@@ -77,7 +77,7 @@ wc -l out/generated/radio-kernel-symbols.txt
 
 post-build 根据最终内核配置生成 `/usr/share/esp32-config/kernel-features`，菜单据此提供接口和 USB 功能。存储功能也会检查运行系统中的文件系统驱动。内核与 rootfs 必须来自同一个匹配镜像集。
 
-添加时区时，修改 `configs/esp32-config-timezones.list`；若来源区域尚未包含，还需在 Buildroot defconfig 的 `BR2_TARGET_TZ_ZONELIST` 中加入该区域，然后重新构建 rootfs。
+添加时区时，修改 `configs/board/timezones.list`；若来源区域尚未包含，还需在 Buildroot defconfig 的 `BR2_TARGET_TZ_ZONELIST` 中加入该区域，然后重新构建 rootfs。
 
 ## 无线模式
 

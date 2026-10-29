@@ -6,9 +6,9 @@
 
 | 目录 | 内容 |
 |---|---|
-| `linux-esp32-s31/` | Linux 内核、驱动、设备树和内核配置 |
-| `opensbi-esp32-s31/` | M 模式固件和平台服务 |
-| `u-boot-esp32-s31/` | SPL 和 U-Boot |
+| `external/linux/` | Linux 内核、驱动、设备树和内核配置 |
+| `external/opensbi/` | M 模式固件和平台服务 |
+| `external/u-boot/` | SPL 和 U-Boot |
 | `buildroot/` | Buildroot |
 | `buildroot-external/` | 开发板文件、软件包和根文件系统配置 |
 | `firmware/` | 无线和 LP 固件 |

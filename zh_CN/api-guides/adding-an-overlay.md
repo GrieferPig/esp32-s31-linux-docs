@@ -4,7 +4,7 @@
 
 ## 1. 创建覆盖层
 
-创建 `esp32s31-overlay-NAME.dtso`，放在 `linux-esp32-s31/arch/riscv/boot/dts/espressif/` 下。
+创建 `esp32s31-overlay-NAME.dtso`，放在 `external/linux/arch/riscv/boot/dts/espressif/` 下。
 可以从类似设备的现有覆盖层开始修改。
 [完整的 I2C0 覆盖层](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso)
 包含头部、资源声明、pinctrl 节点和控制器设置。

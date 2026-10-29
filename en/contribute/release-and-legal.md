@@ -14,11 +14,11 @@ matched set under `dist/`.
 The GitHub release workflow checks that complete set and uploads **only
 `s31_full_flash.bin`**. Its release tag points to the parent source revision;
 the component images, manifest and checksums are not currently attached. The
-release body comes from `configs/release-notes.md` and contains the `root`
+release body comes from `tools/release/notes.md` and contains the `root`
 username, `esp32-config` tip, and Linux/Windows flashing commands. Do not promise
 additional downloads or a preserve-data update from the combined image. The
 [workflow](https://github.com/GrieferPig/esp32-s31-linux/blob/main/.github/workflows/release-images.yml)
-and [release text](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/release-notes.md)
+and [release text](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/release/notes.md)
 are the publication contract.
 
 ## Prepare a release
@@ -70,7 +70,7 @@ texts, and source material alongside the release as appropriate.
 Start with the parent repository's
 [third-party notices](https://github.com/GrieferPig/esp32-s31-linux/blob/main/THIRD_PARTY_NOTICES.md)
 and the radio directory's
-[bundle licenses](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/RADIO_BUNDLE_LICENSES.md).
+[bundle licenses](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/radio/RADIO_BUNDLE_LICENSES.md).
 Packaging commands do not change those terms.
 
 ## Record the test results

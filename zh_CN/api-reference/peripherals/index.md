@@ -215,5 +215,5 @@ SD 卡使用 MMC 块层，TWAI 使用 SocketCAN，以太网使用常规 Linux �
 每个定时器组的定时器 0 可供应用使用，定时器 1 则保留用于 CPU 空闲唤醒。
 模拟和数字信号路由可能共用物理焊盘，因此每个引脚只应选择一种功能。
 
-驱动源码位于 `linux-esp32-s31/drivers/`，音频驱动位于
+驱动源码位于 `external/linux/drivers/`，音频驱动位于
 `sound/soc/espressif/`。集成步骤见[添加驱动](../../api-guides/adding-a-driver.md)。

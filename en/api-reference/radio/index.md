@@ -87,7 +87,7 @@ making progress.
 ## Kernel interface
 
 The common radio API is declared in the current checkout at
-`linux-esp32-s31/include/linux/esp32s31-radio.h`.
+`external/linux/include/linux/esp32s31-radio.h`.
 It defines the Wi-Fi and HCI callbacks used by the frontends. The core and
 external payload currently use ABI version 1.
 

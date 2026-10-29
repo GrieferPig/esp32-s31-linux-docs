@@ -29,15 +29,15 @@ make flash-existing-all PORT=/dev/ttyUSB0
 
 | 文件或目录 | 作用 |
 |---|---|
-| `firmware/radio/radio_stack.c` | 调用 ESP-IDF Wi-Fi/蓝牙操作 |
-| `firmware/radio/s31_rtos/` | 固件侧任务和同步适配层 |
-| `firmware/radio/Makefile` | 链接输入、保留导出及导入桩生成 |
+| `src/radio/radio_stack.c` | 调用 ESP-IDF Wi-Fi/蓝牙操作 |
+| `src/radio/s31_rtos/` | 固件侧任务和同步适配层 |
+| `src/radio/Makefile` | 链接输入、保留导出及导入桩生成 |
 | `tools/build/radio_image.py` | 根据内核和模块生成预链接 XIP 镜像 |
-| `linux-esp32-s31/drivers/platform/esp32s31-radio-smode.c` | 公共命令队列、工作线程和 SRAM 分配 |
-| `linux-esp32-s31/drivers/platform/esp32s31-radio-loader.c` | XIP 镜像验证、导入绑定和入口包装 |
-| `linux-esp32-s31/drivers/platform/esp32s31-radio-xip.h` | XIP 地址与布局约定 |
-| `linux-esp32-s31/drivers/net/wireless/espressif/esp32s31_softmac.c` | mac80211 SoftMAC 前端 |
-| `linux-esp32-s31/drivers/bluetooth/hci_esp32s31.c` | 直接 HCI 和 Linux HCI 前端 |
+| `external/linux/drivers/platform/esp32s31-radio-smode.c` | 公共命令队列、工作线程和 SRAM 分配 |
+| `external/linux/drivers/platform/esp32s31-radio-loader.c` | XIP 镜像验证、导入绑定和入口包装 |
+| `external/linux/drivers/platform/esp32s31-radio-xip.h` | XIP 地址与布局约定 |
+| `external/linux/drivers/net/wireless/espressif/esp32s31_softmac.c` | mac80211 SoftMAC 前端 |
+| `external/linux/drivers/bluetooth/hci_esp32s31.c` | 直接 HCI 和 Linux HCI 前端 |
 
 跟踪当前 STA 行为时，从 mac80211 回调与原始帧发送/接收路径开始。不要将固件内部连接、AP 或 EAP 操作视为 Linux 当前前端的公开能力。当前支持边界见[Wi-Fi 高级用法](wifi-advanced.md)。
 

@@ -7,7 +7,7 @@ save the selection for the next boot.
 ## 1. Create the overlay
 
 Create `esp32s31-overlay-NAME.dtso` under
-`linux-esp32-s31/arch/riscv/boot/dts/espressif/`. Start with an existing overlay
+`external/linux/arch/riscv/boot/dts/espressif/`. Start with an existing overlay
 for a similar device. The
 [complete I2C0 overlay](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2c0.dtso)
 includes the header, resource declaration, pinctrl nodes, and controller settings.

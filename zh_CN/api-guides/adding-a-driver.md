@@ -1,10 +1,10 @@
 # 添加驱动
 
-在 `linux-esp32-s31` 源码树中添加外设驱动，使用与设备相符的 Linux 子系统，例如 I2C、SPI、ALSA、IIO、PWM、Counter、SocketCAN 或其他标准框架。集成驱动时，一并维护硬件描述、内核构建选项和启用设备的覆盖层。
+在 `external/linux` 源码树中添加外设驱动，使用与设备相符的 Linux 子系统，例如 I2C、SPI、ALSA、IIO、PWM、Counter、SocketCAN 或其他标准框架。集成驱动时，一并维护硬件描述、内核构建选项和启用设备的覆盖层。
 
 ## 1. 参考完整的集成示例
 
-现有的 I2C0 支持展示了各部分如何配合。下表中的路径均相对于 `linux-esp32-s31`。
+现有的 I2C0 支持展示了各部分如何配合。下表中的路径均相对于 `external/linux`。
 
 | 集成部分 | I2C0 示例 |
 | --- | --- |

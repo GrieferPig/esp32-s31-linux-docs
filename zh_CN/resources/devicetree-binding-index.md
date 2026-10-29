@@ -4,7 +4,7 @@
 应查阅这些绑定，并结合对应驱动和现有设备树节点了解实现细节。存在 schema
 文件并不代表它覆盖了所有属性，也不代表已经通过验证。
 
-以下 S31 schema 位于 `linux-esp32-s31/Documentation/devicetree/bindings/` 下：
+以下 S31 schema 位于 `external/linux/Documentation/devicetree/bindings/` 下：
 
 | Schema | 设备 |
 |---|---|

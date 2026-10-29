@@ -7,7 +7,7 @@ details. A schema's presence does not establish complete property coverage
 or a successful validation run.
 
 The following S31 schemas are under
-`linux-esp32-s31/Documentation/devicetree/bindings/`:
+`external/linux/Documentation/devicetree/bindings/`:
 
 | Schema | Device |
 |---|---|

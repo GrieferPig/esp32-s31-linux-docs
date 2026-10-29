@@ -11,7 +11,7 @@ make lp-firmware
 make rootfs
 ```
 
-LP 构建生成 `out/lp/esp-idf/main/s31_lp_main/s31_lp_main.elf`，并暂存为 `out/staging/overlay/lib/firmware/esp32s31/s31-lp-core.elf`。rootfs 构建会打包该文件。参见 [LP Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/Makefile)。
+LP 构建生成 `out/lp/esp-idf/main/s31_lp_main/s31_lp_main.elf`，并暂存为 `out/staging/overlay/lib/firmware/esp32s31/s31-lp-core.elf`。rootfs 构建会打包该文件。参见 [LP Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/Makefile)。
 
 如需在板上替换固件，先将新的 ELF 传输到 `/tmp/s31-lp-core.elf`，再停止 LP 并替换已安装的固件：
 
@@ -35,7 +35,7 @@ s31-lpctl ping
 | OpenSBI 挂起快照 | `0x2E002000`–`0x2E007000` | 20 KiB 运行时快照保留区 |
 | 睡眠控制保留区 | `0x2E007C00`–`0x2E008000` | 最后 1 KiB；当前结构体占用 112 字节 |
 
-增加代码、数据或栈大小时，应检查 ELF 加载段和链接映射文件。不得扩展进入上述共享保留区。参见[构建分配](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/sdkconfig.defaults)、[OpenSBI 快照](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c)及[内存映射](../hw-reference/memory-map.md)。
+增加代码、数据或栈大小时，应检查 ELF 加载段和链接映射文件。不得扩展进入上述共享保留区。参见[构建分配](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/sdkconfig.defaults)、[OpenSBI 快照](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c)及[内存映射](../hw-reference/memory-map.md)。
 
 ## 协同修改协议
 
@@ -53,4 +53,4 @@ python -m unittest tools.tests.test_s31_feature_contracts.DriverContracts.test_l
 
 使用新的寄存器窗口前，应在 remoteproc 驱动中添加所需的 LP 外设 PMS 访问权限。现有授权函数会检查已锁定的权限，并回读验证写入的访问位；失败时返回 `-EACCES`。参见[权限配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c)。
 
-GPIO 唤醒使用 RTCIO 所有权、电平采样及配置好的 LP GPIO 唤醒中断 / ISR。轮询路径覆盖状态切换窗口；ISR 在 `HP_ASLEEP` 后记录 GPIO 原因并请求 APPWR 唤醒。保留 ARM 时检查非有效电平的逻辑，以及在交还所有权前禁用上下拉、唤醒和输入的清理流程。参见 [GPIO 处理](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c)及 [ARM 配置](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c)。
+GPIO 唤醒使用 RTCIO 所有权、电平采样及配置好的 LP GPIO 唤醒中断 / ISR。轮询路径覆盖状态切换窗口；ISR 在 `HP_ASLEEP` 后记录 GPIO 原因并请求 APPWR 唤醒。保留 ARM 时检查非有效电平的逻辑，以及在交还所有权前禁用上下拉、唤醒和输入的清理流程。参见 [GPIO 处理](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c)及 [ARM 配置](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c)。

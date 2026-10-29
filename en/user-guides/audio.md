@@ -44,7 +44,7 @@ MCLK. These are configured/derived values, not measured frequencies.
 ## Add the card and build it
 
 On the build host, add these options to
-`linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig` and use the full board configuration.
+`external/linux/arch/riscv/configs/esp32s31_defconfig` and use the full board configuration.
 The parent build recreates its generated `.config` from this source defconfig,
 so editing only `out/linux/.config` is insufficient:
 
@@ -54,7 +54,7 @@ CONFIG_SND_SOC_PCM5102A=y
 ```
 
 Create
-`linux-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2s0-pcm5102a.dtso`
+`external/linux/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2s0-pcm5102a.dtso`
 with this complete overlay:
 
 ```dts

@@ -6,7 +6,7 @@
 
 `make image` 生成并验证六个组件：`spl_app.bin`、`u-boot.itb`、`esp32s31_generic.dtb`、`radio.bin`、`xipImage` 和 `rootfs.sqfs`，以及合并镜像、`radio.json`、`build-manifest.json`、校验和文件。通过验证后，完整匹配集位于 `dist/<build-id>/`，`dist/current` 指向该集合。
 
-本地镜像清单由 `tools/release/assets.py` 管理。当前 GitHub Release 工作流验证完整集合后，只上传 `s31_full_flash.bin`，并使用仓库的 `configs/release-notes.md` 作为说明正文，只包含 `root` 用户名、`esp32-config` 提示和 Linux/Windows 烧录命令。发布标签对应主仓库源码提交。参见[发布工作流](https://github.com/GrieferPig/esp32-s31-linux/blob/main/.github/workflows/release-images.yml)和[发布正文](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/release-notes.md)。不能假设 GitHub Release 提供全部本地组件或校验文件；以该次发布的实际附件为准。
+本地镜像清单由 `tools/release/assets.py` 管理。当前 GitHub Release 工作流验证完整集合后，只上传 `s31_full_flash.bin`，并使用仓库的 `tools/release/notes.md` 作为说明正文，只包含 `root` 用户名、`esp32-config` 提示和 Linux/Windows 烧录命令。发布标签对应主仓库源码提交。参见[发布工作流](https://github.com/GrieferPig/esp32-s31-linux/blob/main/.github/workflows/release-images.yml)和[发布正文](https://github.com/GrieferPig/esp32-s31-linux/blob/main/tools/release/notes.md)。不能假设 GitHub Release 提供全部本地组件或校验文件；以该次发布的实际附件为准。
 
 ## 准备发布
 
@@ -35,7 +35,7 @@ tools/release/radio_bundle.sh --release \
 
 ## 声明与源码
 
-检查镜像内每个组件的条款，包括乐鑫无线库和 BTstack，按要求提供声明、许可证及源码材料。参考主仓库的[第三方声明](https://github.com/GrieferPig/esp32-s31-linux/blob/main/THIRD_PARTY_NOTICES.md)和[无线软件包许可](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/radio/RADIO_BUNDLE_LICENSES.md)。打包命令不会改变许可条款。
+检查镜像内每个组件的条款，包括乐鑫无线库和 BTstack，按要求提供声明、许可证及源码材料。参考主仓库的[第三方声明](https://github.com/GrieferPig/esp32-s31-linux/blob/main/THIRD_PARTY_NOTICES.md)和[无线软件包许可](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/radio/RADIO_BUNDLE_LICENSES.md)。打包命令不会改变许可条款。
 
 ## 测试记录
 

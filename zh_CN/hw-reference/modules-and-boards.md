@@ -26,7 +26,7 @@
 | 59 | UART0 RX，控制台输入 |
 
 这些保留项来自[基础 GPIO 配置](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
-和[覆盖层引脚检查](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/s31_overlay.c)。
+和[覆盖层引脚检查](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/userspace/config/s31_overlay.c)。
 GPIO 驱动的有效引脚掩码还排除了 GPIO29；它已包含在保留的 26–32 引脚组中。
 
 ## 连接外设

@@ -1,7 +1,7 @@
 # Kernel configuration
 
 Kernel options select the drivers and system features built into Linux. The
-S31 defconfig is under `linux-esp32-s31/arch/riscv/configs/`. The parent
+S31 defconfig is under `external/linux/arch/riscv/configs/`. The parent
 build applies `configs/kernel/common.config` and `board.config`, plus
 `debug.config` for `DEBUG=1`. See [Build configuration](../get-started/build-configuration.md).
 

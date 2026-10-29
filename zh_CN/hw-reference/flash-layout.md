@@ -13,7 +13,7 @@
 | `0x400000` | 6144 KiB | `xipImage` |
 | `0xA00000` | 6144 KiB | `rootfs.sqfs` |
 
-布局来源为主仓库的 `configs/esp32s31-layout.cfg`，镜像打包、大小检查与烧录共用该文件。所有分区以 8 KiB NOR 擦除粒度对齐，Linux 起点还满足 Sv32 的 4 MiB 大页对齐要求。
+布局来源为主仓库的 `configs/board/esp32s31-layout.cfg`，镜像打包、大小检查与烧录共用该文件。所有分区以 8 KiB NOR 擦除粒度对齐，Linux 起点还满足 Sv32 的 4 MiB 大页对齐要求。
 
 ## MTD 设备与原始访问
 
@@ -58,6 +58,6 @@ FIT 的 OpenSBI 数据固定在 FIT 偏移 `0x400`，因此 OpenSBI 从 `0x4000E
 
 ## 修改布局
 
-修改 `configs/esp32s31-layout.cfg` 时，必须同步更新 U-Boot 映射与启动地址、Linux 设备树、XIP 内核地址、无线预链接约定及有关测试。运行 `make check-layout`，并重新验证所有镜像体积和完整匹配集。不得绕过容量检查或让分区重叠。
+修改 `configs/board/esp32s31-layout.cfg` 时，必须同步更新 U-Boot 映射与启动地址、Linux 设备树、XIP 内核地址、无线预链接约定及有关测试。运行 `make check-layout`，并重新验证所有镜像体积和完整匹配集。不得绕过容量检查或让分区重叠。
 
 烧录与控制台步骤见[烧录与首次启动](../get-started/flash-and-first-boot.md)。

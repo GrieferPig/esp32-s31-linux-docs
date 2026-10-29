@@ -109,7 +109,7 @@ make PORT=/dev/ttyUSB1 BAUD=921600 flash-existing-all
 | `HOST_PYTHON` | U-Boot 主机解释器，包含 env-shebang 工具；默认取当前 `python3`，激活 ESP-IDF 时应显式选择已准备依赖的主机解释器 |
 | `UBOOT_PYTHONPATH` | 该 U-Boot 主机解释器可选的额外模块搜索路径 |
 | `TOOLCHAIN_PREFIX` | 已安装 Linux 工具链目录 |
-| `TOOLCHAIN_RELEASE_TAG` | `configs/build-versions.mk` 选择的版本 |
+| `TOOLCHAIN_RELEASE_TAG` | `configs/versions.mk` 选择的版本 |
 | `CROSSTOOL_NG_DIR` | `toolchain-source` 使用的源码目录 |
 | `S31_ALLOW_UNPINNED` | 显式启用实验性的非固定 ESP-IDF 版本 |
 | `ROOTFS_BASELINE` | 显式请求从已有 rootfs 增量重新打包，保留来源记录 |

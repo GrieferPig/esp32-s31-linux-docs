@@ -70,14 +70,14 @@ import check. Save the interpreter path in `local.mk` to reuse it in new shells.
 
 ESP-IDF is the official development framework for the ESP32 series of chips. LP and Radio firmwares in `esp32-s31-linux` depend on ESP-IDF's proprietary libraries and toolchain.
 
-Use the exact ESP-IDF revision in `configs/build-versions.mk`, not a moving
+Use the exact ESP-IDF revision in `configs/versions.mk`, not a moving
 `master` branch or a version number alone. The current pin is
 `a602e67b0bf9ee0806dc4e1df7afc9affedf5c33`. From the project root, install it
 into a new directory:
 
 ```sh
 export IDF_PATH="$HOME/esp-idf"
-ESP_IDF_REF=$(sed -n 's/^ESP_IDF_REF := //p' configs/build-versions.mk)
+ESP_IDF_REF=$(sed -n 's/^ESP_IDF_REF := //p' configs/versions.mk)
 git clone --filter=blob:none https://github.com/espressif/esp-idf.git "$IDF_PATH"
 git -C "$IDF_PATH" checkout "$ESP_IDF_REF"
 git -C "$IDF_PATH" submodule update --init --recursive
@@ -103,7 +103,7 @@ Sources can be found on [GitHub](https://github.com/GrieferPig/crosstool-NG-s31)
 make toolchain-fetch
 ```
 
-The default release is pinned in `configs/build-versions.mk`
+The default release is pinned in `configs/versions.mk`
 (`esp32s31-linux-gcc-15.2.0-5` at this revision). The target checks the downloaded
 archive against the release's SHA-256 file. Use `TOOLCHAIN_RELEASE_TAG=local`
 only when deliberately testing an already installed custom toolchain.

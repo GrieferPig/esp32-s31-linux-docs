@@ -39,7 +39,7 @@ XSMT 为高以解除静音；DEMP 为低可禁用去加重。供电和其他配�
 ## 添加声卡并构建
 
 在构建主机上，将以下选项加入
-`linux-esp32-s31/arch/riscv/configs/esp32s31_defconfig`；统一完整配置仍需额外选择此 codec 与声卡驱动。
+`external/linux/arch/riscv/configs/esp32s31_defconfig`；统一完整配置仍需额外选择此 codec 与声卡驱动。
 父仓库的构建流程会根据该源 defconfig 重新生成 `.config`，仅修改
 `out/linux/.config` 不会持久生效：
 
@@ -49,7 +49,7 @@ CONFIG_SND_SOC_PCM5102A=y
 ```
 
 创建
-`linux-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2s0-pcm5102a.dtso`，
+`external/linux/arch/riscv/boot/dts/espressif/esp32s31-overlay-i2s0-pcm5102a.dtso`，
 内容如下，这是完整的覆盖层：
 
 ```dts

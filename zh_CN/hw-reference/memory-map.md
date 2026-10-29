@@ -28,7 +28,7 @@ Linux 使用外部 PSRAM 存放可写内核数据和应用。内部 HP SRAM 存�
 | 无线高地址堆 | `0x2F078C00` | `0x2F07CFB0` | 额外的无线内存分配 |
 
 HP 预留区域定义在
-[`shared/s31_memory_layout.h`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/shared/s31_memory_layout.h)
+[`include/s31/memory_layout.h`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/include/s31/memory_layout.h)
 中。无线和 DMA 驱动直接使用这些区域。应用通过常规 Linux API 分配内存。
 
 

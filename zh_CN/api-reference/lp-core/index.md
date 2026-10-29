@@ -28,7 +28,7 @@ s31-lpctl gpio-test 3 high down 1000
 s31-lpctl gpio-test 3 low up 1000
 ```
 
-固件配置上下拉后会等待 100 微秒，使输入稳定；若输入已经处于有效电平，则以 `S31_LP_SLEEP_ERR_WAKE_MASK` 拒绝请求。`DRY_RUN` 同样执行此检查。因此，不能仅将内部上下拉设置为有效电平来完成测试；外部电路或绑带也可能改变初始电平。参见 [ARM 验证](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c)。
+固件配置上下拉后会等待 100 微秒，使输入稳定；若输入已经处于有效电平，则以 `S31_LP_SLEEP_ERR_WAKE_MASK` 拒绝请求。`DRY_RUN` 同样执行此检查。因此，不能仅将内部上下拉设置为有效电平来完成测试；外部电路或绑带也可能改变初始电平。参见 [ARM 验证](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c)。
 
 GPIO3 测试成功时，`result=0`，`wake_reason` 包含 GPIO 位（`0x2`），`raw` 包含位 3（`0x8`）。超时意味着在指定时间内未完成有效的电平变化。Linux 始终保持运行；此测试通过不能证明系统挂起或深度睡眠唤醒可靠。
 
@@ -70,7 +70,7 @@ GPIO3 测试成功时，`result=0`，`wake_reason` 包含 GPIO 位（`0x2`），
 | `state`、`result` | 事务状态和协议结果码 |
 | `wake_reason`、`wake_raw` | 唤醒源掩码及源特定的原始位 |
 
-保持（`MEM`）路径中，固件在 OpenSBI 发布 `HP_ASLEEP` 后启动定时器，不会在 Linux 较早的设备挂起阶段消耗这段时长。参见[定时器单位转换](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c)及[保持路径的启动条件](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c)。
+保持（`MEM`）路径中，固件在 OpenSBI 发布 `HP_ASLEEP` 后启动定时器，不会在 Linux 较早的设备挂起阶段消耗这段时长。参见[定时器单位转换](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c)及[保持路径的启动条件](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c)。
 
 请求 CRC 覆盖 `request_crc` 前的字节；响应 CRC 覆盖 `response_crc` 前的字节，包括请求与结果字段。Linux 使用 `crc32_le(~0U, data, length) ^ ~0U`，并在 LP 发布响应期间重试快照读取。[协议头文件](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/include/linux/soc/espressif/esp32s31-lp-protocol.h)是消息码、标志、状态与字段的权威定义；[CRC 读取实现](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/drivers/remoteproc/esp32s31_lp.c)定义验证行为。
 

@@ -16,7 +16,7 @@ make rootfs
 The LP build creates
 `out/lp/esp-idf/main/s31_lp_main/s31_lp_main.elf` and stages it as
 `out/staging/overlay/lib/firmware/esp32s31/s31-lp-core.elf`.
-The rootfs build packages that file. See the [LP Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/Makefile).
+The rootfs build packages that file. See the [LP Makefile](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/Makefile).
 
 For an on-board replacement, first transfer the new ELF to
 `/tmp/s31-lp-core.elf`, then stop LP before replacing the installed firmware:
@@ -48,7 +48,7 @@ available to code, data and stacks:
 
 Inspect ELF load segments and the linker map when increasing code, data or
 stack sizes. Do not expand into either shared reservation. See the
-[build allocation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/sdkconfig.defaults),
+[build allocation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/sdkconfig.defaults),
 [OpenSBI snapshot](https://github.com/GrieferPig/opensbi-esp32-s31/blob/v1.9-esp32-s31/platform/generic/espressif/esp32s31/services.c) and [memory map](../hw-reference/memory-map.md).
 
 ## Change the protocol coherently
@@ -82,5 +82,5 @@ GPIO wake uses RTCIO ownership, level sampling and a configured LP GPIO
 wakeup interrupt/ISR. The poll path covers the transition window; the ISR
 records a GPIO reason and requests APPWR wake after `HP_ASLEEP`. Preserve the
 inactive-at-ARM check and the cleanup that disables pulls, wakeup and input
-before returning ownership. See [GPIO handling](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c) and
-[ARM setup](https://github.com/GrieferPig/esp32-s31-linux/blob/main/firmware/lp/main/lp_core/main.c).
+before returning ownership. See [GPIO handling](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c) and
+[ARM setup](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/lp/main/lp_core/main.c).

@@ -107,7 +107,7 @@ library caches successful initialization and does not recheck later affinity
 changes. For raw instructions and compiler ABI choices, see
 [ISA and ABI](../../hw-reference/isa.md).
 
-The [library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/esp_simd.c)
+The [library implementation](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/userspace/simd/esp_simd.c)
 and `rootfs/s31_string_bench.c` provide more examples. A Buildroot package using
 the library should select `BR2_PACKAGE_ESP_SIMD`, add `esp-simd` to its package
 dependencies, and link with `-lesp-simd`.

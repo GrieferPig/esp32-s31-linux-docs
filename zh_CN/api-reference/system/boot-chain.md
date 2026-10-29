@@ -7,7 +7,7 @@
 
 项目构建将 SPL 打包为 `out/images/spl_app.bin`，其原始 Flash 偏移为 `0x002000`，容量限制为 48 KiB；之前的 8 KiB 为 FlashEncryption 强制保留区。SPL 初始化内存和时钟，将完整 Flash 从原始偏移零映射到物理 `0x40000000`，再加载位于 `0x00E000` 的 U-Boot FIT。
 
-构建入口见 `mk/boot.mk`，运行时板级初始化见 `u-boot-esp32-s31/board/espressif/esp32s31/spl.c`。
+构建入口见 `mk/boot.mk`，运行时板级初始化见 `external/u-boot/board/espressif/esp32s31/spl.c`。
 
 ## 2. OpenSBI 和 U-Boot
 

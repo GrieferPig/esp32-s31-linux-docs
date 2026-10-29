@@ -36,7 +36,7 @@ Commit or save local edits before updating a submodule.
 Enter the submodule and create a branch. For example, for a kernel change:
 
 ```sh
-cd linux-esp32-s31
+cd external/linux
 git switch -c my-driver-change
 ```
 
@@ -50,7 +50,7 @@ Return to the parent and record the new submodule revision:
 
 ```sh
 cd ..
-git add linux-esp32-s31
+git add external/linux
 git diff --cached --submodule=log
 git commit -m "Update Linux for driver change"
 ```

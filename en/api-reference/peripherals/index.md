@@ -244,6 +244,6 @@ Timing and analog devices use their Linux subsystem interfaces. In the
 is reserved for CPU idle wakeups. Analog and digital routes can share physical
 pads, so choose one function for each pin.
 
-Driver sources are under `linux-esp32-s31/drivers/`, with audio under
+Driver sources are under `external/linux/drivers/`, with audio under
 `sound/soc/espressif/`. See [Adding a driver](../../api-guides/adding-a-driver.md)
 for integration steps.

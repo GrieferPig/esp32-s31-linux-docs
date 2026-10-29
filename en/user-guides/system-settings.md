@@ -26,7 +26,7 @@ esp32-config system password
 Choose **Date and time → Time zone and automatic time**. Select an installed
 zone such as `America/Los_Angeles` or `Asia/Shanghai`, then choose whether to
 use a network time server. The zone's daylight-saving rules apply automatically. The image includes a
-curated set of nine zones from `configs/esp32-config-timezones.list`, rather
+curated set of nine zones from `configs/board/timezones.list`, rather
 than the entire timezone database; available names are listed in
 `/usr/share/esp32-config/timezones`.
 

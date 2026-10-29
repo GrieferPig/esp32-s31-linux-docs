@@ -27,7 +27,7 @@ The base configuration reserves these pins:
 | 59 | UART0 RX, console input |
 
 These reservations come from the [base GPIO configuration](https://github.com/GrieferPig/linux-esp32-s31/blob/v6.18-esp32-s31/arch/riscv/boot/dts/espressif/esp32s31.dtsi)
-and [overlay pin checks](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/s31_overlay.c).
+and [overlay pin checks](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/userspace/config/s31_overlay.c).
 GPIO29 is also excluded by the GPIO driver's valid-pin mask; it is already
 inside the reserved 26–32 group.
 

@@ -1,7 +1,7 @@
 # 内核配置
 
 内核选项用于选择 Linux 中包含的驱动和系统功能。
-S31 defconfig 位于 `linux-esp32-s31/arch/riscv/configs/` 下。
+S31 defconfig 位于 `external/linux/arch/riscv/configs/` 下。
 顶层构建应用 `configs/kernel/common.config` 和 `configs/kernel/board.config`，可用 `DEBUG=1` 追加诊断片段。所有构建使用[完整配置](../get-started/build-configuration.md)。
 
 ## S31 选项

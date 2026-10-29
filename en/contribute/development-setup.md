@@ -7,9 +7,9 @@ the tools and build the standard full-board image.
 
 | Directory | Contents |
 |---|---|
-| `linux-esp32-s31/` | Linux kernel, drivers, device trees, and kernel configuration |
-| `opensbi-esp32-s31/` | M-mode firmware and platform services |
-| `u-boot-esp32-s31/` | SPL and U-Boot |
+| `external/linux/` | Linux kernel, drivers, device trees, and kernel configuration |
+| `external/opensbi/` | M-mode firmware and platform services |
+| `external/u-boot/` | SPL and U-Boot |
 | `buildroot/` | Buildroot |
 | `buildroot-external/` | Board files, packages, and rootfs configuration |
 | `firmware/` | Radio and LP firmware |

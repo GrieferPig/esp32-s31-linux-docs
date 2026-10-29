@@ -82,7 +82,7 @@ make flash-existing-all PORT=/dev/ttyUSB0
 
 库的构造函数会在 `main()` 前尝试将初始线程绑定到 CPU1。每个调用线程首次使用 SIMD 操作时，也会执行初始化。`esp_simd_init()` 成功时返回零，绑定失败时返回负的 errno 值；初始化失败时，包装函数会使用标量实现。CPU 绑定影响整个调用线程，也包括该线程中的非 SIMD 工作。初始化后，不要将线程移到 CPU0 或扩大其 CPU 亲和性范围：库会缓存初始化成功状态，不会重新检查后续的亲和性改动。原始指令和编译器 ABI 选择见 [ISA 与 ABI](../../hw-reference/isa.md)。
 
-更多示例可查看[库实现](https://github.com/GrieferPig/esp32-s31-linux/blob/main/rootfs/esp_simd.c)和 `rootfs/s31_string_bench.c`。使用此库的 Buildroot 软件包应选择 `BR2_PACKAGE_ESP_SIMD`，将 `esp-simd` 加入软件包依赖，并使用 `-lesp-simd` 链接。
+更多示例可查看[库实现](https://github.com/GrieferPig/esp32-s31-linux/blob/main/src/userspace/simd/esp_simd.c)和 `rootfs/s31_string_bench.c`。使用此库的 Buildroot 软件包应选择 `BR2_PACKAGE_ESP_SIMD`，将 `esp-simd` 加入软件包依赖，并使用 `-lesp-simd` 链接。
 
 ## 访问硬件
 

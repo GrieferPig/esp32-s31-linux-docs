@@ -1,6 +1,6 @@
 # Adding a driver
 
-Add peripheral drivers in the `linux-esp32-s31` source tree, using the Linux
+Add peripheral drivers in the `external/linux` source tree, using the Linux
 subsystem that matches the device: I2C, SPI, ALSA, IIO, PWM, Counter, SocketCAN,
 or another standard framework. Keep the hardware description, kernel build
 options and enabling overlay together with the driver integration.
@@ -8,7 +8,7 @@ options and enabling overlay together with the driver integration.
 ## 1. Follow a complete integration example
 
 The existing I2C0 support shows how the pieces fit together. Paths in this table
-are relative to `linux-esp32-s31`.
+are relative to `external/linux`.
 
 | Integration piece | I2C0 example |
 | --- | --- |

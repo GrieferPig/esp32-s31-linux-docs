@@ -53,7 +53,7 @@ the aligned 4 MiB leaf mapping from virtual `0xBE000000` to physical
 ## Change the layout
 
 The offsets and filenames are defined in
-[`configs/esp32s31-layout.cfg`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/esp32s31-layout.cfg).
+[`configs/board/esp32s31-layout.cfg`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/configs/board/esp32s31-layout.cfg).
 The merge script checks that each file fits its region, including the 48 KiB
 SPL limit. Coordinate changes with the bootloader, OpenSBI, kernel XIP and
 radio mappings, device-tree partitions, image tooling, and flashing commands.

@@ -27,7 +27,7 @@ Range ends in this table are exclusive. For a detailed map, see [ESP32-S31 Techn
 | Radio high heap | `0x2F078C00` | `0x2F07CFB0` | Additional radio allocations |
 
 The HP reservations are defined in
-[`shared/s31_memory_layout.h`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/shared/s31_memory_layout.h).
+[`include/s31/memory_layout.h`](https://github.com/GrieferPig/esp32-s31-linux/blob/main/include/s31/memory_layout.h).
 The radio and DMA drivers use these areas directly. Applications allocate
 memory through the usual Linux APIs.
 
